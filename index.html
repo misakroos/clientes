@@ -1,12 +1,1191 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="es">
 <head>
-  <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/TU_ID/exec">
-  <script>
-    window.location.replace("https://script.google.com/macros/s/AKfycbwX_knVlSqC0ix5peC_5doXjzfjtB3-WvkIykLFc0E7hQEMusTnvpFXntxMknIHEwm2/exec");
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClientesPro — Gestión de Servicios Digitales</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #00e5a0;
+    --yellow: #ffd166;
+    --red: #ff4d6d;
+    --orange: #ff9f43;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --card-r: 16px;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+font-family: ‘DM Sans’, sans-serif;
+background: var(–bg);
+color: var(–text);
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+/* HEADER */
+header {
+background: var(–surface);
+border-bottom: 1px solid var(–border);
+padding: 0 24px;
+height: 64px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+position: sticky;
+top: 0;
+z-index: 100;
+backdrop-filter: blur(12px);
+}
+
+.logo {
+font-family: ‘Syne’, sans-serif;
+font-weight: 800;
+font-size: 20px;
+letter-spacing: -0.5px;
+}
+.logo span { color: var(–accent); }
+
+.header-actions { display: flex; gap: 10px; align-items: center; }
+
+.btn-config {
+background: var(–surface2);
+border: 1px solid var(–border);
+color: var(–text);
+padding: 8px 16px;
+border-radius: 8px;
+cursor: pointer;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 13px;
+transition: all .2s;
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.btn-config:hover { border-color: var(–accent); color: var(–accent); }
+
+.sync-indicator {
+display: flex;
+align-items: center;
+gap: 6px;
+font-size: 12px;
+color: var(–muted);
+font-family: ‘DM Mono’, monospace;
+}
+.sync-dot {
+width: 7px; height: 7px;
+border-radius: 50%;
+background: var(–green);
+animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+/* MAIN LAYOUT */
+main { padding: 28px 24px; max-width: 1400px; margin: 0 auto; }
+
+/* CONFIG PANEL */
+.config-panel {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–card-r);
+padding: 24px;
+margin-bottom: 28px;
+display: none;
+animation: slideDown .2s ease;
+}
+.config-panel.open { display: block; }
+@keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+
+.config-panel h3 {
+font-family: ‘Syne’, sans-serif;
+font-size: 16px;
+margin-bottom: 16px;
+color: var(–accent);
+}
+
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width:600px){.config-grid{grid-template-columns:1fr}}
+
+.form-group label {
+display: block;
+font-size: 12px;
+color: var(–muted);
+margin-bottom: 6px;
+font-family: ‘DM Mono’, monospace;
+text-transform: uppercase;
+letter-spacing: .5px;
+}
+.form-group input, .form-group select {
+width: 100%;
+background: var(–surface2);
+border: 1px solid var(–border);
+color: var(–text);
+padding: 10px 14px;
+border-radius: 8px;
+font-family: ‘DM Mono’, monospace;
+font-size: 13px;
+outline: none;
+transition: border-color .2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(–accent); }
+
+.btn-save {
+margin-top: 16px;
+background: var(–accent);
+border: none;
+color: #fff;
+padding: 10px 24px;
+border-radius: 8px;
+cursor: pointer;
+font-family: ‘Syne’, sans-serif;
+font-weight: 600;
+font-size: 14px;
+transition: all .2s;
+}
+.btn-save:hover { background: #5a52e0; transform: translateY(-1px); }
+
+.config-note {
+margin-top: 12px;
+padding: 10px 14px;
+background: rgba(108,99,255,.1);
+border: 1px solid rgba(108,99,255,.3);
+border-radius: 8px;
+font-size: 12px;
+color: var(–muted);
+line-height: 1.6;
+}
+.config-note a { color: var(–accent); }
+
+/* STATS */
+.stats-row {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 14px;
+margin-bottom: 28px;
+}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.stats-row{grid-template-columns:1fr 1fr}}
+
+.stat-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–card-r);
+padding: 18px 20px;
+cursor: pointer;
+transition: all .2s;
+position: relative;
+overflow: hidden;
+}
+.stat-card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 3px;
+border-radius: 3px 3px 0 0;
+}
+.stat-card.vencidos::before { background: var(–red); }
+.stat-card.por-vencer::before { background: var(–orange); }
+.stat-card.activos::before { background: var(–green); }
+.stat-card.total::before { background: var(–accent); }
+
+.stat-card:hover { transform: translateY(-2px); border-color: var(–accent); }
+.stat-card.active { border-color: var(–accent); background: var(–surface2); }
+
+.stat-num {
+font-family: ‘Syne’, sans-serif;
+font-size: 32px;
+font-weight: 800;
+line-height: 1;
+margin-bottom: 6px;
+}
+.stat-card.vencidos .stat-num { color: var(–red); }
+.stat-card.por-vencer .stat-num { color: var(–orange); }
+.stat-card.activos .stat-num { color: var(–green); }
+.stat-card.total .stat-num { color: var(–accent); }
+
+.stat-label {
+font-size: 12px;
+color: var(–muted);
+font-family: ‘DM Mono’, monospace;
+text-transform: uppercase;
+letter-spacing: .5px;
+}
+
+/* FILTERS & SEARCH */
+.toolbar {
+display: flex;
+gap: 12px;
+margin-bottom: 20px;
+flex-wrap: wrap;
+align-items: center;
+}
+
+.search-box {
+flex: 1;
+min-width: 200px;
+position: relative;
+}
+.search-box input {
+width: 100%;
+background: var(–surface);
+border: 1px solid var(–border);
+color: var(–text);
+padding: 10px 14px 10px 38px;
+border-radius: 10px;
+font-size: 14px;
+outline: none;
+transition: border-color .2s;
+font-family: ‘DM Sans’, sans-serif;
+}
+.search-box input:focus { border-color: var(–accent); }
+.search-box svg {
+position: absolute;
+left: 12px;
+top: 50%;
+transform: translateY(-50%);
+color: var(–muted);
+width: 16px; height: 16px;
+}
+
+.btn-refresh {
+background: var(–surface);
+border: 1px solid var(–border);
+color: var(–text);
+padding: 10px 16px;
+border-radius: 10px;
+cursor: pointer;
+font-size: 14px;
+transition: all .2s;
+display: flex;
+align-items: center;
+gap: 6px;
+font-family: ‘DM Sans’, sans-serif;
+white-space: nowrap;
+}
+.btn-refresh:hover { border-color: var(–green); color: var(–green); }
+
+/* SECTION TITLE */
+.section-title {
+font-family: ‘Syne’, sans-serif;
+font-size: 13px;
+font-weight: 700;
+color: var(–muted);
+text-transform: uppercase;
+letter-spacing: 1px;
+margin-bottom: 14px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.section-title .badge {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 2px 10px;
+font-size: 11px;
+color: var(–text);
+}
+
+/* CLIENT GRID */
+.clients-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+gap: 16px;
+margin-bottom: 32px;
+}
+@media(max-width:400px){.clients-grid{grid-template-columns:1fr}}
+
+/* CLIENT CARD */
+.client-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–card-r);
+overflow: hidden;
+transition: all .25s;
+animation: fadeInUp .3s ease both;
+}
+.client-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+
+@keyframes fadeInUp {
+from { opacity:0; transform:translateY(16px) }
+to { opacity:1; transform:translateY(0) }
+}
+
+.card-header {
+padding: 16px 18px 12px;
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: flex-start;
+justify-content: space-between;
+gap: 12px;
+}
+
+.client-avatar {
+width: 42px; height: 42px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: ‘Syne’, sans-serif;
+font-weight: 800;
+font-size: 16px;
+flex-shrink: 0;
+}
+
+.client-info { flex: 1; min-width: 0; }
+.client-name {
+font-family: ‘Syne’, sans-serif;
+font-weight: 700;
+font-size: 15px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.client-id {
+font-family: ‘DM Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+margin-top: 2px;
+}
+
+.status-badge {
+padding: 4px 10px;
+border-radius: 20px;
+font-size: 11px;
+font-weight: 500;
+font-family: ‘DM Mono’, monospace;
+white-space: nowrap;
+flex-shrink: 0;
+}
+.status-vencido { background: rgba(255,77,109,.15); color: var(–red); border: 1px solid rgba(255,77,109,.3); }
+.status-por-vencer { background: rgba(255,159,67,.15); color: var(–orange); border: 1px solid rgba(255,159,67,.3); }
+.status-activo { background: rgba(0,229,160,.15); color: var(–green); border: 1px solid rgba(0,229,160,.3); }
+
+/* Card Status strip */
+.client-card.vencido { border-left: 3px solid var(–red); }
+.client-card.por-vencer { border-left: 3px solid var(–orange); }
+.client-card.activo { border-left: 3px solid var(–green); }
+
+.card-body { padding: 14px 18px; }
+
+.info-row {
+display: flex;
+align-items: center;
+gap: 8px;
+margin-bottom: 8px;
+font-size: 13px;
+}
+.info-row svg { color: var(–muted); flex-shrink: 0; width: 14px; height: 14px; }
+.info-row span { color: var(–text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dates-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+margin-top: 12px;
+padding-top: 12px;
+border-top: 1px solid var(–border);
+}
+.date-item label {
+display: block;
+font-size: 10px;
+color: var(–muted);
+font-family: ‘DM Mono’, monospace;
+text-transform: uppercase;
+letter-spacing: .5px;
+margin-bottom: 3px;
+}
+.date-item span {
+font-family: ‘DM Mono’, monospace;
+font-size: 12px;
+font-weight: 500;
+}
+
+.days-left {
+display: flex;
+align-items: center;
+gap: 6px;
+padding: 8px 12px;
+border-radius: 8px;
+margin-top: 10px;
+font-size: 12px;
+font-family: ‘DM Mono’, monospace;
+font-weight: 500;
+}
+.days-left.vencido { background: rgba(255,77,109,.1); color: var(–red); }
+.days-left.por-vencer { background: rgba(255,159,67,.1); color: var(–orange); }
+.days-left.activo { background: rgba(0,229,160,.1); color: var(–green); }
+
+/* ACTION BUTTONS */
+.card-actions {
+padding: 12px 18px 16px;
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+border-top: 1px solid var(–border);
+}
+
+.action-btn {
+padding: 9px 10px;
+border-radius: 8px;
+border: none;
+cursor: pointer;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 12px;
+font-weight: 500;
+transition: all .2s;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 5px;
+white-space: nowrap;
+}
+.action-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+.btn-renovar {
+background: rgba(108,99,255,.15);
+color: var(–accent);
+border: 1px solid rgba(108,99,255,.3);
+grid-column: span 1;
+}
+.btn-renovar:hover { background: var(–accent); color: #fff; }
+
+.btn-no-renovar {
+background: rgba(255,209,102,.1);
+color: var(–yellow);
+border: 1px solid rgba(255,209,102,.25);
+}
+.btn-no-renovar:hover { background: var(–yellow); color: #000; }
+
+.btn-whatsapp {
+background: rgba(37,211,102,.12);
+color: #25d366;
+border: 1px solid rgba(37,211,102,.25);
+}
+.btn-whatsapp:hover { background: #25d366; color: #fff; }
+
+.btn-eliminar {
+background: rgba(255,77,109,.1);
+color: var(–red);
+border: 1px solid rgba(255,77,109,.25);
+}
+.btn-eliminar:hover { background: var(–red); color: #fff; }
+
+/* EMPTY STATE */
+.empty-state {
+text-align: center;
+padding: 60px 20px;
+color: var(–muted);
+}
+.empty-state svg { margin-bottom: 16px; opacity: .3; }
+.empty-state h3 { font-family: ‘Syne’, sans-serif; font-size: 18px; margin-bottom: 8px; color: var(–text); }
+.empty-state p { font-size: 14px; }
+
+/* TOAST */
+.toast {
+position: fixed;
+bottom: 24px;
+right: 24px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 14px 20px;
+font-size: 13px;
+z-index: 999;
+transform: translateY(80px);
+opacity: 0;
+transition: all .3s ease;
+max-width: 320px;
+display: flex;
+align-items: center;
+gap: 10px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: var(–green); }
+.toast.error { border-color: var(–red); }
+.toast.info { border-color: var(–accent); }
+
+/* LOADING */
+.loading-overlay {
+position: fixed;
+inset: 0;
+background: rgba(10,10,15,.85);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 200;
+gap: 16px;
+display: none;
+}
+.loading-overlay.show { display: flex; }
+.spinner {
+width: 40px; height: 40px;
+border: 3px solid var(–border);
+border-top-color: var(–accent);
+border-radius: 50%;
+animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-family: ‘DM Mono’, monospace; font-size: 13px; color: var(–muted); }
+
+/* MODAL CONFIRM */
+.modal-backdrop {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,.7);
+z-index: 150;
+display: none;
+align-items: center;
+justify-content: center;
+padding: 20px;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 28px;
+max-width: 400px;
+width: 100%;
+animation: popIn .2s ease;
+}
+@keyframes popIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
+.modal h3 { font-family: ‘Syne’, sans-serif; font-size: 18px; margin-bottom: 10px; }
+.modal p { font-size: 14px; color: var(–muted); line-height: 1.6; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-cancel { background: var(–surface2); border: 1px solid var(–border); color: var(–text); padding: 9px 18px; border-radius: 8px; cursor: pointer; font-family: ‘DM Sans’; font-size: 14px; }
+.btn-confirm { background: var(–red); border: none; color: #fff; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-family: ‘Syne’; font-size: 14px; font-weight: 600; }
+
+/* PROVIDER TAG */
+.provider-tag {
+display: inline-flex;
+align-items: center;
+gap: 4px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 2px 8px;
+font-size: 11px;
+font-family: ‘DM Mono’, monospace;
+color: var(–muted);
+margin-top: 4px;
+}
+
+.last-sync {
+font-family: ‘DM Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+text-align: center;
+margin-top: 8px;
+padding-bottom: 24px;
+}
+
+/* Responsive */
+@media(max-width:600px){
+header { padding: 0 16px; }
+main { padding: 20px 16px; }
+.header-actions .sync-indicator { display: none; }
+.stats-row { gap: 10px; }
+.stat-num { font-size: 26px; }
+}
+</style>
+
 </head>
 <body>
-  Redirigiendo...
+
+<!-- LOADING -->
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Sincronizando con Google Sheets...</div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR -->
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>⚠️ Eliminar cliente</h3>
+    <p id="modalMsg">¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm" id="btnConfirm">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toast">
+  <span id="toastMsg"></span>
+</div>
+
+<!-- HEADER -->
+
+<header>
+  <div class="logo">Clientes<span>Pro</span></div>
+  <div class="header-actions">
+    <div class="sync-indicator">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncStatus">Conectado</span>
+    </div>
+    <button class="btn-config" onclick="toggleConfig()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Configurar
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- CONFIG PANEL -->
+
+  <div class="config-panel" id="configPanel">
+    <h3>⚙️ Conexión a Google Sheets</h3>
+    <div class="config-grid">
+      <div class="form-group" style="grid-column:span 2">
+        <label>URL de Google Sheets (publicado como CSV)</label>
+        <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/TU_ID/export?format=csv&gid=0">
+      </div>
+      <div class="form-group">
+        <label>Días para considerar "Por vencer"</label>
+        <input type="number" id="diasAlerta" value="7" min="1" max="30">
+      </div>
+      <div class="form-group">
+        <label>Intervalo de actualización (segundos)</label>
+        <input type="number" id="intervalo" value="60" min="10" max="300">
+      </div>
+    </div>
+    <div class="config-note">
+      📋 <strong>Cómo conectar tu hoja:</strong> En Google Sheets → Archivo → Compartir → Publicar en la web → Selecciona la hoja → Formato CSV → Publicar. Copia el enlace y pégalo arriba.<br><br>
+      🔑 <strong>Columnas requeridas:</strong> id, nombre, teléfono, correo, proveedor, fecha_inicio, fecha_vencimiento (fila 1 como encabezados).
+    </div>
+    <button class="btn-save" onclick="saveConfig()">💾 Guardar y conectar</button>
+  </div>
+
+  <!-- STATS -->
+
+  <div class="stats-row">
+    <div class="stat-card vencidos" onclick="filterBy('vencido')" id="statVencidos">
+      <div class="stat-num" id="numVencidos">0</div>
+      <div class="stat-label">🔴 Vencidos</div>
+    </div>
+    <div class="stat-card por-vencer" onclick="filterBy('por-vencer')" id="statPorVencer">
+      <div class="stat-num" id="numPorVencer">0</div>
+      <div class="stat-label">🟠 Por vencer</div>
+    </div>
+    <div class="stat-card activos" onclick="filterBy('activo')" id="statActivos">
+      <div class="stat-num" id="numActivos">0</div>
+      <div class="stat-label">🟢 Activos</div>
+    </div>
+    <div class="stat-card total" onclick="filterBy('all')" id="statTotal">
+      <div class="stat-num" id="numTotal">0</div>
+      <div class="stat-label">🔵 Total clientes</div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="searchInput" placeholder="Buscar por nombre, teléfono, correo, proveedor..." oninput="renderClients()">
+    </div>
+    <button class="btn-refresh" onclick="loadData()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      Actualizar
+    </button>
+  </div>
+
+  <!-- CLIENTS SECTION -->
+
+  <div id="clientsSection">
+    <div class="section-title">
+      <span id="sectionLabel">Todos los clientes</span>
+      <span class="badge" id="sectionCount">0</span>
+    </div>
+    <div class="clients-grid" id="clientsGrid"></div>
+  </div>
+
+  <div class="last-sync" id="lastSync">Sin datos — configura tu hoja de Google Sheets</div>
+</main>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let allClients = [];
+let currentFilter = 'all';
+let diasAlerta = 7;
+let refreshInterval = null;
+let pendingDeleteRow = null;
+let pendingDeleteName = null;
+let sheetUrl = '';
+
+// ============================================================
+// LOCAL STORAGE CONFIG
+// ============================================================
+function loadConfig() {
+  sheetUrl = localStorage.getItem('sheetUrl') || '';
+  diasAlerta = parseInt(localStorage.getItem('diasAlerta') || '7');
+  const intervalo = parseInt(localStorage.getItem('intervalo') || '60');
+
+  document.getElementById('sheetUrl').value = sheetUrl;
+  document.getElementById('diasAlerta').value = diasAlerta;
+  document.getElementById('intervalo').value = intervalo;
+
+  if (sheetUrl) loadData();
+  startAutoRefresh(intervalo);
+}
+
+function saveConfig() {
+  sheetUrl = document.getElementById('sheetUrl').value.trim();
+  diasAlerta = parseInt(document.getElementById('diasAlerta').value);
+  const intervalo = parseInt(document.getElementById('intervalo').value);
+
+  localStorage.setItem('sheetUrl', sheetUrl);
+  localStorage.setItem('diasAlerta', diasAlerta);
+  localStorage.setItem('intervalo', intervalo);
+
+  toggleConfig();
+  startAutoRefresh(intervalo);
+  loadData();
+  showToast('✅ Configuración guardada', 'success');
+}
+
+function toggleConfig() {
+  document.getElementById('configPanel').classList.toggle('open');
+}
+
+// ============================================================
+// DATA LOADING FROM GOOGLE SHEETS
+// ============================================================
+async function loadData() {
+  if (!sheetUrl) {
+    document.getElementById('configPanel').classList.add('open');
+    showToast('⚙️ Configura la URL de tu hoja primero', 'info');
+    return;
+  }
+
+  setSync('cargando');
+  document.getElementById('loadingOverlay').classList.add('show');
+
+  try {
+    // Use a CORS proxy for cross-origin CSV fetching
+    // We try direct fetch first, then fall back to demo data
+    let csvText = '';
+    try {
+      const res = await fetch(sheetUrl + '&cachebust=' + Date.now(), { cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      csvText = await res.text();
+    } catch(e) {
+      // Try with allorigins proxy
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
+      const res2 = await fetch(proxyUrl);
+      csvText = await res2.text();
+    }
+
+    const clients = parseCSV(csvText);
+    if (clients.length === 0) throw new Error('Sin datos');
+
+    allClients = clients;
+    renderAll();
+    setSync('conectado');
+    document.getElementById('lastSync').textContent = '🔄 Última actualización: ' + new Date().toLocaleString('es-MX');
+  } catch(e) {
+    setSync('error');
+    showToast('❌ Error al cargar datos. Revisa la URL o el acceso público de tu hoja.', 'error');
+    if (allClients.length === 0) loadDemoData();
+  } finally {
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase()
+    .replace(/[áä]/g,'a').replace(/[éë]/g,'e').replace(/[íï]/g,'i')
+    .replace(/[óö]/g,'o').replace(/[úü]/g,'u')
+    .replace(/ñ/g,'n').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''));
+
+  const clients = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i]);
+    if (vals.every(v => !v.trim())) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
+
+    // Normalize field names
+    const client = {
+      id: obj.id || obj.id_cliente || String(i),
+      nombre: obj.nombre || obj.name || 'Sin nombre',
+      telefono: obj.telefono || obj.telefono_celular || obj.phone || '',
+      correo: obj.correo || obj.email || obj.correo_electronico || '',
+      proveedor: obj.proveedor || obj.servicio || obj.provider || '',
+      fecha_inicio: obj.fecha_inicio || obj.inicio || '',
+      fecha_vencimiento: obj.fecha_vencimiento || obj.vencimiento || obj.fecha_fin || '',
+      _row: i + 1
+    };
+    clients.push(client);
+  }
+  return clients;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
+}
+
+// ============================================================
+// STATUS LOGIC
+// ============================================================
+function getStatus(client) {
+  if (!client.fecha_vencimiento) return { status: 'activo', days: null };
+  const venc = parseDate(client.fecha_vencimiento);
+  if (!venc) return { status: 'activo', days: null };
+
+  const now = new Date(); now.setHours(0,0,0,0);
+  const diff = Math.floor((venc - now) / (1000*60*60*24));
+
+  if (diff < 0) return { status: 'vencido', days: Math.abs(diff) };
+  if (diff <= diasAlerta) return { status: 'por-vencer', days: diff };
+  return { status: 'activo', days: diff };
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  // Try DD/MM/YYYY and YYYY-MM-DD
+  const parts = str.includes('/') ? str.split('/') : str.includes('-') ? str.split('-') : null;
+  if (!parts) return null;
+  if (parts[0].length === 4) return new Date(parts[0], parts[1]-1, parts[2]);
+  return new Date(parts[2], parts[1]-1, parts[0]);
+}
+
+function formatDate(str) {
+  const d = parseDate(str);
+  if (!d) return str || '—';
+  return d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderAll() {
+  // Counts
+  const counts = { vencido:0, 'por-vencer':0, activo:0 };
+  allClients.forEach(c => { const s = getStatus(c); counts[s.status]++; });
+
+  document.getElementById('numVencidos').textContent = counts.vencido;
+  document.getElementById('numPorVencer').textContent = counts['por-vencer'];
+  document.getElementById('numActivos').textContent = counts.activo;
+  document.getElementById('numTotal').textContent = allClients.length;
+
+  renderClients();
+}
+
+function filterBy(filter) {
+  currentFilter = filter;
+  ['statVencidos','statPorVencer','statActivos','statTotal'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  const map = { vencido:'statVencidos', 'por-vencer':'statPorVencer', activo:'statActivos', all:'statTotal' };
+  if (map[filter]) document.getElementById(map[filter]).classList.add('active');
+  renderClients();
+}
+
+function renderClients() {
+  const grid = document.getElementById('clientsGrid');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+
+  let filtered = allClients.filter(c => {
+    const { status } = getStatus(c);
+    if (currentFilter !== 'all' && status !== currentFilter) return false;
+    if (search) {
+      const hay = [c.nombre, c.telefono, c.correo, c.proveedor, c.id].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort: vencidos first, then por-vencer, then activos
+  const order = { vencido:0, 'por-vencer':1, activo:2 };
+  filtered.sort((a,b) => {
+    const sa = getStatus(a), sb = getStatus(b);
+    if (order[sa.status] !== order[sb.status]) return order[sa.status] - order[sb.status];
+    return (sa.days||0) - (sb.days||0);
+  });
+
+  const labels = { all:'Todos los clientes', vencido:'Vencidos', 'por-vencer':'Por vencer pronto', activo:'Activos' };
+  document.getElementById('sectionLabel').textContent = labels[currentFilter];
+  document.getElementById('sectionCount').textContent = filtered.length;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+        <h3>Sin resultados</h3>
+        <p>${search ? 'No se encontraron clientes con ese criterio de búsqueda.' : 'No hay clientes en esta categoría.'}</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((c, idx) => buildCard(c, idx)).join('');
+}
+
+function buildCard(c, idx) {
+  const { status, days } = getStatus(c);
+  const colors = { vencido: '#ff4d6d', 'por-vencer': '#ff9f43', activo: '#00e5a0' };
+  const initials = c.nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+  const bgColors = ['rgba(108,99,255,.2)','rgba(255,101,132,.2)','rgba(0,229,160,.2)','rgba(255,209,102,.2)'];
+  const avatarBg = bgColors[c.nombre.charCodeAt(0) % bgColors.length];
+  const avatarColor = colors[status];
+
+  const statusLabel = { vencido:'Vencido', 'por-vencer':'Por vencer', activo:'Activo' };
+  const statusClass = { vencido:'status-vencido', 'por-vencer':'status-por-vencer', activo:'status-activo' };
+
+  let daysText = '';
+  if (status === 'vencido') daysText = `🔴 Venció hace ${days} día${days===1?'':'s'}`;
+  else if (status === 'por-vencer') daysText = days === 0 ? '🟠 Vence hoy' : `🟠 Vence en ${days} día${days===1?'':'s'}`;
+  else if (days !== null) daysText = `🟢 Activo — ${days} días restantes`;
+  else daysText = '🟢 Activo';
+
+  const safeId = CSS.escape ? CSS.escape(c.id) : c.id;
+
+  return `
+  <div class="client-card ${status}" style="animation-delay:${idx*40}ms">
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        <div class="client-avatar" style="background:${avatarBg};color:${avatarColor}">${initials}</div>
+        <div class="client-info">
+          <div class="client-name" title="${escHtml(c.nombre)}">${escHtml(c.nombre)}</div>
+          <div class="client-id">#${escHtml(c.id)}</div>
+          ${c.proveedor ? `<div class="provider-tag">📦 ${escHtml(c.proveedor)}</div>` : ''}
+        </div>
+      </div>
+      <span class="status-badge ${statusClass[status]}">${statusLabel[status]}</span>
+    </div>
+    <div class="card-body">
+      ${c.telefono ? `<div class="info-row">${phoneIcon}<span>${escHtml(c.telefono)}</span></div>` : ''}
+      ${c.correo ? `<div class="info-row">${mailIcon}<span>${escHtml(c.correo)}</span></div>` : ''}
+      <div class="dates-row">
+        <div class="date-item">
+          <label>Inicio</label>
+          <span>${formatDate(c.fecha_inicio)}</span>
+        </div>
+        <div class="date-item">
+          <label>Vencimiento</label>
+          <span style="color:${colors[status]}">${formatDate(c.fecha_vencimiento)}</span>
+        </div>
+      </div>
+      <div class="days-left ${status}">${daysText}</div>
+    </div>
+    <div class="card-actions">
+      <button class="action-btn btn-renovar" onclick="renovar('${escAttr(c.id)}','${escAttr(c._row)}')">
+        ${refreshIcon} Renovar 1 mes
+      </button>
+      <button class="action-btn btn-no-renovar" onclick="noRenovar('${escAttr(c.id)}','${escAttr(c.nombre)}')">
+        ${pauseIcon} No renovar
+      </button>
+      <button class="action-btn btn-whatsapp" onclick="sendWhatsApp('${escAttr(c.id)}')">
+        ${waIcon} Enviar WhatsApp
+      </button>
+      <button class="action-btn btn-eliminar" onclick="confirmDelete('${escAttr(c.id)}','${escAttr(c.nombre)}','${escAttr(c._row)}')">
+        ${trashIcon} Eliminar
+      </button>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// ICONS (inline SVG)
+// ============================================================
+const phoneIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.07 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9a16 16 0 0 0 5.91 5.91l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+const mailIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>`;
+const refreshIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`;
+const pauseIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
+const waIcon = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>`;
+const trashIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 14.142A2 2 0 0 1 16.138 22H7.862a2 2 0 0 1-1.995-1.858L5 6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function renovar(clientId, row) {
+  const client = allClients.find(c => c.id === clientId);
+  if (!client) return;
+
+  const oldDate = parseDate(client.fecha_vencimiento);
+  const base = (oldDate && oldDate > new Date()) ? oldDate : new Date();
+  const newDate = new Date(base);
+  newDate.setMonth(newDate.getMonth() + 1);
+
+  const newDateStr = `${String(newDate.getDate()).padStart(2,'0')}/${String(newDate.getMonth()+1).padStart(2,'0')}/${newDate.getFullYear()}`;
+  client.fecha_vencimiento = newDateStr;
+
+  renderAll();
+  showToast(`✅ ${client.nombre} renovado hasta ${newDateStr}`, 'success');
+
+  // Note about Google Sheets update
+  setTimeout(() => showToast('📋 Actualiza la fecha manualmente en tu hoja de Google Sheets', 'info'), 2000);
+}
+
+function noRenovar(clientId, nombre) {
+  showToast(`⏸️ ${nombre} marcado como "No renovar"`, 'info');
+}
+
+function confirmDelete(clientId, nombre, row) {
+  pendingDeleteRow = { clientId, row };
+  pendingDeleteName = nombre;
+  document.getElementById('modalMsg').textContent = `¿Eliminar a "${nombre}"? Esta acción se refleja solo en esta vista. Elimina la fila manualmente en Google Sheets.`;
+  document.getElementById('btnConfirm').onclick = () => doDelete(clientId);
+  document.getElementById('modalBackdrop').classList.add('show');
+}
+
+function doDelete(clientId) {
+  const client = allClients.find(c => c.id === clientId);
+  allClients = allClients.filter(c => c.id !== clientId);
+  renderAll();
+  closeModal();
+  showToast(`🗑️ ${client?.nombre || 'Cliente'} eliminado de la vista`, 'error');
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('show');
+}
+
+function sendWhatsApp(clientId) {
+  const client = allClients.find(c => c.id === clientId);
+  if (!client) return;
+
+  const { status, days } = getStatus(client);
+
+  const statusMessages = {
+    vencido: `⚠️ *CUENTA VENCIDA*\nTu servicio venció hace ${days} día${days===1?'':'s'}. Para continuar disfrutando del servicio, por favor realiza tu pago de renovación.`,
+    'por-vencer': days === 0
+      ? `🔔 *VENCE HOY*\nTu servicio vence hoy. Te recomendamos renovar para no perder acceso.`
+      : `🔔 *AVISO DE VENCIMIENTO*\nTu servicio vencerá en ${days} día${days===1?'':'s'}. Te recomendamos renovar antes para no perder acceso.`,
+    activo: `✅ *CUENTA ACTIVA*\nTu servicio está activo y vence el ${formatDate(client.fecha_vencimiento)}. Queda${days===1?' un día':' '+days+' días'} de servicio.`
+  };
+
+  const msg = `Hola ${client.nombre} 👋
+
+${statusMessages[status]}
+
+📋 *Detalles de tu cuenta:*
+• *ID:* ${client.id}
+• *Servicio:* ${client.proveedor || 'Servicio digital'}
+• *Inicio:* ${formatDate(client.fecha_inicio)}
+• *Vencimiento:* ${formatDate(client.fecha_vencimiento)}
+• *Estado:* ${status === 'vencido' ? '🔴 Vencido' : status === 'por-vencer' ? '🟠 Por vencer' : '🟢 Activo'}
+
+¿Tienes alguna duda? Estoy aquí para ayudarte. 😊`;
+
+  let phone = client.telefono.replace(/\D/g, '');
+  if (!phone.startsWith('52') && phone.length === 10) phone = '52' + phone;
+
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+// ============================================================
+// SYNC STATUS
+// ============================================================
+function setSync(state) {
+  const dot = document.getElementById('syncDot');
+  const status = document.getElementById('syncStatus');
+  if (state === 'conectado') {
+    dot.style.background = 'var(--green)';
+    status.textContent = 'Conectado';
+  } else if (state === 'cargando') {
+    dot.style.background = 'var(--yellow)';
+    status.textContent = 'Actualizando...';
+  } else {
+    dot.style.background = 'var(--red)';
+    status.textContent = 'Sin conexión';
+  }
+}
+
+function startAutoRefresh(segundos) {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(loadData, segundos * 1000);
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s||'').replace(/'/g,"\\'");
+}
+
+// ============================================================
+// DEMO DATA (when no sheet configured)
+// ============================================================
+function loadDemoData() {
+  const today = new Date();
+  function daysFromNow(d) {
+    const r = new Date(today);
+    r.setDate(r.getDate() + d);
+    return `${String(r.getDate()).padStart(2,'0')}/${String(r.getMonth()+1).padStart(2,'0')}/${r.getFullYear()}`;
+  }
+  const startDate = daysFromNow(-60);
+
+  allClients = [
+    { id:'001', nombre:'María González', telefono:'5512345678', correo:'maria@gmail.com', proveedor:'Netflix', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(-5), _row:2 },
+    { id:'002', nombre:'Carlos Ramírez', telefono:'5598765432', correo:'carlos@outlook.com', proveedor:'Spotify', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(3), _row:3 },
+    { id:'003', nombre:'Ana López', telefono:'5511223344', correo:'ana@yahoo.com', proveedor:'Disney+', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(0), _row:4 },
+    { id:'004', nombre:'Roberto Hernández', telefono:'5544556677', correo:'roberto@gmail.com', proveedor:'Amazon Prime', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(25), _row:5 },
+    { id:'005', nombre:'Sofía Martínez', telefono:'5577889900', correo:'sofia@gmail.com', proveedor:'HBO Max', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(-12), _row:6 },
+    { id:'006', nombre:'Luis Torres', telefono:'5533445566', correo:'luis@gmail.com', proveedor:'Crunchyroll', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(6), _row:7 },
+    { id:'007', nombre:'Valentina Cruz', telefono:'5566778899', correo:'vale@gmail.com', proveedor:'YouTube Premium', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(45), _row:8 },
+    { id:'008', nombre:'Diego Morales', telefono:'5500112233', correo:'diego@gmail.com', proveedor:'Paramount+', fecha_inicio: startDate, fecha_vencimiento: daysFromNow(-2), _row:9 },
+  ];
+  renderAll();
+  document.getElementById('lastSync').textContent = '⚠️ Mostrando datos de demo — configura tu hoja de Google Sheets';
+  showToast('📊 Datos de ejemplo cargados. Configura tu Google Sheet para datos reales.', 'info');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadConfig();
+</script>
+
 </body>
 </html>
