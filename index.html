@@ -185,6 +185,57 @@
   /* ADD CLIENT MODAL */
   .modal.wide{max-width:560px;}
 
+  /* AGREGADO: SECCIÓN DE EXTRACCIÓN MÁGICA */
+  .magic-extractor {
+    background: rgba(108,99,255,0.05);
+    border: 1px dashed var(--accent);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+  .magic-extractor label {
+    font-size: 11px;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .magic-extractor textarea {
+    width: 100%;
+    height: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    resize: none;
+    outline: none;
+  }
+  .magic-extractor textarea:focus {
+    border-color: var(--accent);
+  }
+  .btn-magic {
+    margin-top: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: opacity 0.2s;
+  }
+  .btn-magic:hover { opacity: 0.9; }
+
   .last-sync{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:center;margin-top:8px;padding-bottom:24px;}
 
   @media(max-width:600px){
@@ -199,13 +250,11 @@
 </head>
 <body>
 
-<!-- LOADING -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loadingText">Conectando con Google Sheets...</div>
 </div>
 
-<!-- MODAL: CONFIRMAR ELIMINAR -->
 <div class="modal-backdrop" id="modalDelete">
   <div class="modal">
     <h3>⚠️ Eliminar cliente</h3>
@@ -217,7 +266,6 @@
   </div>
 </div>
 
-<!-- MODAL: EDITAR CLIENTE -->
 <div class="modal-backdrop" id="modalEdit">
   <div class="modal wide">
     <h3>✏️ Editar cliente</h3>
@@ -229,10 +277,19 @@
   </div>
 </div>
 
-<!-- MODAL: AGREGAR CLIENTE -->
 <div class="modal-backdrop" id="modalAdd">
   <div class="modal wide">
     <h3>➕ Nuevo cliente</h3>
+    
+    <div class="magic-extractor">
+      <label>✨ Extractor Mágico (Pegá el mensaje de WhatsApp)</label>
+      <textarea id="magicInput" placeholder="Ej: Hola Juan, tu servicio de Netflix vence el 25/08..."></textarea>
+      <button class="btn-magic" onclick="runMagicExtractor()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m13 2-2 2.5h3L12 7"/><path d="M13 18l-2 2.5h3L12 23"/><path d="M19 11l-2.5 2h3L17 10"/><path d="M5 11l-2.5 2h3L3 10"/><path d="m19 19-2.5 2h3L17 18"/><path d="m5 19-2.5 2h3L3 18"/><path d="m19 5-2.5 2h3L17 4"/><path d="m5 5-2.5 2h3L3 4"/></svg>
+        Autocompletar Formulario
+      </button>
+    </div>
+
     <div class="edit-grid" id="addForm"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalAdd')">Cancelar</button>
@@ -241,10 +298,8 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
-<!-- HEADER -->
 <header>
   <div class="logo">Clientes<span>Pro</span></div>
   <div class="header-actions">
@@ -264,7 +319,6 @@
 </header>
 
 <main>
-  <!-- CONFIG PANEL -->
   <div class="config-panel" id="configPanel">
     <h3>⚙️ Conexión con Google Apps Script</h3>
     <div class="config-grid">
@@ -294,7 +348,6 @@
     <button class="btn-save" onclick="saveConfig()">💾 Guardar y conectar</button>
   </div>
 
-  <!-- STATS -->
   <div class="stats-row">
     <div class="stat-card vencidos" onclick="filterBy('vencido')" id="statVencidos">
       <div class="stat-num" id="numVencidos">—</div>
@@ -314,7 +367,6 @@
     </div>
   </div>
 
-  <!-- TOOLBAR -->
   <div class="toolbar">
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -326,7 +378,6 @@
     </button>
   </div>
 
-  <!-- CLIENTS -->
   <div id="clientsSection">
     <div class="section-title">
       <span id="sectionLabel">Todos los clientes</span>
@@ -339,6 +390,53 @@
 </main>
 
 <script>
+// ============================================================
+// AGREGADO: LÓGICA DEL EXTRACTOR MÁGICO
+// ============================================================
+function runMagicExtractor() {
+  const text = document.getElementById('magicInput').value;
+  if(!text.trim()) { showToast('⚠️ Pegá algún texto primero', 'error'); return; }
+
+  const fields = {
+    nombre: "",
+    telefono: "",
+    correo: "",
+    proveedor: "",
+    fecha_vencimiento: ""
+  };
+
+  // 1. Extraer Correo
+  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  if(emailMatch) fields.correo = emailMatch[0];
+
+  // 2. Extraer Teléfono (números de 8 a 12 dígitos)
+  const phoneMatch = text.match(/\+?\d{8,12}/);
+  if(phoneMatch) fields.telefono = phoneMatch[0];
+
+  // 3. Extraer Fecha (DD/MM/AAAA o DD/MM/AA o DD-MM-AAAA)
+  const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if(dateMatch) fields.fecha_vencimiento = `${dateMatch[1].padStart(2,'0')}/${dateMatch[2].padStart(2,'0')}/${dateMatch[3].length==2?'20'+dateMatch[3]:dateMatch[3]}`;
+
+  // 4. Intentar adivinar el nombre (Si el texto empieza con "Hola X" o "Para: X")
+  const nameMatch = text.match(/(?:Hola|Para|Cliente|Nombre:)\s+([A-Za-zÀ-ÿ]+\s?[A-Za-zÀ-ÿ]+)/i);
+  if(nameMatch) fields.nombre = nameMatch[1];
+
+  // 5. Intentar adivinar Proveedor (basado en palabras comunes)
+  const services = ['Netflix', 'Disney', 'Star+', 'HBO', 'Prime', 'Spotify', 'Crunchyroll', 'YouTube', 'Combo+', 'Paramount'];
+  services.forEach(s => {
+    if(text.toLowerCase().includes(s.toLowerCase())) fields.proveedor = s;
+  });
+
+  // Rellenar el formulario
+  for (let key in fields) {
+    const input = document.getElementById('af_' + key);
+    if(input && fields[key]) input.value = fields[key];
+  }
+
+  showToast('✨ Datos extraídos del texto', 'success');
+}
+
+
 // ============================================================
 // STATE
 // ============================================================
@@ -392,50 +490,29 @@ function toggleConfig() {
 // ============================================================
 // API CALLS
 // ============================================================
-// JSONP: única forma confiable de leer desde Apps Script sin servidor
-function apiCall(action, extraParams = {}) {
-  return new Promise((resolve, reject) => {
-    if (!scriptUrl) return reject(new Error('Sin URL configurada'));
-
-    const cbName = '_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const url = new URL(scriptUrl);
-    url.searchParams.set('action', action);
-    url.searchParams.set('callback', cbName);
-    Object.keys(extraParams).forEach(k => url.searchParams.set(k, String(extraParams[k])));
-
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Timeout — verificá la URL del script y que esté publicado como "Cualquier persona"'));
-    }, 15000);
-
-    window[cbName] = (data) => {
-      cleanup();
-      if (data && data.error) return reject(new Error(data.error));
-      resolve(data);
-    };
-
-    const script = document.createElement('script');
-    script.src = url.toString();
-    script.onerror = () => { cleanup(); reject(new Error('Error de red o URL inválida')); };
-    document.head.appendChild(script);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-  });
+async function apiCall(action, extraParams = {}) {
+  if (!scriptUrl) throw new Error('Sin URL configurada');
+  const url = new URL(scriptUrl);
+  url.searchParams.set('action', action);
+  Object.keys(extraParams).forEach(k => url.searchParams.set(k, extraParams[k]));
+  const res = await fetch(url.toString(), { redirect: 'follow' });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
 }
 
-// Para escritura (update/delete/add) usamos GET con JSONP también —
-// Apps Script no requiere POST para operaciones simples y evita el CORS
-function apiPost(action, body = {}) {
-  const params = { ...body };
-  // Serializar fields si es objeto
-  if (params.fields && typeof params.fields === 'object') {
-    params.fields = JSON.stringify(params.fields);
-  }
-  return apiCall(action, params);
+async function apiPost(action, body = {}) {
+  if (!scriptUrl) throw new Error('Sin URL configurada');
+  body.action = action;
+  const res = await fetch(scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // avoid preflight
+    body: JSON.stringify(body),
+    redirect: 'follow'
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
 }
 
 // ============================================================
@@ -619,7 +696,7 @@ async function renovar(clientId) {
   try {
     await apiPost('update', {
       row: client._row,
-      fields: { fecha_vencimiento: newDateStr }
+      fields: JSON.stringify({ fecha_vencimiento: newDateStr })
     });
     client.fecha_vencimiento = newDateStr;
     renderAll();
@@ -689,7 +766,7 @@ async function saveEdit() {
   try {
     await apiPost('update', {
       row: editingClient._row,
-      fields: fields
+      fields: JSON.stringify(fields)
     });
     Object.assign(editingClient, fields);
     renderAll();
@@ -725,6 +802,7 @@ function openAddModal() {
     </div>`).join('');
 
   document.getElementById('modalAdd').classList.add('show');
+  document.getElementById('magicInput').value = ""; // Limpiar extractor
 }
 
 async function saveAdd() {
@@ -745,7 +823,7 @@ async function saveAdd() {
   document.getElementById('loadingOverlay').classList.add('show');
 
   try {
-    await apiPost('add', { fields: fields });
+    await apiPost('add', { fields: JSON.stringify(fields) });
     await loadData(); // Reload from sheet
     showToast(`✅ ${fields.nombre} agregado a Google Sheets`, 'success');
   } catch(e) {
