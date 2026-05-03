@@ -549,7 +549,7 @@ function buildCard(c, idx) {
   else daysText = days!==null ? `🟢 ${days} días restantes` : '🟢 Activo';
 
   return `
-  <div class="client-card ${status}" style="animation-delay:${idx*40}ms;position:relative;" id="card-${escAttr(c.id)}">
+  <div class="client-card ${status}" style="animation-delay:${idx*40}ms;position:relative;" id="card-${escHtml(c.id)}" data-client-id="${escHtml(c.id)}">
     <div class="card-header">
       <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
         <div class="client-avatar" style="background:${avatarBg};color:${colors[status]}">${initials}</div>
@@ -571,10 +571,10 @@ function buildCard(c, idx) {
       <div class="days-left ${status}">${daysText}</div>
     </div>
     <div class="card-actions">
-      <button class="action-btn btn-renovar" onclick="renovar('${escAttr(c.id)}')">${refreshIcon} Renovar 1 mes</button>
-      <button class="action-btn btn-editar" onclick="openEditModal('${escAttr(c.id)}')">${editIcon} Editar</button>
-      <button class="action-btn btn-whatsapp" onclick="sendWhatsApp('${escAttr(c.id)}')">${waIcon} WhatsApp</button>
-      <button class="action-btn btn-eliminar" onclick="confirmDelete('${escAttr(c.id)}')">${trashIcon} Eliminar</button>
+      <button class="action-btn btn-renovar" data-action="renovar">${refreshIcon} Renovar 1 mes</button>
+      <button class="action-btn btn-editar" data-action="editar">${editIcon} Editar</button>
+      <button class="action-btn btn-whatsapp" data-action="whatsapp">${waIcon} WhatsApp</button>
+      <button class="action-btn btn-eliminar" data-action="eliminar">${trashIcon} Eliminar</button>
     </div>
   </div>`;
 }
@@ -593,25 +593,28 @@ const trashIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // ACTIONS — RENOVAR
 // ============================================================
 async function renovar(clientId) {
-  const client = allClients.find(c => c.id === clientId);
-  if (!client) return;
+  // Buscar por id estricto (string)
+  const client = allClients.find(c => String(c.id) === String(clientId));
+  if (!client) { showToast('❌ Cliente no encontrado', 'error'); return; }
+
   const oldDate = parseDate(client.fecha_vencimiento);
-  const base = (oldDate && oldDate > new Date()) ? oldDate : new Date();
-  const newDate = new Date(base);
-  newDate.setMonth(newDate.getMonth() + 1);
-  const newDateStr = `${String(newDate.getDate()).padStart(2,'0')}/${String(newDate.getMonth()+1).padStart(2,'0')}/${newDate.getFullYear()}`;
+  // Siempre sumar 1 mes desde la fecha de vencimiento actual, aunque ya esté vencida
+  const base = oldDate ? new Date(oldDate) : new Date();
+  base.setMonth(base.getMonth() + 1);
+  const newDateStr = `${String(base.getDate()).padStart(2,'0')}/${String(base.getMonth()+1).padStart(2,'0')}/${base.getFullYear()}`;
+
   setCardSaving(clientId, true);
   try {
     await apiPost('update', {
       row: client._row,
       fields: JSON.stringify({ fecha_vencimiento: newDateStr })
     });
+    // Actualizar en memoria ANTES de re-renderizar
     client.fecha_vencimiento = newDateStr;
+    showToast(`✅ ${client.nombre} renovado hasta ${newDateStr}`, 'success');
     renderAll();
-    showToast(`✅ ${client.nombre} renovado hasta ${newDateStr} — guardado en Sheets`, 'success');
   } catch(e) {
     showToast('❌ Error al renovar: ' + e.message, 'error');
-  } finally {
     setCardSaving(clientId, false);
   }
 }
@@ -643,7 +646,7 @@ const EDIT_FIELDS = [
   { key:'fecha_vencimiento', label:'Fecha vencimiento (DD/MM/AAAA)' },
 ];
 function openEditModal(clientId) {
-  const client = allClients.find(c => c.id === clientId);
+  const client = allClients.find(c => String(c.id) === String(clientId));
   if (!client) return;
   editingClient = client;
   const form = document.getElementById('editForm');
@@ -728,20 +731,20 @@ async function saveAdd() {
 // ACTIONS — ELIMINAR
 // ============================================================
 function confirmDelete(clientId) {
-  const client = allClients.find(c => c.id === clientId);
+  const client = allClients.find(c => String(c.id) === String(clientId));
   if (!client) return;
   document.getElementById('modalDeleteMsg').textContent = `¿Eliminar a "${client.nombre}"? Esta acción borrará la fila de Google Sheets.`;
   document.getElementById('btnConfirmDelete').onclick = () => doDelete(clientId);
   document.getElementById('modalDelete').classList.add('show');
 }
 async function doDelete(clientId) {
-  const client = allClients.find(c => c.id === clientId);
+  const client = allClients.find(c => String(c.id) === String(clientId));
   closeModal('modalDelete');
   if (!client) return;
   setCardSaving(clientId, true);
   try {
     await apiPost('delete', { row: client._row });
-    allClients = allClients.filter(c => c.id !== clientId);
+    allClients = allClients.filter(c => String(c.id) !== String(clientId));
     renderAll();
     showToast(`🗑️ ${client.nombre} eliminado de Google Sheets`, 'error');
   } catch(e) {
@@ -780,39 +783,47 @@ function formatPhone(raw) {
 }
 
 function sendWhatsApp(clientId) {
-  const client = allClients.find(c => c.id === clientId);
+  const client = allClients.find(c => String(c.id) === String(clientId));
   if (!client) return;
   const { status, days } = getStatus(client);
 
   const statusMessages = {
-    vencido:    `⚠️ *CUENTA VENCIDA*\nTu servicio venció hace ${days} día${days===1?'':'s'}. Para continuar, realizá tu pago de renovación.`,
-    'vence-hoy':`🔵 *VENCE HOY*\nTu servicio vence hoy. Renovalo para no perder acceso.`,
+    vencido:      `⚠️ *CUENTA VENCIDA*\nTu servicio venció hace ${days} día${days===1?'':'s'}. Para continuar, realizá tu pago de renovación.`,
+    'vence-hoy':  `🔵 *VENCE HOY*\nTu servicio vence hoy. Renovalo para no perder acceso.`,
     'por-vencer': days===1
       ? `🔔 *AVISO DE VENCIMIENTO*\nTu servicio vence mañana.`
       : `🔔 *AVISO DE VENCIMIENTO*\nTu servicio vencerá en ${days} días.`,
-    activo:     `✅ *CUENTA ACTIVA*\nTu servicio está activo y vence el ${formatDate(client.fecha_vencimiento)}.`
+    activo:       `✅ *CUENTA ACTIVA*\nTu servicio está activo y vence el ${formatDate(client.fecha_vencimiento)}.`
   };
 
-  // Correo de la cuenta en lugar del ID
   const cuentaLine = client.correo
     ? `• *Correo:* ${client.correo}`
     : `• *ID:* ${client.id}`;
 
   const estadoEmoji = {
-    vencido: '🔴 Vencido',
-    'vence-hoy': '🔵 Vence hoy',
+    vencido:      '🔴 Vencido',
+    'vence-hoy':  '🔵 Vence hoy',
     'por-vencer': '🟠 Por vencer',
-    activo: '🟢 Activo'
+    activo:       '🟢 Activo'
   };
-
-  const msg = `Hola ${client.nombre} 👋\n\n${statusMessages[status]}\n\n📋 *Detalles de tu cuenta:*\n${cuentaLine}\n• *Servicio:* ${client.proveedor || 'Digital'}\n• *Vencimiento:* ${formatDate(client.fecha_vencimiento)}\n• *Estado:* ${estadoEmoji[status]}\n\n¿Tenés dudas? Estoy para ayudarte 😊`;
 
   const phone = formatPhone(client.telefono);
   if (!phone) {
     showToast('⚠️ Este cliente no tiene teléfono cargado', 'error');
     return;
   }
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+
+  const msg = `Hola ${client.nombre} 👋\n\n${statusMessages[status]}\n\n📋 *Detalles de tu cuenta:*\n${cuentaLine}\n• *Servicio:* ${client.proveedor || 'Digital'}\n• *Vencimiento:* ${formatDate(client.fecha_vencimiento)}\n• *Estado:* ${estadoEmoji[status]}\n\n¿Tenés dudas? Estoy para ayudarte 😊`;
+
+  // Abrir sincrónicamente para evitar el bloqueo de popups del navegador
+  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  const a = document.createElement('a');
+  a.href = waUrl;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ============================================================
@@ -841,7 +852,22 @@ function showToast(msg, type='info') {
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// escAttr ya no se usa en buildCard (usamos data-attributes), pero se mantiene por compatibilidad
 function escAttr(s) { return String(s||'').replace(/'/g,"\\'"); }
+
+// Event delegation para los botones de las tarjetas — evita problemas de escaping en onclick inline
+document.getElementById('clientsGrid').addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const card = btn.closest('[data-client-id]');
+  if (!card) return;
+  const clientId = card.dataset.clientId;
+  const action = btn.dataset.action;
+  if (action === 'renovar')   renovar(clientId);
+  if (action === 'editar')    openEditModal(clientId);
+  if (action === 'whatsapp')  sendWhatsApp(clientId);
+  if (action === 'eliminar')  confirmDelete(clientId);
+});
 
 // ============================================================
 // INIT
