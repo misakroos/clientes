@@ -320,6 +320,139 @@
   .bal-save-btn{padding:7px 12px;border-radius:8px;background:var(--accent);color:#000;border:none;cursor:pointer;font-weight:700;font-size:13px;}
   .bal-cancel-btn{padding:7px 10px;border-radius:8px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);cursor:pointer;font-size:13px;}
   .sheets-sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(99,179,237,.12);color:#63b3ed;border:1px solid rgba(99,179,237,.3);}
+
+  /* ================================================================
+     MOBILE FIRST — max-width: 767px
+     ================================================================ */
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  @media (max-width: 767px) {
+
+    /* ── Header ── */
+    header { padding: 0 12px; height: 54px; gap: 8px; }
+    .logo  { font-size: 16px; }
+    .btn-txt { display: none; }               /* hide button text labels */
+    .sync-txt { display: none; }              /* hide "Conectando..." text */
+    .btn-add-header, .btn-config { padding: 9px 10px; min-width: 36px; min-height: 36px; }
+    .usdt-pill { padding: 5px 8px; max-width: 120px; }
+    .usdt-pill-val { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+    .header-actions { gap: 6px; }
+
+    /* ── Main ── */
+    main { padding: 14px 10px; }
+
+    /* ── Tabs ── */
+    .tabs-bar { padding: 3px; margin-bottom: 16px; }
+    .tab-btn  { padding: 9px 6px; font-size: 12px; }
+
+    /* ── Config panel ── */
+    .config-panel { padding: 16px 14px; }
+    .config-grid  { grid-template-columns: 1fr; }
+    .form-group input, .form-group select { font-size: 16px; }
+
+    /* ── Stats row (client tab) ── */
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-card { padding: 14px 12px; }
+    .stat-num  { font-size: 22px; }
+    .stat-label { font-size: 10px; }
+
+    /* ── Toolbar ── */
+    .toolbar { flex-direction: column; gap: 8px; align-items: stretch; }
+    .search-box { min-width: unset; width: 100%; }
+    .btn-refresh { justify-content: center; }
+    .search-box input { font-size: 16px; }
+
+    /* ── Client cards ── */
+    .clients-grid { grid-template-columns: 1fr; gap: 12px; }
+    .card-actions { grid-template-columns: 1fr 1fr; }
+    .action-btn   { padding: 11px 6px; min-height: 44px; font-size: 12px; }
+
+    /* ── Modals → bottom sheet ── */
+    .modal-backdrop { align-items: flex-end; padding: 0; }
+    .modal {
+      border-radius: 22px 22px 0 0;
+      max-height: 88vh;
+      width: 100%;
+      animation: slideUp .25s ease;
+      padding: 20px 16px 28px;   /* extra bottom for safe-area */
+      padding-bottom: max(28px, env(safe-area-inset-bottom, 28px));
+    }
+    .modal.wide { max-width: 100%; }
+    .edit-grid   { grid-template-columns: 1fr; gap: 10px; }
+    .edit-field.full { grid-column: span 1; }
+    .edit-field input, .edit-field select { font-size: 16px; }
+    .modal-actions { flex-direction: column-reverse; gap: 8px; }
+    .modal-actions button { width: 100%; justify-content: center; padding: 12px; }
+
+    /* ── USDT big card ── */
+    .usdt-big-card   { padding: 16px 14px; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+    .usdt-big-value  { font-size: 30px; }
+    .usdt-exchanges  { display: grid; grid-template-columns: repeat(2, 1fr); }
+    .usdt-ex-item    { min-width: unset; }
+
+    /* ── Finance summary cards ── */
+    .finance-stats { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+    .fstat-card    { padding: 14px 14px; }
+    .fstat-num     { font-size: 18px; }
+    .fstat-ars     { font-size: 10px; word-break: break-word; line-height: 1.5; }
+
+    /* ── Balance card ── */
+    .balance-card    { padding: 14px 14px; }
+    .balance-row     { grid-template-columns: 1fr; gap: 14px; }
+    .balance-divider { display: none; }
+    .balance-val     { font-size: 17px; }
+    .bal-diff        { font-size: 11px; }
+
+    /* ── Transaction form ── */
+    .txn-form     { padding: 14px 12px; margin-bottom: 16px; }
+    .txn-grid     { grid-template-columns: 1fr; }
+    .txn-grid .edit-field.full { grid-column: span 1; }
+    .txn-type-toggle, .currency-selector { gap: 5px; }
+    .txn-type-btn, .currency-btn { padding: 10px 4px; font-size: 11px; min-height: 40px; }
+    .txn-subtype-btn { padding: 9px 6px; font-size: 11px; min-height: 40px; }
+    .edit-field input, .edit-field select { font-size: 16px; padding: 10px 12px; }
+    .btn-add-txn  { width: 100%; padding: 13px; font-size: 15px; min-height: 48px; }
+
+    /* Hide the → arrow when venta form stacks */
+    .venta-arrow  { display: none; }
+    .venta-breakdown-form { grid-template-columns: 1fr; gap: 10px; }
+
+    /* Venta calc preview — wrap values */
+    .venta-preview-row { flex-wrap: wrap; gap: 2px 8px; }
+    .vcp-val { font-size: 11px; word-break: break-word; text-align: right; }
+    .vcp-label { font-size: 11px; }
+
+    /* ── Transaction list ── */
+    .txn-item   { padding: 11px 12px; gap: 10px; }
+    .txn-usdt   { font-size: 13px; }
+    .txn-cost-line, .txn-profit-line { font-size: 11px; }
+    .txn-ars    { font-size: 10px; color: var(--muted); word-break: break-word; line-height: 1.5; }
+    .txn-amount { max-width: 150px; }
+
+    /* ── Category breakdown ── */
+    .cat-row    { font-size: 11px; padding: 8px 12px; gap: 8px; }
+    .cat-out    { display: none; }   /* esconder col "Costos" — se ve en detalle */
+    .cat-row.cat-header .cat-out { display: none; }
+
+    /* ── Service blocks ── */
+    .service-block { padding: 10px; }
+
+    /* ── Toast ── */
+    .toast { bottom: 16px; left: 10px; right: 10px; max-width: 100%; font-size: 13px; }
+
+    /* ── Empty state ── */
+    .empty-state { padding: 40px 16px; }
+  }
+
+  /* ── Extra small (< 380px) ── */
+  @media (max-width: 379px) {
+    .stats-row   { grid-template-columns: 1fr; }
+    .card-actions { grid-template-columns: 1fr 1fr; }
+    .fstat-num   { font-size: 15px; }
+  }
 </style>
 </head>
 <body>
@@ -377,15 +510,15 @@
     </div>
     <div class="sync-indicator">
       <div class="sync-dot" id="syncDot"></div>
-      <span id="syncStatus">Conectando...</span>
+      <span id="syncStatus" class="sync-txt">Conectando...</span>
     </div>
     <button class="btn-add-header" onclick="openAddModal()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      <span>Nuevo cliente</span>
+      <span class="btn-txt">Nuevo cliente</span>
     </button>
     <button class="btn-config" onclick="toggleConfig()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      Configurar
+      <span class="btn-txt">Configurar</span>
     </button>
   </div>
 </header>
@@ -570,7 +703,7 @@
             <label id="lblSalePrice">Precio de venta (USDT)</label>
             <input type="number" id="txnSalePrice" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
           </div>
-          <div class="venta-arrow">→</div>
+          <div class="venta-arrow" aria-hidden="true">→</div>
           <div class="edit-field">
             <label id="lblProvCost">Costo proveedor (USDT)</label>
             <input type="number" id="txnProvCost" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
