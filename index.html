@@ -180,7 +180,6 @@
   /* Modal scroll */
   .modal{max-height:90vh;overflow-y:auto;}
   /* WhatsApp confirm button */
-  .btn-whatsapp-confirm{background:#25d366;border:none;color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:'Syne';font-size:14px;font-weight:600;}
   /* Focus visible */
   *:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .btn-add-service{width:100%;background:rgba(108,99,255,.07);border:1px dashed rgba(108,99,255,.4);color:var(--accent);padding:9px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;transition:all .2s;margin-top:4px;}
@@ -198,6 +197,129 @@
     .stat-num{font-size:26px;}
     .btn-add-header span{display:none;}
   }
+
+  /* TABS */
+  .tabs-bar{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:24px;}
+  .tab-btn{flex:1;padding:9px 16px;border:none;border-radius:9px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:13px;transition:all .2s;background:transparent;color:var(--muted);}
+  .tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(108,99,255,.35);}
+  .tab-btn:not(.active):hover{color:var(--text);background:var(--surface2);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+  /* USDT PILL (header) */
+  .usdt-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid rgba(0,229,160,.3);border-radius:8px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:12px;cursor:default;}
+  .usdt-pill-icon{color:var(--green);font-weight:700;font-size:13px;}
+  .usdt-pill-val{color:var(--text);}
+  /* USDT BIG CARD */
+  .usdt-big-card{background:var(--surface);border:1px solid rgba(0,229,160,.35);border-radius:var(--card-r);padding:24px 28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;}
+  .usdt-big-label{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .usdt-big-value{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;color:var(--green);line-height:1;}
+  .usdt-big-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:6px;}
+  .usdt-exchanges{display:flex;gap:8px;flex-wrap:wrap;}
+  .usdt-ex-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;min-width:90px;}
+  .usdt-ex-name{color:var(--muted);margin-bottom:3px;text-transform:capitalize;}
+  .usdt-ex-buy{color:var(--green);font-weight:500;}
+  .usdt-ex-sell{color:var(--red);font-size:10px;margin-top:1px;}
+  /* FINANCE STATS */
+  .finance-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+  @media(max-width:600px){.finance-stats{grid-template-columns:1fr;}}
+  .fstat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--card-r);padding:18px 20px;position:relative;overflow:hidden;}
+  .fstat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .fstat-card.ingreso::before{background:var(--green);}
+  .fstat-card.egreso::before{background:var(--red);}
+  .fstat-card.ganancia::before{background:var(--yellow);}
+  .fstat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1;margin-bottom:4px;}
+  .fstat-card.ingreso .fstat-num{color:var(--green);}
+  .fstat-card.egreso .fstat-num{color:var(--red);}
+  .fstat-card.ganancia .fstat-num{color:var(--yellow);}
+  .fstat-label{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.5px;}
+  .fstat-ars{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-top:5px;}
+  /* TRANSACTION FORM */
+  .txn-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--card-r);padding:20px;margin-bottom:24px;}
+  .txn-form h3{font-family:'Syne',sans-serif;font-size:15px;margin-bottom:16px;color:var(--accent);}
+  .txn-type-toggle{display:flex;gap:8px;margin-bottom:16px;}
+  .txn-type-btn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:13px;transition:all .2s;background:var(--surface2);color:var(--muted);}
+  .txn-type-btn.active-ingreso{background:rgba(0,229,160,.15);border-color:var(--green);color:var(--green);}
+  .txn-type-btn.active-egreso{background:rgba(255,77,109,.15);border-color:var(--red);color:var(--red);}
+  .currency-selector{display:flex;gap:6px;margin-bottom:12px;}
+  .currency-btn{flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:12px;transition:all .2s;background:var(--surface2);color:var(--muted);}
+  .currency-btn.active{background:rgba(99,179,237,.15);border-color:#63b3ed;color:#63b3ed;}
+  .txn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:500px){.txn-grid{grid-template-columns:1fr;}}
+  .txn-grid .edit-field.full{grid-column:span 2;}
+  @media(max-width:500px){.txn-grid .edit-field.full{grid-column:span 1;}}
+  .txn-ars-preview{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);margin-top:4px;min-height:14px;}
+  .btn-add-txn{margin-top:14px;background:var(--accent);border:none;color:#fff;padding:10px 22px;border-radius:8px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:14px;transition:all .2s;}
+  .btn-add-txn:hover{background:#5a52e0;}
+  /* TRANSACTION LIST */
+  .txn-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;animation:fadeInUp .2s ease both;}
+  .txn-item.ingreso{border-left:3px solid var(--green);}
+  .txn-item.egreso{border-left:3px solid var(--red);}
+  .txn-dot{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .txn-item.ingreso .txn-dot{background:rgba(0,229,160,.12);}
+  .txn-item.egreso .txn-dot{background:rgba(255,77,109,.12);}
+  .txn-info{flex:1;min-width:0;}
+  .txn-desc{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .txn-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
+  .txn-amount{text-align:right;flex-shrink:0;}
+  .txn-usdt{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;}
+  .txn-item.ingreso .txn-usdt{color:var(--green);}
+  .txn-item.egreso .txn-usdt{color:var(--red);}
+  .txn-ars{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+  .btn-del-txn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:4px;transition:color .2s;flex-shrink:0;}
+  .btn-del-txn:hover{color:var(--red);}
+  .txn-empty{text-align:center;padding:40px;color:var(--muted);font-size:14px;}
+  .btn-whatsapp-confirm{background:#25d366;border:none;color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:'Syne';font-size:14px;font-weight:600;}
+
+  .txn-subtype-btn{flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;transition:all .2s;background:var(--surface2);color:var(--muted);}
+  .txn-subtype-btn.active-proveedor{background:rgba(56,189,248,.15);border-color:var(--blue);color:var(--blue);}
+  .txn-subtype-btn.active-gasto{background:rgba(255,159,67,.15);border-color:var(--orange);color:var(--orange);}
+  .cat-breakdown-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--card-r);overflow:hidden;margin-bottom:24px;}
+  .cat-row{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);align-items:center;font-size:13px;}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-header{background:var(--surface2);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .cat-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cat-in{font-family:'DM Mono',monospace;color:var(--green);white-space:nowrap;}
+  .cat-out{font-family:'DM Mono',monospace;color:var(--red);white-space:nowrap;}
+  .cat-net{font-family:'DM Mono',monospace;font-weight:700;text-align:right;white-space:nowrap;}
+  .txn-cat-badge{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:1px 7px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text);}
+  .txn-sub-badge{display:inline-block;border-radius:5px;padding:1px 6px;font-size:10px;font-family:'DM Mono',monospace;margin-left:4px;}
+  .txn-sub-badge.proveedor{background:rgba(56,189,248,.12);color:var(--blue);}
+  .txn-sub-badge.gasto{background:rgba(255,159,67,.12);color:var(--orange);}
+
+  /* VENTA BREAKDOWN FORM */
+  .venta-breakdown-form{display:grid;grid-template-columns:1fr 28px 1fr;align-items:start;gap:10px;margin:12px 0 0;}
+  @media(max-width:500px){.venta-breakdown-form{grid-template-columns:1fr;}}
+  .venta-arrow{display:flex;align-items:center;justify-content:center;padding-top:28px;color:var(--muted);font-size:18px;font-weight:300;}
+  @media(max-width:500px){.venta-arrow{display:none;}}
+  .venta-calc-preview{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:12px;}
+  .venta-preview-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);}
+  .venta-preview-row:last-child{border-bottom:none;padding-top:8px;}
+  .vcp-label{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+  .vcp-val{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;}
+  .vcp-val.sale{color:var(--text);}
+  .vcp-val.cost{color:var(--red);}
+  .vcp-val.profit{color:var(--green);}
+  /* TXN list cost breakdown */
+  .txn-cost-line{font-family:'DM Mono',monospace;font-size:10px;color:var(--red);margin-top:1px;}
+  .txn-profit-line{font-family:'DM Mono',monospace;font-size:11px;color:var(--green);font-weight:600;margin-top:1px;}
+
+  /* ── Balance card ── */
+  .balance-card{background:var(--surface1);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;}
+  .balance-row{display:grid;grid-template-columns:1fr 1px 1fr;gap:16px;align-items:start;}
+  .balance-divider{background:var(--border);height:100%;min-height:60px;}
+  .balance-block{}
+  .balance-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .balance-val{font-size:20px;font-weight:700;color:var(--text);margin-bottom:2px;}
+  .balance-sub{font-size:11px;color:var(--muted);}
+  .bal-edit-btn{font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;transition:all .2s;}
+  .bal-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .bal-diff{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;text-align:center;}
+  .bal-input-row{display:flex;gap:6px;align-items:center;margin-top:8px;}
+  .bal-input-row input{flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-family:'Syne',sans-serif;}
+  .bal-input-row select{padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;}
+  .bal-save-btn{padding:7px 12px;border-radius:8px;background:var(--accent);color:#000;border:none;cursor:pointer;font-weight:700;font-size:13px;}
+  .bal-cancel-btn{padding:7px 10px;border-radius:8px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);cursor:pointer;font-size:13px;}
+  .sheets-sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(99,179,237,.12);color:#63b3ed;border:1px solid rgba(99,179,237,.3);}
 </style>
 </head>
 <body>
@@ -249,6 +371,10 @@
 <header>
   <div class="logo">Clientes<span>Pro</span></div>
   <div class="header-actions">
+    <div class="usdt-pill" title="Cotización USDT/ARS y UYU">
+      <span class="usdt-pill-icon">₮</span>
+      <span class="usdt-pill-val" id="usdtHeaderVal">···</span>
+    </div>
     <div class="sync-indicator">
       <div class="sync-dot" id="syncDot"></div>
       <span id="syncStatus">Conectando...</span>
@@ -293,6 +419,14 @@
     <button class="btn-save" onclick="saveConfig()">💾 Guardar y conectar</button>
   </div>
 
+  <!-- TABS -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-tab="clientes" onclick="switchTab('clientes')">👥 Clientes</button>
+    <button class="tab-btn" data-tab="finanzas" onclick="switchTab('finanzas')">💰 Finanzas</button>
+  </div>
+
+  <div id="tab-clientes" class="tab-content active">
+
   <!-- STATS: ahora 5 tarjetas -->
   <div class="stats-row">
     <div class="stat-card vencidos" onclick="filterBy('vencido')" id="statVencidos">
@@ -335,6 +469,141 @@
     <div class="clients-grid" id="clientsGrid"></div>
   </div>
   <div class="last-sync" id="lastSync">Configurá la URL del script para comenzar</div>
+  </div><!-- /tab-clientes -->
+
+  <div id="tab-finanzas" class="tab-content">
+    <!-- USDT BIG CARD -->
+    <div class="usdt-big-card">
+      <div>
+        <div class="usdt-big-label">💱 Cotizaciones USDT</div>
+        <div class="usdt-big-value" id="usdtBigValue">—</div>
+        <div class="usdt-big-sub" id="usdtBigSub">Cargando cotización...</div>
+      <div class="usdt-big-sub" id="usdtBigUYU" style="margin-top:4px;font-size:12px;opacity:0.8"></div>
+      </div>
+      <div class="usdt-exchanges" id="usdtExchanges"></div>
+    </div>
+
+    <!-- RESUMEN FINANCIERO -->
+    <div class="finance-stats">
+      <div class="fstat-card ingreso">
+        <div class="fstat-num" id="totalIngresos">0.00 USDT</div>
+        <div class="fstat-label">💚 Ingresos (ventas)</div>
+        <div class="fstat-ars" id="totalIngresosARS">$ —</div>
+      </div>
+      <div class="fstat-card egreso">
+        <div class="fstat-num" id="totalEgresos">0.00 USDT</div>
+        <div class="fstat-label">🔴 Egresos (compras)</div>
+        <div class="fstat-ars" id="totalEgresosARS">$ —</div>
+      </div>
+      <div class="fstat-card ganancia">
+        <div class="fstat-num" id="totalGanancia">0.00 USDT</div>
+        <div class="fstat-label">✨ Ganancia neta</div>
+        <div class="fstat-ars" id="totalGananciaARS">$ —</div>
+      </div>
+    </div>
+
+    <!-- BALANCE -->
+    <div class="balance-card">
+      <div class="balance-row">
+        <div class="balance-block">
+          <div class="balance-label">📊 Balance estimativo</div>
+          <div class="balance-val" id="balEstVal">— USDT</div>
+          <div class="balance-sub" id="balEstSub"></div>
+        </div>
+        <div class="balance-divider"></div>
+        <div class="balance-block">
+          <div class="balance-label">✏️ Balance editado <button class="bal-edit-btn" onclick="openEditBalance()">editar</button></div>
+          <div class="balance-val" id="balEditVal">sin definir</div>
+          <div class="balance-sub" id="balEditSub"></div>
+          <div id="balEditForm" style="display:none;">
+            <div class="bal-input-row">
+              <input type="number" id="balEditInput" placeholder="0.00" step="0.01">
+              <select id="balEditCur"><option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option></select>
+              <button class="bal-save-btn" onclick="confirmEditBalance()">✓</button>
+              <button class="bal-cancel-btn" onclick="cancelEditBalance()">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bal-diff" id="balDiff" style="display:none;"></div>
+    </div>
+
+    <!-- FORMULARIO DE MOVIMIENTO -->
+    <div class="txn-form">
+      <h3>➕ Registrar movimiento</h3>
+      <div class="txn-type-toggle">
+        <button id="btnTxnIngreso" class="txn-type-btn active-ingreso" onclick="setTxnType('ingreso')">💚 Ingreso (Venta)</button>
+        <button id="btnTxnEgreso"  class="txn-type-btn"               onclick="setTxnType('egreso')">🔴 Egreso (Compra)</button>
+      </div>
+      <div id="egresoSubtypeRow" class="txn-type-toggle" style="display:none;margin-top:-6px;">
+        <button id="btnSubProveedor" class="txn-subtype-btn active-proveedor" onclick="setEgresoSubtype('proveedor')">🏪 A proveedor</button>
+        <button id="btnSubGasto"     class="txn-subtype-btn"                  onclick="setEgresoSubtype('gasto')">💸 Gasto personal</button>
+      </div>
+
+      <!-- Campos comunes: categoría + descripción -->
+      <div class="txn-grid" style="margin-top:12px;">
+        <div class="edit-field">
+          <label>Categoría (servicio)</label>
+          <input type="text" id="txnCat" list="catList" placeholder="Netflix, Spotify...">
+          <datalist id="catList"></datalist>
+        </div>
+        <div class="edit-field">
+          <label id="txnDescLabel">Cliente / Detalle</label>
+          <input type="text" id="txnDesc" placeholder="Nombre del cliente u observación">
+        </div>
+      </div>
+
+      <!-- Moneda de entrada -->
+      <div style="margin-bottom:4px;">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Moneda del movimiento</label>
+        <div class="currency-selector" id="currencySelector">
+          <button class="currency-btn active" onclick="setTxnCurrency('USDT',this)">₮ USDT</button>
+          <button class="currency-btn" onclick="setTxnCurrency('ARS',this)">$ ARS</button>
+          <button class="currency-btn" onclick="setTxnCurrency('UYU',this)">$U UYU</button>
+        </div>
+      </div>
+
+      <!-- INGRESO: precio venta + costo proveedor -->
+      <div id="ventaSection">
+        <div class="venta-breakdown-form">
+          <div class="edit-field">
+            <label id="lblSalePrice">Precio de venta (USDT)</label>
+            <input type="number" id="txnSalePrice" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
+          </div>
+          <div class="venta-arrow">→</div>
+          <div class="edit-field">
+            <label id="lblProvCost">Costo proveedor (USDT)</label>
+            <input type="number" id="txnProvCost" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
+          </div>
+        </div>
+        <div id="ventaCalcPreview"></div>
+      </div>
+
+      <!-- EGRESO: monto único -->
+      <div id="egresoAmtSection" style="display:none;margin-top:12px;">
+        <div class="edit-field">
+          <label id="lblEgresoAmt">Monto (USDT)</label>
+          <input type="number" id="txnAmtUSDT" placeholder="0.00" step="0.01" min="0" oninput="updateARSPreview()">
+          <div class="txn-ars-preview" id="arsPreview"></div>
+        </div>
+      </div>
+
+      <!-- Fecha (común) -->
+      <div class="edit-field" style="margin-top:12px;max-width:200px;">
+        <label>Fecha (DD/MM/AAAA)</label>
+        <input type="text" id="txnDate" placeholder="DD/MM/AAAA">
+      </div>
+
+      <button class="btn-add-txn" onclick="addTransaction()">💾 Registrar</button>
+    </div>
+    <div id="catBreakdown"></div>
+
+    <div class="section-title" style="margin-bottom:12px">
+      <span id="txnSectionLabel">Movimientos</span>
+      <span class="badge" id="txnCount">0</span>
+    </div>
+    <div id="txnList"></div>
+  </div><!-- /tab-finanzas -->
 </main>
 
 <script>
@@ -423,7 +692,8 @@ function loadConfig() {
   document.getElementById('scriptUrl').value = scriptUrl;
   document.getElementById('diasAlerta').value = diasAlerta;
   document.getElementById('intervalo').value = ivl;
-  if (scriptUrl) { loadCache(); loadData(true); }
+  loadBalance();
+  if (scriptUrl) { loadCache(); loadData(true); loadTxnsFromSheets(); }
   else {
     document.getElementById('configPanel').classList.add('open');
     setSync('error');
@@ -911,7 +1181,6 @@ function confirmDelete(clientId) {
 }
 async function doDelete(clientId) {
   const client = allClients.find(c => String(c.id) === String(clientId));
-  closeModal('modalDelete');
   if (!client) return;
   setCardSaving(clientId, true);
   try {
@@ -1086,9 +1355,460 @@ document.getElementById('clientsGrid').addEventListener('click', function(e) {
 });
 
 // ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ============================================================
+// USDT / ARS RATE
+// ============================================================
+let usdtRateARS = 0;
+let usdtRateUYU = 0;
+let usdtRawData = {};
+let currentTxnCurrency = 'USDT';
+let balanceEditado    = 0; // in USDT, set by user
+let balanceEstimativo = 0; // auto-computed in renderFinance
+
+// ── Balance helpers ──
+function loadBalance() {
+  try { balanceEditado = parseFloat(localStorage.getItem('clientesPro_balance') || '0') || 0; } catch(e) {}
+}
+function persistBalance() {
+  try { localStorage.setItem('clientesPro_balance', String(balanceEditado)); } catch(e) {}
+  syncTxnsToSheets();
+}
+function openEditBalance() {
+  document.getElementById('balEditInput').value = balanceEditado > 0 ? balanceEditado.toFixed(4) : '';
+  document.getElementById('balEditCur').value = 'USDT';
+  document.getElementById('balEditForm').style.display = 'block';
+  document.getElementById('balEditInput').focus();
+}
+function cancelEditBalance() { document.getElementById('balEditForm').style.display = 'none'; }
+function confirmEditBalance() {
+  const raw = parseFloat(document.getElementById('balEditInput').value) || 0;
+  const cur = document.getElementById('balEditCur').value;
+  if (cur === 'ARS' && usdtRateARS) balanceEditado = raw / usdtRateARS;
+  else if (cur === 'UYU' && usdtRateUYU) balanceEditado = raw / usdtRateUYU;
+  else balanceEditado = raw;
+  document.getElementById('balEditForm').style.display = 'none';
+  persistBalance();
+  renderBalance();
+}
+function renderBalance() {
+  const estEl = document.getElementById('balEstVal');
+  if (!estEl) return;
+  const fmtSub = v => {
+    const a = usdtRateARS ? '$ '+Math.round(v*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+    const u = usdtRateUYU ? ' · $U '+Math.round(v*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+    return a + u;
+  };
+  estEl.textContent = balanceEstimativo.toFixed(4) + ' USDT';
+  estEl.style.color = balanceEstimativo >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('balEstSub').textContent = fmtSub(balanceEstimativo);
+  if (balanceEditado > 0) {
+    document.getElementById('balEditVal').textContent = balanceEditado.toFixed(4) + ' USDT';
+    document.getElementById('balEditVal').style.color = 'var(--text)';
+    document.getElementById('balEditSub').textContent = fmtSub(balanceEditado);
+    const diff = balanceEditado - balanceEstimativo;
+    const diffEl = document.getElementById('balDiff');
+    diffEl.style.display = 'block';
+    const sign = diff >= 0 ? '+' : '';
+    diffEl.innerHTML = `Diferencia: <strong style="color:${diff>=0?'var(--green)':'var(--red)'}">${sign}${diff.toFixed(4)} USDT${usdtRateARS?' · '+sign+'$'+Math.round(diff*usdtRateARS).toLocaleString('es-AR')+' ARS':''}</strong>`;
+  } else {
+    document.getElementById('balEditVal').textContent = 'sin definir';
+    document.getElementById('balEditSub').textContent = '';
+    document.getElementById('balDiff').style.display = 'none';
+  }
+}
+
+// ── Sheets sync for transactions ──
+let txnSyncPending = false;
+async function syncTxnsToSheets() {
+  if (!scriptUrl) return;
+  txnSyncPending = true;
+  try {
+    await apiPost('saveTxns', { txns: transactions, balance: balanceEditado });
+    txnSyncPending = false;
+  } catch(e) {
+    console.warn('Txns sync to Sheets failed:', e.message);
+  }
+}
+async function loadTxnsFromSheets() {
+  if (!scriptUrl) return;
+  try {
+    const data = await apiCall('getTxns');
+    if (Array.isArray(data.txns) && data.txns.length > 0) {
+      transactions = data.txns;
+      saveTransactions();
+    }
+    if (data.balance !== undefined && data.balance !== null) {
+      const b = parseFloat(data.balance);
+      if (!isNaN(b) && b > 0) { balanceEditado = b; persistBalance(); }
+    }
+    renderFinance();
+  } catch(e) {
+    console.warn('Load txns from Sheets failed:', e.message);
+  }
+}
+
+function toUSDT(val) {
+  if (currentTxnCurrency === 'ARS') return usdtRateARS ? val / usdtRateARS : val;
+  if (currentTxnCurrency === 'UYU') return usdtRateUYU ? val / usdtRateUYU : val;
+  return val;
+}
+
+function setTxnCurrency(cur, btn) {
+  currentTxnCurrency = cur;
+  document.querySelectorAll('#currencySelector .currency-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const sym = cur === 'USDT' ? 'USDT' : cur === 'ARS' ? '$ ARS' : '$U UYU';
+  const lbl = document.getElementById('lblSalePrice');  if (lbl) lbl.textContent = `Precio de venta (${sym})`;
+  const lbl2 = document.getElementById('lblProvCost');  if (lbl2) lbl2.textContent = `Costo proveedor (${sym})`;
+  const lbl3 = document.getElementById('lblEgresoAmt'); if (lbl3) lbl3.textContent = `Monto (${sym})`;
+  updateVentaCalc();
+  updateARSPreview();
+}
+
+async function fetchUSDT() {
+  try {
+    const [r1, r2] = await Promise.allSettled([
+      fetch('https://criptoya.com/api/usdt/ars/0.1'),
+      fetch('https://open.er-api.com/v6/latest/USD')
+    ]);
+    // ARS via CriptoYa
+    if (r1.status === 'fulfilled') {
+      usdtRawData = await r1.value.json();
+      const primary = ['binance','letsbit','tiendacrypto','satoshitango'];
+      const binance = usdtRawData.binance;
+      usdtRateARS = binance && binance.totalBid ? binance.totalBid : 0;
+      if (!usdtRateARS) {
+        const bids = primary.map(ex => usdtRawData[ex]?.totalBid).filter(Boolean);
+        usdtRateARS = bids.length ? bids.reduce((a,b)=>a+b)/bids.length : 0;
+      }
+    }
+    // UYU via open exchange rates (USD ≈ USDT)
+    if (r2.status === 'fulfilled') {
+      const fx = await r2.value.json();
+      usdtRateUYU = fx.rates?.UYU || 0;
+    }
+    // Update header pill
+    const arsStr = usdtRateARS ? '$ '+Math.round(usdtRateARS).toLocaleString('es-AR')+' ARS' : '—';
+    const uyuStr = usdtRateUYU ? ' · $'+Math.round(usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+    document.getElementById('usdtHeaderVal').textContent = arsStr + uyuStr;
+    // Update big card
+    if (document.getElementById('usdtBigValue')) {
+      document.getElementById('usdtBigValue').textContent = arsStr;
+      document.getElementById('usdtBigSub').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-AR') + ' · Binance P2P';
+      const uyuEl = document.getElementById('usdtBigUYU');
+      if (uyuEl) uyuEl.textContent = usdtRateUYU ? '$ '+Math.round(usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+      renderUSDTExchanges();
+    }
+    updateARSPreview();
+    renderFinance();
+  } catch(e) {
+    document.getElementById('usdtHeaderVal').textContent = 'sin datos';
+  }
+}
+
+function renderUSDTExchanges() {
+  const container = document.getElementById('usdtExchanges');
+  if (!container) return;
+  const show = ['binance','letsbit','tiendacrypto','satoshitango'];
+  container.innerHTML = show.map(ex => {
+    const d = usdtRawData[ex];
+    if (!d || !d.totalBid) return '';
+    return `<div class="usdt-ex-item">
+      <div class="usdt-ex-name">${ex}</div>
+      <div class="usdt-ex-buy">$${Math.round(d.totalBid).toLocaleString('es-AR')}</div>
+      ${d.totalAsk ? `<div class="usdt-ex-sell">Ask $${Math.round(d.totalAsk).toLocaleString('es-AR')}</div>` : ''}
+    </div>`;
+  }).filter(Boolean).join('');
+}
+
+function updateARSPreview() {
+  const preview = document.getElementById('arsPreview');
+  if (!preview) return;
+  const raw = parseFloat(document.getElementById('txnAmtUSDT')?.value || 0);
+  if (raw > 0) {
+    const usdt = toUSDT(raw);
+    const parts = [];
+    if (currentTxnCurrency !== 'USDT') parts.push(usdt.toFixed(4)+' USDT');
+    if (currentTxnCurrency !== 'ARS' && usdtRateARS)  parts.push('$ '+Math.round(usdt*usdtRateARS).toLocaleString('es-AR')+' ARS');
+    if (currentTxnCurrency !== 'UYU' && usdtRateUYU)  parts.push('$U '+Math.round(usdt*usdtRateUYU).toLocaleString('es-UY')+' UYU');
+    preview.textContent = parts.length ? '≈ '+parts.join(' · ') : '';
+  } else {
+    preview.textContent = '';
+  }
+}
+
+// ============================================================
+// FINANCES — CATEGORIES
+// ============================================================
+const DEFAULT_CATS = ['Netflix','Prime Video','Paramount+','Disney+','Star+','HBO Max','Spotify','YouTube Premium','Crunchyroll','Combo+','Apple TV+'];
+let categories = [...DEFAULT_CATS];
+
+function loadCategories() {
+  try {
+    const saved = localStorage.getItem('clientesPro_cats');
+    if (saved) categories = [...new Set([...DEFAULT_CATS, ...JSON.parse(saved)])].sort((a,b)=>a.localeCompare(b));
+  } catch(e) {}
+}
+function saveCategories() {
+  try { localStorage.setItem('clientesPro_cats', JSON.stringify(categories)); } catch(e) {}
+}
+function updateCategoryDatalist() {
+  const dl = document.getElementById('catList');
+  if (!dl) return;
+  dl.innerHTML = categories.map(c => `<option value="${escHtml(c)}">`).join('');
+}
+
+// ============================================================
+// FINANCES — TRANSACTIONS
+// ============================================================
+let transactions = [];
+let currentTxnType = 'ingreso';
+let currentEgresoSubtype = 'proveedor';
+
+function loadTransactions() {
+  try { transactions = JSON.parse(localStorage.getItem('clientesPro_txns') || '[]'); } catch(e) { transactions = []; }
+}
+function saveTransactions() {
+  try { localStorage.setItem('clientesPro_txns', JSON.stringify(transactions)); } catch(e) {}
+}
+
+function setTxnType(type) {
+  currentTxnType = type;
+  document.getElementById('btnTxnIngreso').className = 'txn-type-btn' + (type === 'ingreso' ? ' active-ingreso' : '');
+  document.getElementById('btnTxnEgreso').className  = 'txn-type-btn' + (type === 'egreso'  ? ' active-egreso'  : '');
+  document.getElementById('egresoSubtypeRow').style.display  = type === 'egreso'  ? 'flex'  : 'none';
+  document.getElementById('ventaSection').style.display      = type === 'ingreso' ? 'block' : 'none';
+  document.getElementById('egresoAmtSection').style.display  = type === 'egreso'  ? 'block' : 'none';
+  document.getElementById('txnDescLabel').textContent = type === 'ingreso' ? 'Cliente / Detalle' : 'Proveedor / Detalle';
+}
+function setEgresoSubtype(sub) {
+  currentEgresoSubtype = sub;
+  document.getElementById('btnSubProveedor').className = 'txn-subtype-btn' + (sub === 'proveedor' ? ' active-proveedor' : '');
+  document.getElementById('btnSubGasto').className     = 'txn-subtype-btn' + (sub === 'gasto'     ? ' active-gasto'     : '');
+}
+
+// Venta calculation helpers
+function updateVentaCalc() {
+  const saleInput = parseFloat(document.getElementById('txnSalePrice').value) || 0;
+  const costInput = parseFloat(document.getElementById('txnProvCost').value)  || 0;
+  const sale   = toUSDT(saleInput);
+  const cost   = toUSDT(costInput);
+  const profit = sale - cost;
+  const preview = document.getElementById('ventaCalcPreview');
+  if (!preview) return;
+  if (sale > 0) {
+    const pctLabel = sale > 0 && cost > 0 ? ` (${((cost/sale)*100).toFixed(0)}%)` : '';
+    const curNote = currentTxnCurrency !== 'USDT' ? `<div class="venta-preview-row" style="opacity:.6;font-size:11px;"><span class="vcp-label">💱 Convertido desde ${currentTxnCurrency}</span><span class="vcp-val">${saleInput.toFixed(2)} ${currentTxnCurrency}</span></div>` : '';
+    const saleARS  = usdtRateARS ? ' · $'+Math.round(sale*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+    const saleUYU  = usdtRateUYU ? ' · $'+Math.round(sale*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+    const costARS  = usdtRateARS ? ' · $'+Math.round(cost*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+    const costUYU  = usdtRateUYU ? ' · $'+Math.round(cost*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+    const profARS  = usdtRateARS ? ' · $'+Math.round(profit*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+    const profUYU  = usdtRateUYU ? ' · $'+Math.round(profit*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+    preview.innerHTML = curNote + `
+      <div class="venta-preview-row"><span class="vcp-label">Precio de venta</span><span class="vcp-val sale">+${sale.toFixed(2)} USDT${saleARS}${saleUYU}</span></div>
+      <div class="venta-preview-row"><span class="vcp-label">Costo proveedor${pctLabel}</span><span class="vcp-val cost">-${cost.toFixed(2)} USDT${costARS}${costUYU}</span></div>
+      <div class="venta-preview-row"><span class="vcp-label">Tu ganancia</span><span class="vcp-val profit">+${profit.toFixed(2)} USDT${profARS}${profUYU}</span></div>`;
+  } else {
+    preview.innerHTML = '';
+  }
+}
+
+function addTransaction() {
+  const cat  = (document.getElementById('txnCat').value  || '').trim();
+  const desc = (document.getElementById('txnDesc').value || '').trim();
+  const date = (document.getElementById('txnDate').value || '').trim() || new Date().toLocaleDateString('es-AR');
+  if (!cat) { showToast('⚠️ Ingresá una categoría', 'error'); return; }
+
+  let txn;
+  if (currentTxnType === 'ingreso') {
+    const saleInput = parseFloat(document.getElementById('txnSalePrice').value) || 0;
+    const costInput = parseFloat(document.getElementById('txnProvCost').value)  || 0;
+    if (saleInput <= 0) { showToast('⚠️ Ingresá el precio de venta', 'error'); return; }
+    if ((currentTxnCurrency === 'ARS' && !usdtRateARS) || (currentTxnCurrency === 'UYU' && !usdtRateUYU)) {
+      showToast('⚠️ Esperá que cargue la cotización', 'error'); return;
+    }
+    const sale = toUSDT(saleInput);
+    const cost = toUSDT(costInput);
+    txn = { id: 'txn-'+Date.now(), type: 'ingreso', subtype: null, category: cat, description: desc, salePrice: sale, providerCost: cost, profit: sale - cost, amountUSDT: sale, date };
+  } else {
+    const amtInput = parseFloat((document.getElementById('txnAmtUSDT').value || '').replace(',','.'));
+    if (!amtInput || amtInput <= 0) { showToast('⚠️ Ingresá un monto válido', 'error'); return; }
+    if ((currentTxnCurrency === 'ARS' && !usdtRateARS) || (currentTxnCurrency === 'UYU' && !usdtRateUYU)) {
+      showToast('⚠️ Esperá que cargue la cotización', 'error'); return;
+    }
+    const amt = toUSDT(amtInput);
+    txn = { id: 'txn-'+Date.now(), type: 'egreso', subtype: currentEgresoSubtype, category: cat, description: desc, amountUSDT: amt, date };
+  }
+
+  // Auto-register new category
+  if (!categories.find(c => c.toLowerCase() === cat.toLowerCase())) {
+    categories.push(cat);
+    categories.sort((a,b) => a.localeCompare(b));
+    saveCategories();
+    updateCategoryDatalist();
+    showToast('📦 Categoría "' + cat + '" agregada', 'info');
+  }
+
+  transactions.unshift(txn);
+  saveTransactions();
+  syncTxnsToSheets();
+  renderFinance();
+
+  // Reset form
+  document.getElementById('txnCat').value = '';
+  document.getElementById('txnDesc').value = '';
+  if (currentTxnType === 'ingreso') {
+    document.getElementById('txnSalePrice').value = '';
+    document.getElementById('txnProvCost').value = '';
+    document.getElementById('ventaCalcPreview').innerHTML = '';
+  } else {
+    document.getElementById('txnAmtUSDT').value = '';
+    document.getElementById('arsPreview').textContent = '';
+  }
+  showToast(currentTxnType === 'ingreso' ? '💚 Venta registrada' : '🔴 Compra registrada', 'success');
+}
+
+function deleteTransaction(id) {
+  showConfirm({
+    title: '🗑️ Eliminar movimiento',
+    msg: '¿Eliminar este movimiento? No se puede deshacer.',
+    btnLabel: '🗑️ Eliminar',
+    btnClass: 'btn-confirm-del',
+    onConfirm: () => { transactions = transactions.filter(t => t.id !== id); saveTransactions(); syncTxnsToSheets(); renderFinance(); }
+  });
+}
+
+function renderFinance() {
+  // Totals
+  const ventasBrutas   = transactions.filter(t => t.type === 'ingreso').reduce((s,t) => s + (t.salePrice  ?? t.amountUSDT), 0);
+  const costoProvs     = transactions.filter(t => t.type === 'ingreso').reduce((s,t) => s + (t.providerCost || 0), 0);
+  const gananciaVentas = transactions.filter(t => t.type === 'ingreso').reduce((s,t) => s + (t.profit      ?? t.amountUSDT), 0);
+  const otrosEgresos   = transactions.filter(t => t.type === 'egreso').reduce((s,t) => s + t.amountUSDT, 0);
+  const gananciaNeta   = gananciaVentas - otrosEgresos;
+
+  const fmtU   = v => v.toFixed(2) + ' USDT';
+  const fmtA   = v => usdtRateARS ? '$ ' + Math.round(v * usdtRateARS).toLocaleString('es-AR') + ' ARS' : '—';
+  const fmtUYU = v => usdtRateUYU ? '$ ' + Math.round(v * usdtRateUYU).toLocaleString('es-UY') + ' UYU' : '—';
+  const fmtMulti = v => {
+    const ars = usdtRateARS ? '$ '+Math.round(v*usdtRateARS).toLocaleString('es-AR')+' ARS' : '—';
+    const uyu = usdtRateUYU ? ' · $'+Math.round(v*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+    return ars + uyu;
+  };
+
+  if (document.getElementById('totalIngresos')) {
+    document.getElementById('totalIngresos').textContent    = fmtU(ventasBrutas);
+    document.getElementById('totalEgresos').textContent     = fmtU(otrosEgresos);
+    document.getElementById('totalGanancia').textContent    = fmtU(gananciaNeta);
+    document.getElementById('totalIngresosARS').textContent = `${fmtMulti(ventasBrutas)} · prov: ${fmtU(costoProvs)} · gan: ${fmtU(gananciaVentas)}`;
+    document.getElementById('totalEgresosARS').textContent  = fmtMulti(otrosEgresos);
+    document.getElementById('totalGananciaARS').textContent = fmtMulti(gananciaNeta);
+    document.getElementById('totalGanancia').style.color    = gananciaNeta >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('txnCount').textContent         = transactions.length;
+    balanceEstimativo = gananciaNeta;
+    renderBalance();
+  }
+
+  // Category breakdown
+  const bd = document.getElementById('catBreakdown');
+  if (bd) {
+    const catMap = {};
+    transactions.forEach(t => {
+      const k = t.category || 'Sin categoría';
+      if (!catMap[k]) catMap[k] = { sale: 0, prov: 0, gan: 0, egr: 0 };
+      if (t.type === 'ingreso') {
+        catMap[k].sale += (t.salePrice  ?? t.amountUSDT);
+        catMap[k].prov += (t.providerCost || 0);
+        catMap[k].gan  += (t.profit      ?? t.amountUSDT);
+      } else {
+        catMap[k].egr += t.amountUSDT;
+      }
+    });
+    const entries = Object.entries(catMap).sort((a,b) => (b[1].gan - b[1].egr) - (a[1].gan - a[1].egr));
+    if (entries.length) {
+      const rows = entries.map(([cat, v]) => {
+        const net = v.gan - v.egr;
+        return `<div class="cat-row">
+          <span class="cat-name">${escHtml(cat)}</span>
+          <span class="cat-in">${v.sale > 0 ? '+'+v.sale.toFixed(2) : '—'}</span>
+          <span class="cat-out">${(v.prov + v.egr) > 0 ? '-'+(v.prov+v.egr).toFixed(2) : '—'}</span>
+          <span class="cat-net" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}${net.toFixed(2)}</span>
+        </div>`;
+      }).join('');
+      bd.innerHTML = `<div class="section-title" style="margin-bottom:10px"><span>Resumen por categoría</span></div>
+        <div class="cat-breakdown-wrap">
+          <div class="cat-row cat-header"><span class="cat-name">Categoría</span><span class="cat-in">Ventas</span><span class="cat-out">Costos</span><span class="cat-net">Neto USDT</span></div>
+          ${rows}
+        </div>`;
+    } else { bd.innerHTML = ''; }
+  }
+
+  // Transaction list
+  const list = document.getElementById('txnList');
+  if (!list) return;
+  if (!transactions.length) { list.innerHTML = '<div class="txn-empty">Sin movimientos registrados aún.</div>'; return; }
+  const frag = document.createDocumentFragment();
+  transactions.forEach(t => {
+    const subBadge = t.subtype
+      ? `<span class="txn-sub-badge ${t.subtype}">${t.subtype==='proveedor'?'🏪 Proveedor':'💸 Gasto'}</span>`
+      : '';
+    let amountBlock;
+    if (t.type === 'ingreso' && t.salePrice) {
+      const profitARS = usdtRateARS ? '$ '+Math.round(t.profit*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+      const profitUYU = usdtRateUYU ? ' · $'+Math.round(t.profit*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+      amountBlock = `
+        <div class="txn-usdt">+${t.salePrice.toFixed(2)} USDT</div>
+        <div class="txn-cost-line">−${t.providerCost.toFixed(2)} costo prov.</div>
+        <div class="txn-profit-line">= +${t.profit.toFixed(2)} gan.</div>
+        <div class="txn-ars">${profitARS}${profitUYU}</div>`;
+    } else {
+      const arsVal = usdtRateARS ? '$ '+Math.round(t.amountUSDT*usdtRateARS).toLocaleString('es-AR')+' ARS' : '—';
+      const uyuVal = usdtRateUYU ? ' · $'+Math.round(t.amountUSDT*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
+      amountBlock = `
+        <div class="txn-usdt">${t.type==='ingreso'?'+':'-'}${t.amountUSDT.toFixed(2)} USDT</div>
+        <div class="txn-ars">${arsVal}${uyuVal}</div>`;
+    }
+    const div = document.createElement('div');
+    div.className = `txn-item ${t.type}`;
+    div.innerHTML = `
+      <div class="txn-dot">${t.type==='ingreso'?'💚':'🔴'}</div>
+      <div class="txn-info">
+        <div style="margin-bottom:3px"><span class="txn-cat-badge">${escHtml(t.category||'—')}</span>${subBadge}</div>
+        <div class="txn-desc">${escHtml(t.description||t.category)}</div>
+        <div class="txn-meta">${t.date}</div>
+      </div>
+      <div class="txn-amount">${amountBlock}</div>
+      <button class="btn-del-txn" data-txn-id="${t.id}" title="Eliminar">✕</button>`;
+    frag.appendChild(div);
+  });
+  list.innerHTML = '';
+  list.appendChild(frag);
+  list.querySelectorAll('[data-txn-id]').forEach(btn => {
+    btn.addEventListener('click', () => deleteTransaction(btn.dataset.txnId));
+  });
+}
+
+// ============================================================
 // INIT
 // ============================================================
 loadConfig();
+loadCategories();
+updateCategoryDatalist();
+loadTransactions();
+renderFinance();
+fetchUSDT();
+setInterval(fetchUSDT, 5 * 60 * 1000);
+// Set today in txnDate
+(function(){ const _d = new Date(); const el = document.getElementById('txnDate'); if(el) el.value = String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0')+'/'+_d.getFullYear(); })();
 </script>
 </body>
 </html>
