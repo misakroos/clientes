@@ -3,6 +3,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ClientesPro — Gestión de Servicios Digitales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -174,6 +176,20 @@
   .btn-magic{margin-top:8px;background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity 0.2s;}
   .btn-magic:hover{opacity:0.9;}
   .last-sync{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:center;margin-top:8px;padding-bottom:24px;}
+
+  /* Modal scroll */
+  .modal{max-height:90vh;overflow-y:auto;}
+  /* WhatsApp confirm button */
+  .btn-whatsapp-confirm{background:#25d366;border:none;color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:'Syne';font-size:14px;font-weight:600;}
+  /* Focus visible */
+  *:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .btn-add-service{width:100%;background:rgba(108,99,255,.07);border:1px dashed rgba(108,99,255,.4);color:var(--accent);padding:9px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;transition:all .2s;margin-top:4px;}
+  .btn-add-service:hover{background:rgba(108,99,255,.15);}
+  .service-block{border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;background:rgba(108,99,255,.03);}
+  .service2-header{display:flex;align-items:center;gap:8px;padding:10px 0 8px;border-top:1px solid var(--border);margin-top:8px;}
+  .service2-label{font-size:11px;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.5px;flex:1;}
+  .btn-remove-service2{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;transition:color .2s;}
+  .btn-remove-service2:hover{color:var(--red);}
   @media(max-width:600px){
     header{padding:0 16px;}
     main{padding:20px 16px;}
@@ -189,19 +205,19 @@
   <div class="spinner"></div>
   <div class="loading-text" id="loadingText">Conectando con Google Sheets...</div>
 </div>
-<div class="modal-backdrop" id="modalDelete">
+<div class="modal-backdrop" id="modalConfirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal">
-    <h3>⚠️ Eliminar cliente</h3>
-    <p id="modalDeleteMsg">¿Estás seguro?</p>
+    <h3 id="confirmTitle">Confirmar</h3>
+    <p id="confirmMsg" style="white-space:pre-line"></p>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('modalDelete')">Cancelar</button>
-      <button class="btn-confirm-del" id="btnConfirmDelete">Eliminar</button>
+      <button class="btn-cancel" onclick="closeModal('modalConfirm')">Cancelar</button>
+      <button id="btnConfirmAction" class="btn-confirm-del">Confirmar</button>
     </div>
   </div>
 </div>
-<div class="modal-backdrop" id="modalEdit">
+<div class="modal-backdrop" id="modalEdit" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
   <div class="modal wide">
-    <h3>✏️ Editar cliente</h3>
+    <h3 id="editModalTitle">✏️ Editar cliente</h3>
     <div class="edit-grid" id="editForm"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalEdit')">Cancelar</button>
@@ -209,9 +225,9 @@
     </div>
   </div>
 </div>
-<div class="modal-backdrop" id="modalAdd">
+<div class="modal-backdrop" id="modalAdd" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
   <div class="modal wide">
-    <h3>➕ Nuevo cliente</h3>
+    <h3 id="addModalTitle">➕ Nuevo cliente</h3>
     <div class="magic-extractor">
       <label>✨ Extractor Mágico (Pegá el mensaje de WhatsApp)</label>
       <textarea id="magicInput" placeholder="Ej: Hola Juan, tu servicio de Netflix vence el 25/08..."></textarea>
@@ -221,6 +237,8 @@
       </button>
     </div>
     <div class="edit-grid" id="addForm"></div>
+    <div id="extraServices"></div>
+    <button class="btn-add-service" onclick="addServiceBlock()">➕ Agregar otro servicio</button>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalAdd')">Cancelar</button>
       <button class="btn-confirm-ok" onclick="saveAdd()">💾 Agregar a Sheets</button>
@@ -259,7 +277,7 @@
       </div>
       <div class="form-group">
         <label>Auto-refresh (segundos)</label>
-        <input type="number" id="intervalo" value="60" min="10" max="300">
+        <input type="number" id="intervalo" value="30" min="10" max="300">
       </div>
     </div>
     <div class="config-note">
@@ -302,7 +320,7 @@
   <div class="toolbar">
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="searchInput" placeholder="Buscar por nombre, teléfono, proveedor..." oninput="renderClients()">
+      <input type="text" id="searchInput" placeholder="Buscar por nombre, teléfono, proveedor..." oninput="debouncedRender()">
     </div>
     <button class="btn-refresh" onclick="loadData()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
@@ -329,7 +347,7 @@ function runMagicExtractor() {
   const fields = { nombre:'', telefono:'', correo:'', proveedor:'', fecha_vencimiento:'' };
   const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
   if(emailMatch) fields.correo = emailMatch[0];
-  const phoneMatch = text.match(/\+?\d{8,12}/);
+  const phoneMatch = text.match(/\+?\d{8,15}/);
   if(phoneMatch) fields.telefono = phoneMatch[0];
   const dateMatch = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
   if(dateMatch) fields.fecha_vencimiento = `${dateMatch[1].padStart(2,'0')}/${dateMatch[2].padStart(2,'0')}/${dateMatch[3].length==2?'20'+dateMatch[3]:dateMatch[3]}`;
@@ -345,6 +363,28 @@ function runMagicExtractor() {
 }
 
 // ============================================================
+// UTILS
+// ============================================================
+function debounce(fn, ms) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+const debouncedRender = debounce(renderClients, 150);
+
+function addOneMonth(date) {
+  const d = new Date(date);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + 1);
+  if (d.getDate() !== day) d.setDate(0); // clamp to last day of target month
+  return d;
+}
+
+function isValidDateStr(str) {
+  if (!str || !str.trim()) return false;
+  const d = parseDate(str);
+  return d && !isNaN(d.getTime());
+}
+
+// ============================================================
 // STATE
 // ============================================================
 let allClients = [];
@@ -354,6 +394,24 @@ let diasAlerta = 7;
 let refreshInterval = null;
 let scriptUrl = '';
 let editingClient = null;
+let serviceBlockCount = 0;
+
+// ============================================================
+// DATA CACHE
+// ============================================================
+function saveCache() {
+  try { localStorage.setItem('clientsCache', JSON.stringify(allClients)); } catch(e) {}
+}
+function loadCache() {
+  try {
+    const cached = localStorage.getItem('clientsCache');
+    if (cached) {
+      allClients = JSON.parse(cached);
+      renderAll();
+      document.getElementById('lastSync').textContent = '📦 Datos en caché — sincronizando...';
+    }
+  } catch(e) {}
+}
 
 // ============================================================
 // CONFIG
@@ -361,11 +419,11 @@ let editingClient = null;
 function loadConfig() {
   scriptUrl = localStorage.getItem('scriptUrl') || '';
   diasAlerta = parseInt(localStorage.getItem('diasAlerta') || '7');
-  const ivl = parseInt(localStorage.getItem('intervalo') || '60');
+  const ivl = parseInt(localStorage.getItem('intervalo') || '30');
   document.getElementById('scriptUrl').value = scriptUrl;
   document.getElementById('diasAlerta').value = diasAlerta;
   document.getElementById('intervalo').value = ivl;
-  if (scriptUrl) loadData();
+  if (scriptUrl) { loadCache(); loadData(true); }
   else {
     document.getElementById('configPanel').classList.add('open');
     setSync('error');
@@ -418,11 +476,13 @@ async function apiPost(action, body = {}) {
 // ============================================================
 // LOAD DATA
 // ============================================================
-async function loadData() {
+async function loadData(silent = false) {
   if (!scriptUrl) return;
   setSync('cargando');
-  document.getElementById('loadingText').textContent = 'Sincronizando con Google Sheets...';
-  document.getElementById('loadingOverlay').classList.add('show');
+  if (!silent) {
+    document.getElementById('loadingText').textContent = 'Sincronizando con Google Sheets...';
+    document.getElementById('loadingOverlay').classList.add('show');
+  }
   try {
     const data = await apiCall('getAll');
     allClients = data.clients || [];
@@ -430,12 +490,13 @@ async function loadData() {
     renderAll();
     setSync('conectado');
     document.getElementById('lastSync').textContent = '🔄 Última actualización: ' + new Date().toLocaleString('es-AR');
+    saveCache();
   } catch(e) {
     setSync('error');
-    showToast('❌ Error: ' + e.message, 'error');
+    if (!silent) showToast('❌ Error: ' + e.message, 'error');
     document.getElementById('lastSync').textContent = '⚠️ Error de conexión — revisá la URL del script';
   } finally {
-    document.getElementById('loadingOverlay').classList.remove('show');
+    if (!silent) document.getElementById('loadingOverlay').classList.remove('show');
   }
 }
 
@@ -527,7 +588,14 @@ function renderClients() {
     </div>`;
     return;
   }
-  grid.innerHTML = filtered.map((c,i) => buildCard(c,i)).join('');
+  const frag = document.createDocumentFragment();
+  filtered.forEach((c, i) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildCard(c, i);
+    frag.appendChild(tmp.firstElementChild);
+  });
+  grid.innerHTML = '';
+  grid.appendChild(frag);
 }
 function buildCard(c, idx) {
   const { status, days } = getStatus(c);
@@ -592,24 +660,32 @@ const trashIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 // ============================================================
 // ACTIONS — RENOVAR
 // ============================================================
-async function renovar(clientId) {
-  // Buscar por id estricto (string)
+function renovar(clientId) {
   const client = allClients.find(c => String(c.id) === String(clientId));
   if (!client) { showToast('❌ Cliente no encontrado', 'error'); return; }
 
   const oldDate = parseDate(client.fecha_vencimiento);
-  // Siempre sumar 1 mes desde la fecha de vencimiento actual, aunque ya esté vencida
   const base = oldDate ? new Date(oldDate) : new Date();
-  base.setMonth(base.getMonth() + 1);
-  const newDateStr = `${String(base.getDate()).padStart(2,'0')}/${String(base.getMonth()+1).padStart(2,'0')}/${base.getFullYear()}`;
+  const newDate = addOneMonth(base);
+  const newDateStr = `${String(newDate.getDate()).padStart(2,'0')}/${String(newDate.getMonth()+1).padStart(2,'0')}/${newDate.getFullYear()}`;
 
+  showConfirm({
+    title: '🔄 Renovar servicio',
+    msg: `¿Renovar el servicio de "${client.nombre}"${client.proveedor ? ' ('+client.proveedor+')' : ''} por 1 mes más?\n\nNueva fecha de vencimiento: ${newDateStr}.`,
+    btnLabel: '✅ Renovar',
+    btnClass: 'btn-confirm-ok',
+    onConfirm: () => doRenovar(clientId, newDateStr)
+  });
+}
+async function doRenovar(clientId, newDateStr) {
+  const client = allClients.find(c => String(c.id) === String(clientId));
+  if (!client) return;
   setCardSaving(clientId, true);
   try {
     await apiPost('update', {
       row: client._row,
       fields: JSON.stringify({ fecha_vencimiento: newDateStr })
     });
-    // Actualizar en memoria ANTES de re-renderizar
     client.fecha_vencimiento = newDateStr;
     showToast(`✅ ${client.nombre} renovado hasta ${newDateStr}`, 'success');
     renderAll();
@@ -664,6 +740,13 @@ async function saveEdit() {
     const el = document.getElementById('ef_' + f.key);
     if (el) fields[f.key] = el.value.trim();
   });
+  // Validate dates
+  if (fields.fecha_inicio && !isValidDateStr(fields.fecha_inicio)) {
+    showToast('⚠️ Fecha de inicio inválida (DD/MM/AAAA)', 'error'); return;
+  }
+  if (fields.fecha_vencimiento && !isValidDateStr(fields.fecha_vencimiento)) {
+    showToast('⚠️ Fecha de vencimiento inválida (DD/MM/AAAA)', 'error'); return;
+  }
   document.getElementById('modalEdit').classList.remove('show');
   setCardSaving(editingClient.id, true);
   try {
@@ -702,9 +785,61 @@ function openAddModal() {
       <label>${f.label}</label>
       <input type="text" id="af_${f.key}" value="${defaults[f.key]||''}">
     </div>`).join('');
+
+  // Reset extra service blocks
+  document.getElementById('extraServices').innerHTML = '';
+  serviceBlockCount = 0;
+
   document.getElementById('modalAdd').classList.add('show');
   document.getElementById('magicInput').value = '';
 }
+// ============================================================
+// MULTI-SERVICE BLOCKS
+// ============================================================
+function addServiceBlock() {
+  serviceBlockCount++;
+  const n = serviceBlockCount;
+  const today = new Date();
+  const todayStr = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+  const nextMonth = new Date(today); nextMonth.setMonth(nextMonth.getMonth()+1);
+  const nextStr = `${String(nextMonth.getDate()).padStart(2,'0')}/${String(nextMonth.getMonth()+1).padStart(2,'0')}/${nextMonth.getFullYear()}`;
+  const div = document.createElement('div');
+  div.className = 'service-block';
+  div.id = `svc-block-${n}`;
+  div.innerHTML = `
+    <div class="service2-header">
+      <span class="service2-label">📦 Servicio ${n + 1}</span>
+      <button type="button" class="btn-remove-service2" onclick="removeServiceBlock(${n})">✕ Quitar</button>
+    </div>
+    <div class="edit-grid">
+      <div class="edit-field">
+        <label>Proveedor</label>
+        <input type="text" id="svc-${n}-proveedor" placeholder="Netflix, Spotify...">
+      </div>
+      <div class="edit-field">
+        <label>Correo (opcional)</label>
+        <input type="text" id="svc-${n}-correo">
+      </div>
+      <div class="edit-field">
+        <label>Fecha inicio (DD/MM/AAAA)</label>
+        <input type="text" id="svc-${n}-fecha_inicio" value="${todayStr}">
+      </div>
+      <div class="edit-field">
+        <label>Fecha vencimiento (DD/MM/AAAA)</label>
+        <input type="text" id="svc-${n}-fecha_vencimiento" value="${nextStr}">
+      </div>
+    </div>`;
+  document.getElementById('extraServices').appendChild(div);
+  setTimeout(() => {
+    const input = document.getElementById(`svc-${n}-proveedor`);
+    if (input) input.focus();
+  }, 50);
+}
+function removeServiceBlock(n) {
+  const el = document.getElementById(`svc-block-${n}`);
+  if (el) el.remove();
+}
+
 async function saveAdd() {
   const fields = {};
   EDIT_FIELDS.forEach(f => {
@@ -712,15 +847,48 @@ async function saveAdd() {
     if (el) fields[f.key] = el.value.trim();
   });
   if (!fields.nombre) { showToast('⚠️ El nombre es obligatorio', 'error'); return; }
+  if (fields.fecha_inicio && !isValidDateStr(fields.fecha_inicio)) {
+    showToast('⚠️ Fecha de inicio inválida (DD/MM/AAAA)', 'error'); return;
+  }
+  if (fields.fecha_vencimiento && !isValidDateStr(fields.fecha_vencimiento)) {
+    showToast('⚠️ Fecha de vencimiento inválida (DD/MM/AAAA)', 'error'); return;
+  }
+
+  // Collect all extra service blocks
+  const extraSvcs = [];
+  document.querySelectorAll('#extraServices .service-block').forEach(block => {
+    const n = block.id.replace('svc-block-', '');
+    const prov = (document.getElementById(`svc-${n}-proveedor`)?.value || '').trim();
+    if (!prov) return;
+    const fi = (document.getElementById(`svc-${n}-fecha_inicio`)?.value || fields.fecha_inicio).trim();
+    const fv = (document.getElementById(`svc-${n}-fecha_vencimiento`)?.value || fields.fecha_vencimiento).trim();
+    if (fi && !isValidDateStr(fi)) { showToast(`⚠️ Fecha de inicio inválida en Servicio ${parseInt(n)+1}`, 'error'); return; }
+    if (fv && !isValidDateStr(fv)) { showToast(`⚠️ Fecha de vencimiento inválida en Servicio ${parseInt(n)+1}`, 'error'); return; }
+    extraSvcs.push({
+      nombre:            fields.nombre,
+      telefono:          fields.telefono,
+      correo:            (document.getElementById(`svc-${n}-correo`)?.value || '').trim(),
+      proveedor:         prov,
+      fecha_inicio:      fi,
+      fecha_vencimiento: fv,
+    });
+  });
+
   const maxId = allClients.reduce((m,c) => Math.max(m, parseInt(c.id)||0), 0);
   fields.id = String(maxId + 1).padStart(3, '0');
+  extraSvcs.forEach((s, i) => { s.id = String(maxId + 2 + i).padStart(3, '0'); });
+
+  const total = 1 + extraSvcs.length;
   document.getElementById('modalAdd').classList.remove('show');
-  document.getElementById('loadingText').textContent = 'Agregando cliente...';
+  document.getElementById('loadingText').textContent = total > 1 ? `Agregando ${total} servicios...` : 'Agregando cliente...';
   document.getElementById('loadingOverlay').classList.add('show');
   try {
     await apiPost('add', { fields: JSON.stringify(fields) });
+    for (const svc of extraSvcs) await apiPost('add', { fields: JSON.stringify(svc) });
     await loadData();
-    showToast(`✅ ${fields.nombre} agregado a Google Sheets`, 'success');
+    showToast(total > 1
+      ? `✅ ${fields.nombre} agregado con ${total} servicios`
+      : `✅ ${fields.nombre} agregado a Google Sheets`, 'success');
   } catch(e) {
     document.getElementById('loadingOverlay').classList.remove('show');
     showToast('❌ Error al agregar: ' + e.message, 'error');
@@ -733,9 +901,13 @@ async function saveAdd() {
 function confirmDelete(clientId) {
   const client = allClients.find(c => String(c.id) === String(clientId));
   if (!client) return;
-  document.getElementById('modalDeleteMsg').textContent = `¿Eliminar a "${client.nombre}"? Esta acción borrará la fila de Google Sheets.`;
-  document.getElementById('btnConfirmDelete').onclick = () => doDelete(clientId);
-  document.getElementById('modalDelete').classList.add('show');
+  showConfirm({
+    title: '⚠️ Eliminar cliente',
+    msg: `¿Eliminar a "${client.nombre}"? Esta acción borrará la fila de Google Sheets y no se puede deshacer.`,
+    btnLabel: '🗑️ Eliminar',
+    btnClass: 'btn-confirm-del',
+    onConfirm: () => doDelete(clientId)
+  });
 }
 async function doDelete(clientId) {
   const client = allClients.find(c => String(c.id) === String(clientId));
@@ -756,6 +928,21 @@ async function doDelete(clientId) {
 // ============================================================
 // WHATSAPP — con detección de país corregida
 // ============================================================
+function sendWhatsApp(clientId) {
+  const client = allClients.find(c => String(c.id) === String(clientId));
+  if (!client) return;
+  const phone = formatPhone(client.telefono);
+  if (!phone) { showToast('⚠️ Este cliente no tiene teléfono cargado', 'error'); return; }
+  const { status } = getStatus(client);
+  const statusLabel = { vencido:'🔴 Vencida', 'vence-hoy':'🔵 Vence hoy', 'por-vencer':'🟠 Por vencer', activo:'🟢 Activa' };
+  showConfirm({
+    title: '💬 Enviar WhatsApp',
+    msg: `¿Enviar mensaje de estado a ${client.nombre}?\n\nCuenta: ${statusLabel[status] || status} · ${client.proveedor || 'servicio digital'}`,
+    btnLabel: '📲 Enviar',
+    btnClass: 'btn-whatsapp-confirm',
+    onConfirm: () => doSendWhatsApp(clientId)
+  });
+}
 function formatPhone(raw) {
   // Limpiar todo salvo dígitos y + inicial
   let phone = String(raw || '').replace(/[^\d+]/g, '');
@@ -782,7 +969,7 @@ function formatPhone(raw) {
   return phone;
 }
 
-function sendWhatsApp(clientId) {
+function doSendWhatsApp(clientId) {
   const client = allClients.find(c => String(c.id) === String(clientId));
   if (!client) return;
   const { status, days } = getStatus(client);
@@ -829,9 +1016,39 @@ function sendWhatsApp(clientId) {
 // ============================================================
 // MODALS / HELPERS
 // ============================================================
+function showConfirm({ title, msg, btnLabel, btnClass, onConfirm }) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  const btn = document.getElementById('btnConfirmAction');
+  btn.textContent = btnLabel;
+  btn.className = btnClass;
+  btn.onclick = () => { closeModal('modalConfirm'); onConfirm(); };
+  openModal('modalConfirm');
+}
+function openModal(id) {
+  const m = document.getElementById(id);
+  m.classList.add('show');
+  // Focus first interactive element
+  setTimeout(() => {
+    const el = m.querySelector('button, input, textarea, select');
+    if (el) el.focus();
+  }, 50);
+}
 function closeModal(id) {
   document.getElementById(id).classList.remove('show');
 }
+// ESC key closes any open modal
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  ['modalConfirm','modalEdit','modalAdd'].forEach(id => closeModal(id));
+});
+// Click backdrop closes modal
+document.addEventListener('click', e => {
+  ['modalConfirm','modalEdit','modalAdd'].forEach(id => {
+    const el = document.getElementById(id);
+    if (e.target === el) closeModal(id);
+  });
+});
 function setSync(state) {
   const dot = document.getElementById('syncDot');
   const st  = document.getElementById('syncStatus');
@@ -841,7 +1058,7 @@ function setSync(state) {
 }
 function startAutoRefresh(seg) {
   if (refreshInterval) clearInterval(refreshInterval);
-  if (scriptUrl) refreshInterval = setInterval(loadData, seg * 1000);
+  if (scriptUrl) refreshInterval = setInterval(() => loadData(true), seg * 1000);
 }
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
@@ -852,8 +1069,7 @@ function showToast(msg, type='info') {
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-// escAttr ya no se usa en buildCard (usamos data-attributes), pero se mantiene por compatibilidad
-function escAttr(s) { return String(s||'').replace(/'/g,"\\'"); }
+
 
 // Event delegation para los botones de las tarjetas — evita problemas de escaping en onclick inline
 document.getElementById('clientsGrid').addEventListener('click', function(e) {
