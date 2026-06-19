@@ -483,6 +483,16 @@
   .gasto-cat-toggle.active{background:rgba(255,159,67,.15);border-color:var(--orange);color:var(--orange);}
   .gasto-cat-toggle svg{flex-shrink:0;}
   #gastoCatRow{margin-top:10px;}
+
+  /* ── sync status bar ── */
+  .sync-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;font-size:12px;font-family:'DM Mono',monospace;margin-bottom:12px;}
+  .sync-bar.ok{background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);color:var(--green);}
+  .sync-bar.error{background:rgba(255,90,95,.08);border:1px solid rgba(255,90,95,.25);color:#ff5a5f;}
+  .sync-bar.loading{background:rgba(99,179,237,.08);border:1px solid rgba(99,179,237,.2);color:#63b3ed;}
+  .sync-bar.warn{background:rgba(255,159,67,.08);border:1px solid rgba(255,159,67,.2);color:var(--orange);}
+  .sync-bar-msg{flex:1;}
+  .btn-sync-now{background:none;border:1px solid currentColor;color:inherit;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+  .btn-sync-now:hover{opacity:.75;}
 </style>
 </head>
 <body>
@@ -740,6 +750,12 @@
       <div class="usdt-big-sub" id="usdtBigUYU" style="margin-top:4px;font-size:12px;opacity:0.8"></div>
       </div>
       <div class="usdt-exchanges" id="usdtExchanges"></div>
+    </div>
+
+    <!-- SYNC STATUS BAR -->
+    <div id="txnSyncBar" class="sync-bar loading" style="display:none;">
+      <span id="txnSyncMsg" class="sync-bar-msg">Sincronizando con Sheets...</span>
+      <button class="btn-sync-now" onclick="manualSyncTxns()">🔄 Sync</button>
     </div>
 
     <!-- RESUMEN FINANCIERO -->
@@ -1935,31 +1951,69 @@ function renderBalance() {
 
 // ── Sheets sync for transactions ──
 let txnSyncPending = false;
+function setSyncBar(type, msg) {
+  const bar = document.getElementById('txnSyncBar');
+  const txt = document.getElementById('txnSyncMsg');
+  if (!bar || !txt) return;
+  bar.style.display = 'flex';
+  bar.className = 'sync-bar ' + type;
+  txt.textContent = msg;
+}
+async function manualSyncTxns() {
+  setSyncBar('loading', 'Cargando desde Sheets...');
+  await loadTxnsFromSheets();
+}
 async function syncTxnsToSheets() {
   if (!scriptUrl) return;
   txnSyncPending = true;
   try {
     await apiPost('saveTxns', { txns: transactions, balance: balanceEditado });
     txnSyncPending = false;
+    setSyncBar('ok', '✓ Sincronizado con Sheets — ' + new Date().toLocaleTimeString('es-AR'));
   } catch(e) {
     console.warn('Txns sync to Sheets failed:', e.message);
+    const hint = e.message.includes('404') || e.message.includes('doPost') || e.message.includes('fetch')
+      ? ' (¿doPost agregado al script?)'
+      : '';
+    setSyncBar('error', '✗ Error al guardar en Sheets' + hint + ' — ' + e.message.slice(0,60));
   }
 }
 async function loadTxnsFromSheets() {
-  if (!scriptUrl) return;
+  if (!scriptUrl) {
+    setSyncBar('warn', '⚠ Configurá la URL del script para sincronizar finanzas');
+    return;
+  }
+  setSyncBar('loading', 'Cargando finanzas desde Sheets...');
   try {
     const data = await apiCall('getTxns');
-    if (Array.isArray(data.txns) && data.txns.length > 0) {
-      transactions = data.txns;
-      saveTransactions();
+    if (data && data.error) {
+      // likely getTxns case missing in doGet
+      setSyncBar('error', '✗ Sheets respondió: "' + data.error + '" — ¿Agregaste case getTxns en doGet?');
+      return;
+    }
+    if (Array.isArray(data.txns)) {
+      // always take Sheets data as source of truth if it has records,
+      // or if local is empty (first load on new device)
+      if (data.txns.length > 0 || transactions.length === 0) {
+        transactions = data.txns;
+        saveTransactions();
+      }
     }
     if (data.balance !== undefined && data.balance !== null) {
       const b = parseFloat(data.balance);
       if (!isNaN(b) && b > 0) { balanceEditado = b; persistBalance(); }
     }
     renderFinance();
+    const count = Array.isArray(data.txns) ? data.txns.length : 0;
+    setSyncBar('ok', '✓ ' + count + ' transacci' + (count === 1 ? 'ón' : 'ones') + ' cargadas — ' + new Date().toLocaleTimeString('es-AR'));
   } catch(e) {
     console.warn('Load txns from Sheets failed:', e.message);
+    const isCors = e.message.toLowerCase().includes('cors') || e.message.toLowerCase().includes('fetch') || e.message.toLowerCase().includes('failed');
+    const isTxns = e.message.toLowerCase().includes('gettxns') || e.message.toLowerCase().includes('acción');
+    let hint = '';
+    if (isCors) hint = ' — Verificá la URL del script y que el acceso sea "Anyone"';
+    else if (isTxns) hint = ' — Falta case getTxns en doGet del script';
+    setSyncBar('error', '✗ No se pudo cargar desde Sheets' + hint);
   }
 }
 
