@@ -453,6 +453,36 @@
     .card-actions { grid-template-columns: 1fr 1fr; }
     .fstat-num   { font-size: 15px; }
   }
+
+  /* ── per-field currency selects ── */
+  .input-cur-row{display:flex;gap:6px;align-items:stretch;}
+  .input-cur-row input{flex:1;min-width:0;}
+  .cur-mini-sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:0 6px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;min-width:62px;}
+  /* ── preset hint ── */
+  .preset-hint{font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:3px;min-height:13px;}
+  /* ── cobrar button ── */
+  .btn-cobrar{background:rgba(0,229,160,.12);color:var(--green);border:1px solid rgba(0,229,160,.25);grid-column:span 2;}
+  .btn-cobrar:hover:not(:disabled){background:var(--green);color:#000;}
+  /* ── traspaso badge ── */
+  .txn-traspaso-badge{background:rgba(99,179,237,.15);border:1px solid rgba(99,179,237,.3);color:#63b3ed;font-size:10px;padding:1px 7px;border-radius:20px;font-family:'DM Mono',monospace;}
+  /* ── active-traspaso ── */
+  .txn-type-btn.active-traspaso{background:rgba(99,179,237,.15);border-color:#63b3ed;color:#63b3ed;}
+
+  /* ── add-client finanzas accordion ── */
+  .fin-toggle-btn{width:100%;background:rgba(99,179,237,.08);border:1px solid rgba(99,179,237,.25);color:#63b3ed;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin:10px 0 0;}
+  .fin-toggle-btn:hover{background:rgba(99,179,237,.15);}
+  .fin-toggle-btn .fin-arrow{transition:transform .25s;display:inline-block;}
+  .fin-toggle-btn.open .fin-arrow{transform:rotate(180deg);}
+  .fin-accordion{display:none;border:1px solid rgba(99,179,237,.2);border-top:none;border-radius:0 0 10px 10px;padding:14px;background:rgba(99,179,237,.04);margin-bottom:10px;}
+  .fin-accordion.open{display:block;}
+
+  /* ── gasto personal section ── */
+  #gastoDetailSection{margin-top:10px;}
+  .gasto-cat-toggle{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;margin-top:6px;user-select:none;transition:background .15s,color .15s;}
+  .gasto-cat-toggle:hover{background:rgba(255,159,67,.12);color:var(--orange);}
+  .gasto-cat-toggle.active{background:rgba(255,159,67,.15);border-color:var(--orange);color:var(--orange);}
+  .gasto-cat-toggle svg{flex-shrink:0;}
+  #gastoCatRow{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -494,9 +524,105 @@
     <div class="edit-grid" id="addForm"></div>
     <div id="extraServices"></div>
     <button class="btn-add-service" onclick="addServiceBlock()">➕ Agregar otro servicio</button>
+    <!-- Finanzas accordion -->
+    <button class="fin-toggle-btn" id="finToggleBtn" onclick="toggleAddFinanzas()">
+      💰 Agregar finanzas <span class="fin-arrow">▼</span>
+    </button>
+    <div class="fin-accordion" id="finAccordion">
+      <div class="txn-type-toggle" style="margin-bottom:10px;">
+        <button id="afBtnIngreso"  class="txn-type-btn active-ingreso" onclick="setAfType('ingreso')">💚 Venta</button>
+        <button id="afBtnTraspaso" class="txn-type-btn"                onclick="setAfType('traspaso')">↔️ Traspaso</button>
+        <button id="afBtnEgreso"   class="txn-type-btn"                onclick="setAfType('egreso')">🔴 Egreso</button>
+      </div>
+      <div id="afEgresoSubRow" style="display:none;gap:6px;margin-bottom:10px;" class="txn-type-toggle">
+        <button id="afSubProv"  class="txn-subtype-btn active-proveedor" onclick="setAfEgresoSub('proveedor')">🏪 Proveedor</button>
+        <button id="afSubGasto" class="txn-subtype-btn"                  onclick="setAfEgresoSub('gasto')">💸 Gasto personal</button>
+      </div>
+      <div class="edit-field" id="afCatRow" style="margin-bottom:10px;">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Categoría / Servicio</label>
+        <input type="text" id="afCat" list="catList" placeholder="Netflix 1 Perfil…" onchange="afApplyPreset()" onblur="afApplyPreset()">
+      </div>
+      <div id="afVentaSection">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="edit-field" style="flex:1;min-width:120px;">
+            <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Precio de venta</label>
+            <div class="input-cur-row">
+              <input type="number" id="afSalePrice" placeholder="0.00" step="0.01" min="0" oninput="afUpdateCalc()">
+              <select id="afSaleCur" class="cur-mini-sel" onchange="afUpdateCalc()">
+                <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+              </select>
+            </div>
+          </div>
+          <div class="edit-field" style="flex:1;min-width:120px;">
+            <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Costo proveedor</label>
+            <div class="input-cur-row">
+              <input type="number" id="afProvCost" placeholder="0.00" step="0.01" min="0" oninput="afUpdateCalc()">
+              <select id="afProvCur" class="cur-mini-sel" onchange="afUpdateCalc()">
+                <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="afCalcPreview" style="margin-top:6px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;min-height:14px;"></div>
+      </div>
+      <div id="afAmtSection" style="display:none;">
+        <div class="edit-field">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Monto</label>
+          <div class="input-cur-row">
+            <input type="number" id="afAmt" placeholder="0.00" step="0.01" min="0">
+            <select id="afAmtCur" class="cur-mini-sel">
+              <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalAdd')">Cancelar</button>
-      <button class="btn-confirm-ok" onclick="saveAdd()">💾 Agregar a Sheets</button>
+      <button class="btn-confirm-ok" onclick="saveAdd()">💾 Agregar cliente</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modalCobro" role="dialog" aria-modal="true">
+  <div class="modal wide">
+    <h3 id="cobroTitle">💰 Registrar cobro</h3>
+    <div class="edit-grid" style="margin-bottom:14px;">
+      <div class="edit-field">
+        <label>Categoría</label>
+        <input type="text" id="cobroCat" list="catList" placeholder="Netflix 1 Perfil...">
+      </div>
+      <div class="edit-field">
+        <label>Cliente</label>
+        <input type="text" id="cobroDesc" placeholder="Nombre">
+      </div>
+      <div class="edit-field">
+        <label>Precio de venta</label>
+        <div class="input-cur-row">
+          <input type="number" id="cobroSale" placeholder="0.00" step="0.01" min="0" oninput="updateCobroCalc()">
+          <select id="cobroSaleCur" class="cur-mini-sel" onchange="updateCobroCalc()">
+            <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+          </select>
+        </div>
+      </div>
+      <div class="edit-field">
+        <label>Costo proveedor</label>
+        <div class="input-cur-row">
+          <input type="number" id="cobroCost" placeholder="0.00" step="0.01" min="0" oninput="updateCobroCalc()">
+          <select id="cobroCostCur" class="cur-mini-sel" onchange="updateCobroCalc()">
+            <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="cobroCalcPreview" style="margin-bottom:12px;"></div>
+    <div class="edit-field" style="max-width:180px;margin-bottom:16px;">
+      <label>Fecha</label>
+      <input type="text" id="cobroDate" placeholder="DD/MM/AAAA">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalCobro')">Cancelar</button>
+      <button class="btn-confirm-ok" onclick="saveCobro()">💾 Guardar cobro</button>
     </div>
   </div>
 </div>
@@ -665,8 +791,9 @@
     <div class="txn-form">
       <h3>➕ Registrar movimiento</h3>
       <div class="txn-type-toggle">
-        <button id="btnTxnIngreso" class="txn-type-btn active-ingreso" onclick="setTxnType('ingreso')">💚 Ingreso (Venta)</button>
-        <button id="btnTxnEgreso"  class="txn-type-btn"               onclick="setTxnType('egreso')">🔴 Egreso (Compra)</button>
+        <button id="btnTxnIngreso"  class="txn-type-btn active-ingreso" onclick="setTxnType('ingreso')">💚 Venta</button>
+        <button id="btnTxnTraspaso" class="txn-type-btn"               onclick="setTxnType('traspaso')">↔️ Traspaso</button>
+        <button id="btnTxnEgreso"   class="txn-type-btn"               onclick="setTxnType('egreso')">🔴 Egreso</button>
       </div>
       <div id="egresoSubtypeRow" class="txn-type-toggle" style="display:none;margin-top:-6px;">
         <button id="btnSubProveedor" class="txn-subtype-btn active-proveedor" onclick="setEgresoSubtype('proveedor')">🏪 A proveedor</button>
@@ -686,38 +813,77 @@
         </div>
       </div>
 
-      <!-- Moneda de entrada -->
-      <div style="margin-bottom:4px;">
-        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Moneda del movimiento</label>
-        <div class="currency-selector" id="currencySelector">
-          <button class="currency-btn active" onclick="setTxnCurrency('USDT',this)">₮ USDT</button>
-          <button class="currency-btn" onclick="setTxnCurrency('ARS',this)">$ ARS</button>
-          <button class="currency-btn" onclick="setTxnCurrency('UYU',this)">$U UYU</button>
-        </div>
-      </div>
-
       <!-- INGRESO: precio venta + costo proveedor -->
       <div id="ventaSection">
         <div class="venta-breakdown-form">
           <div class="edit-field">
-            <label id="lblSalePrice">Precio de venta (USDT)</label>
-            <input type="number" id="txnSalePrice" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
+            <label>Precio de venta</label>
+            <div class="input-cur-row">
+              <input type="number" id="txnSalePrice" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
+              <select id="saleCurSel" class="cur-mini-sel" onchange="updateVentaCalc()">
+                <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+              </select>
+            </div>
+            <div class="preset-hint" id="presetHintSale"></div>
           </div>
           <div class="venta-arrow" aria-hidden="true">→</div>
           <div class="edit-field">
-            <label id="lblProvCost">Costo proveedor (USDT)</label>
-            <input type="number" id="txnProvCost" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
+            <label>Costo proveedor</label>
+            <div class="input-cur-row">
+              <input type="number" id="txnProvCost" placeholder="0.00" step="0.01" min="0" oninput="updateVentaCalc()">
+              <select id="provCurSel" class="cur-mini-sel" onchange="updateVentaCalc()">
+                <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+              </select>
+            </div>
+            <div class="preset-hint" id="presetHintCost"></div>
           </div>
         </div>
         <div id="ventaCalcPreview"></div>
       </div>
 
+      <!-- TRASPASO: monto neutral, no cuenta en ganancia -->
+      <div id="traspasoSection" style="display:none;margin-top:12px;">
+        <div class="edit-field">
+          <label>Monto del traspaso</label>
+          <div class="input-cur-row">
+            <input type="number" id="txnTraspasoAmt" placeholder="0.00" step="0.01" min="0" oninput="updateTraspasoPreview()">
+            <select id="traspasoCurSel" class="cur-mini-sel" onchange="updateTraspasoPreview()">
+              <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+            </select>
+          </div>
+          <div class="txn-ars-preview" id="traspasoPreview"></div>
+        </div>
+      </div>
+
       <!-- EGRESO: monto único -->
       <div id="egresoAmtSection" style="display:none;margin-top:12px;">
-        <div class="edit-field">
-          <label id="lblEgresoAmt">Monto (USDT)</label>
-          <input type="number" id="txnAmtUSDT" placeholder="0.00" step="0.01" min="0" oninput="updateARSPreview()">
+        <div class="edit-field" id="egresoProvSection">
+          <label>Monto</label>
+          <div class="input-cur-row">
+            <input type="number" id="txnAmtUSDT" placeholder="0.00" step="0.01" min="0" oninput="updateARSPreview()">
+            <select id="egrCurSel" class="cur-mini-sel" onchange="updateARSPreview()">
+              <option value="USDT">USDT</option><option value="ARS">ARS</option><option value="UYU">UYU</option>
+            </select>
+          </div>
           <div class="txn-ars-preview" id="arsPreview"></div>
+        </div>
+      </div>
+
+      <!-- GASTO PERSONAL: detalle + categoría opcional -->
+      <div id="gastoDetailSection" style="display:none;margin-top:12px;">
+        <div class="edit-field">
+          <label>Detalle del gasto</label>
+          <input type="text" id="gastoDetalle" placeholder="Ej: Cena, taxi, ropa...">
+        </div>
+        <button type="button" class="gasto-cat-toggle" id="gastoCatToggle" onclick="toggleGastoCat()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2Z"/></svg>
+          + Agregar categoría
+        </button>
+        <div id="gastoCatRow" style="display:none;">
+          <div class="edit-field">
+            <label>Categoría (se guarda automáticamente)</label>
+            <input type="text" id="gastoCatInput" list="catList" placeholder="Comida, transporte, servicios...">
+          </div>
         </div>
       </div>
 
@@ -818,6 +984,196 @@ function loadCache() {
 // ============================================================
 // CONFIG
 // ============================================================
+// ──────────────────────────────────────────────
+// COBRO desde tarjeta de cliente
+// ──────────────────────────────────────────────
+function openCobrarModal(clientId) {
+  const client = allClients.find(c => c.id === clientId || c._id === clientId);
+  if (!client) return;
+  document.getElementById('cobroTitle').textContent = '💰 Registrar cobro — ' + (client.nombre || '');
+  document.getElementById('cobroDesc').value  = client.nombre || '';
+  document.getElementById('cobroDate').value  = new Date().toLocaleDateString('es-AR');
+  // Detect currency from phone
+  const detCur = detectCurFromPhone(client.telefono);
+  // Map proveedor → category (use as-is or find preset)
+  const catName = client.proveedor || '';
+  document.getElementById('cobroCat').value = catName;
+  const p = catPresets[catName];
+  if (p) {
+    document.getElementById('cobroSale').value     = p.salePrice || '';
+    document.getElementById('cobroSaleCur').value  = p.saleCur   || detCur;
+    document.getElementById('cobroCost').value     = p.provCost  || '';
+    document.getElementById('cobroCostCur').value  = p.provCur   || 'USDT';
+  } else {
+    document.getElementById('cobroSale').value    = '';
+    document.getElementById('cobroSaleCur').value = detCur;
+    document.getElementById('cobroCost').value    = '';
+    document.getElementById('cobroCostCur').value = 'USDT';
+  }
+  updateCobroCalc();
+  openModal('modalCobro');
+}
+function updateCobroCalc() {
+  const saleInput = parseFloat(document.getElementById('cobroSale').value) || 0;
+  const costInput = parseFloat(document.getElementById('cobroCost').value) || 0;
+  const saleCur   = document.getElementById('cobroSaleCur').value;
+  const provCur   = document.getElementById('cobroCostCur').value;
+  const sale   = toUSDTFrom(saleInput, saleCur);
+  const cost   = toUSDTFrom(costInput, provCur);
+  const profit = sale - cost;
+  const prev = document.getElementById('cobroCalcPreview');
+  if (!prev) return;
+  if (sale > 0) {
+    const pct = sale > 0 && cost > 0 ? ` (${((cost/sale)*100).toFixed(0)}%)` : '';
+    const profARS = usdtRateARS ? ' · $'+Math.round(profit*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+    prev.innerHTML = `
+      <div class="venta-preview-row"><span class="vcp-label">Venta</span><span class="vcp-val sale">+${sale.toFixed(2)} USDT</span></div>
+      <div class="venta-preview-row"><span class="vcp-label">Costo${pct}</span><span class="vcp-val cost">-${cost.toFixed(2)} USDT</span></div>
+      <div class="venta-preview-row"><span class="vcp-label">Ganancia</span><span class="vcp-val profit">+${profit.toFixed(2)} USDT${profARS}</span></div>`;
+  } else { prev.innerHTML = ''; }
+}
+async function saveCobro() {
+  const cat   = (document.getElementById('cobroCat').value  || '').trim();
+  const desc  = (document.getElementById('cobroDesc').value || '').trim();
+  const date  = (document.getElementById('cobroDate').value || '').trim() || new Date().toLocaleDateString('es-AR');
+  if (!cat) { showToast('⚠️ Ingresá una categoría', 'error'); return; }
+  const saleInput = parseFloat(document.getElementById('cobroSale').value) || 0;
+  const costInput = parseFloat(document.getElementById('cobroCost').value) || 0;
+  const saleCur   = document.getElementById('cobroSaleCur').value;
+  const provCur   = document.getElementById('cobroCostCur').value;
+  if (saleInput <= 0) { showToast('⚠️ Ingresá el precio de venta', 'error'); return; }
+  const sale = toUSDTFrom(saleInput, saleCur);
+  const cost = toUSDTFrom(costInput, provCur);
+  const txn = { id: 'txn-'+Date.now(), type: 'ingreso', subtype: null, category: cat, description: desc,
+    salePrice: sale, providerCost: cost, profit: sale - cost, amountUSDT: sale, date };
+  saveCurrentAsPreset(cat, saleInput, saleCur, costInput, provCur);
+  if (!categories.find(c => c.toLowerCase() === cat.toLowerCase())) {
+    categories.push(cat); categories.sort((a,b)=>a.localeCompare(b));
+    saveCategories(); updateCategoryDatalist();
+  }
+  transactions.unshift(txn);
+  saveTransactions(); syncTxnsToSheets();
+  closeModal('modalCobro');
+  showToast('💰 Cobro registrado — ganancia: +' + (sale-cost).toFixed(2) + ' USDT', 'success');
+  renderFinance();
+}
+
+// ─────────────────────────────────────────────
+// ADD-CLIENT FINANZAS ACCORDION
+// ─────────────────────────────────────────────
+let afType      = 'ingreso';
+let afEgresoSub = 'proveedor';
+
+function toggleGastoCat() {
+  const row = document.getElementById('gastoCatRow');
+  const btn = document.getElementById('gastoCatToggle');
+  const open = row.style.display === 'none';
+  row.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('active', open);
+  btn.innerHTML = open
+    ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2Z"/></svg> − Quitar categoría'
+    : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2Z"/></svg> + Agregar categoría';
+  if (open) document.getElementById('gastoCatInput').focus();
+}
+
+function toggleAddFinanzas() {
+  const btn = document.getElementById('finToggleBtn');
+  const acc = document.getElementById('finAccordion');
+  const open = acc.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+function setAfType(type) {
+  afType = type;
+  document.getElementById('afBtnIngreso').className  = 'txn-type-btn' + (type === 'ingreso'  ? ' active-ingreso'  : '');
+  document.getElementById('afBtnTraspaso').className = 'txn-type-btn' + (type === 'traspaso' ? ' active-traspaso' : '');
+  document.getElementById('afBtnEgreso').className   = 'txn-type-btn' + (type === 'egreso'   ? ' active-egreso'   : '');
+  document.getElementById('afEgresoSubRow').style.display = type === 'egreso'  ? 'flex'  : 'none';
+  document.getElementById('afVentaSection').style.display = type === 'ingreso' ? 'block' : 'none';
+  document.getElementById('afAmtSection').style.display   = type !== 'ingreso' ? 'block' : 'none';
+  const isGasto = type === 'egreso' && afEgresoSub === 'gasto';
+  document.getElementById('afCatRow').style.display = isGasto ? 'none' : 'block';
+}
+function setAfEgresoSub(sub) {
+  afEgresoSub = sub;
+  document.getElementById('afSubProv').className  = 'txn-subtype-btn' + (sub === 'proveedor' ? ' active-proveedor' : '');
+  document.getElementById('afSubGasto').className = 'txn-subtype-btn' + (sub === 'gasto'     ? ' active-gasto'     : '');
+  document.getElementById('afCatRow').style.display = sub === 'gasto' ? 'none' : 'block';
+}
+function afApplyPreset() {
+  if (afType !== 'ingreso') return;
+  const cat = (document.getElementById('afCat')?.value || '').trim();
+  const p = catPresets[cat];
+  if (p) {
+    document.getElementById('afSalePrice').value = p.salePrice || '';
+    document.getElementById('afSaleCur').value   = p.saleCur   || 'USDT';
+    document.getElementById('afProvCost').value  = p.provCost  || '';
+    document.getElementById('afProvCur').value   = p.provCur   || 'USDT';
+    afUpdateCalc();
+  }
+}
+function afUpdateCalc() {
+  const sale = toUSDTFrom(parseFloat(document.getElementById('afSalePrice')?.value)||0, document.getElementById('afSaleCur')?.value||'USDT');
+  const cost = toUSDTFrom(parseFloat(document.getElementById('afProvCost')?.value)||0, document.getElementById('afProvCur')?.value||'USDT');
+  const prev = document.getElementById('afCalcPreview');
+  if (!prev) return;
+  if (sale > 0) {
+    const profit = sale - cost;
+    const profARS = usdtRateARS ? ' · $'+Math.round(profit*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
+    prev.textContent = 'Venta '+sale.toFixed(2)+' USDT · Costo '+cost.toFixed(2)+' · Ganancia '+profit.toFixed(2)+' USDT'+profARS;
+  } else prev.textContent = '';
+}
+function resetAfAccordion(detectCur) {
+  document.getElementById('finAccordion').classList.remove('open');
+  document.getElementById('finToggleBtn').classList.remove('open');
+  afType = 'ingreso'; afEgresoSub = 'proveedor';
+  document.getElementById('afBtnIngreso').className  = 'txn-type-btn active-ingreso';
+  document.getElementById('afBtnTraspaso').className = 'txn-type-btn';
+  document.getElementById('afBtnEgreso').className   = 'txn-type-btn';
+  document.getElementById('afEgresoSubRow').style.display = 'none';
+  document.getElementById('afVentaSection').style.display = 'block';
+  document.getElementById('afAmtSection').style.display   = 'none';
+  document.getElementById('afCatRow').style.display       = 'block';
+  document.getElementById('afCat').value       = '';
+  document.getElementById('afSalePrice').value = '';
+  document.getElementById('afProvCost').value  = '';
+  document.getElementById('afCalcPreview').textContent = '';
+  document.getElementById('afAmt').value = '';
+  const cur = detectCur || 'USDT';
+  document.getElementById('afSaleCur').value = cur;
+  document.getElementById('afProvCur').value = 'USDT';
+  document.getElementById('afAmtCur').value  = cur;
+}
+function buildAfTxn(clientName) {
+  if (!document.getElementById('finAccordion').classList.contains('open')) return null;
+  const date = new Date().toLocaleDateString('es-AR');
+  let cat  = (document.getElementById('afCat')?.value || '').trim();
+  const desc = clientName || '';
+  if (afType === 'ingreso') {
+    const saleInput = parseFloat(document.getElementById('afSalePrice').value) || 0;
+    if (saleInput <= 0) return null;
+    if (!cat) return null;
+    const costInput = parseFloat(document.getElementById('afProvCost').value) || 0;
+    const saleCur   = document.getElementById('afSaleCur').value;
+    const provCur   = document.getElementById('afProvCur').value;
+    const sale = toUSDTFrom(saleInput, saleCur);
+    const cost = toUSDTFrom(costInput, provCur);
+    saveCurrentAsPreset(cat, saleInput, saleCur, costInput, provCur);
+    return { id:'txn-'+Date.now(), type:'ingreso', subtype:null, category:cat, description:desc, salePrice:sale, providerCost:cost, profit:sale-cost, amountUSDT:sale, date };
+  } else {
+    const amtInput = parseFloat(document.getElementById('afAmt').value) || 0;
+    if (amtInput <= 0) return null;
+    const cur = document.getElementById('afAmtCur').value;
+    const amt = toUSDTFrom(amtInput, cur);
+    if (afType === 'traspaso') {
+      return { id:'txn-'+Date.now(), type:'traspaso', subtype:null, category:cat||'Traspaso', description:desc, amountUSDT:amt, date };
+    } else {
+      const isGasto = afEgresoSub === 'gasto';
+      if (!isGasto && !cat) return null;
+      return { id:'txn-'+Date.now(), type:'egreso', subtype:afEgresoSub, category:isGasto?cat||'Gasto personal':cat, description:desc, amountUSDT:amt, date };
+    }
+  }
+}
+
 function loadConfig() {
   scriptUrl = localStorage.getItem('scriptUrl') || '';
   diasAlerta = parseInt(localStorage.getItem('diasAlerta') || '7');
@@ -826,6 +1182,7 @@ function loadConfig() {
   document.getElementById('diasAlerta').value = diasAlerta;
   document.getElementById('intervalo').value = ivl;
   loadBalance();
+  loadCatPresets();
   if (scriptUrl) { loadCache(); loadData(true); loadTxnsFromSheets(); }
   else {
     document.getElementById('configPanel').classList.add('open');
@@ -1046,6 +1403,7 @@ function buildCard(c, idx) {
       <button class="action-btn btn-editar" data-action="editar">${editIcon} Editar</button>
       <button class="action-btn btn-whatsapp" data-action="whatsapp">${waIcon} WhatsApp</button>
       <button class="action-btn btn-eliminar" data-action="eliminar">${trashIcon} Eliminar</button>
+      <button class="action-btn btn-cobrar" data-action="cobrar">💰 Registrar cobro</button>
     </div>
   </div>`;
 }
@@ -1193,8 +1551,11 @@ function openAddModal() {
   document.getElementById('extraServices').innerHTML = '';
   serviceBlockCount = 0;
 
-  document.getElementById('modalAdd').classList.add('show');
   document.getElementById('magicInput').value = '';
+  // detect currency from phone for accordion defaults
+  const tel = (document.getElementById('af_telefono')?.value || '');
+  resetAfAccordion(detectCurFromPhone(tel));
+  document.getElementById('modalAdd').classList.add('show');
 }
 // ============================================================
 // MULTI-SERVICE BLOCKS
@@ -1289,6 +1650,17 @@ async function saveAdd() {
     await apiPost('add', { fields: JSON.stringify(fields) });
     for (const svc of extraSvcs) await apiPost('add', { fields: JSON.stringify(svc) });
     await loadData();
+    // save finanzas if accordion was filled
+    const afTxn = buildAfTxn(fields.nombre);
+    if (afTxn) {
+      const catLow = afTxn.category.toLowerCase();
+      if (!categories.find(c => c.toLowerCase() === catLow)) {
+        categories.push(afTxn.category); categories.sort((a,b)=>a.localeCompare(b));
+        saveCategories(); updateCategoryDatalist();
+      }
+      transactions.unshift(afTxn);
+      saveTransactions(); syncTxnsToSheets();
+    }
     showToast(total > 1
       ? `✅ ${fields.nombre} agregado con ${total} servicios`
       : `✅ ${fields.nombre} agregado a Google Sheets`, 'success');
@@ -1442,11 +1814,11 @@ function closeModal(id) {
 // ESC key closes any open modal
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  ['modalConfirm','modalEdit','modalAdd'].forEach(id => closeModal(id));
+  ['modalConfirm','modalEdit','modalAdd','modalCobro'].forEach(id => closeModal(id));
 });
 // Click backdrop closes modal
 document.addEventListener('click', e => {
-  ['modalConfirm','modalEdit','modalAdd'].forEach(id => {
+  ['modalConfirm','modalEdit','modalAdd','modalCobro'].forEach(id => {
     const el = document.getElementById(id);
     if (e.target === el) closeModal(id);
   });
@@ -1485,6 +1857,7 @@ document.getElementById('clientsGrid').addEventListener('click', function(e) {
   if (action === 'editar')    openEditModal(clientId);
   if (action === 'whatsapp')  sendWhatsApp(clientId);
   if (action === 'eliminar')  confirmDelete(clientId);
+  if (action === 'cobrar')    openCobrarModal(clientId);
 });
 
 // ============================================================
@@ -1503,7 +1876,8 @@ function switchTab(tab) {
 let usdtRateARS = 0;
 let usdtRateUYU = 0;
 let usdtRawData = {};
-let currentTxnCurrency = 'USDT';
+let currentTxnCurrency = 'USDT'; // kept for backward compat
+let catPresets = {};            // { "Netflix 1 Perfil": { salePrice, saleCur, provCost, provCur } }
 let balanceEditado    = 0; // in USDT, set by user
 let balanceEstimativo = 0; // auto-computed in renderFinance
 
@@ -1589,6 +1963,52 @@ async function loadTxnsFromSheets() {
   }
 }
 
+// ── Category presets ──
+function loadCatPresets() {
+  try { catPresets = JSON.parse(localStorage.getItem('clientesPro_presets') || '{}'); } catch(e) { catPresets = {}; }
+}
+function saveCatPresets() {
+  try { localStorage.setItem('clientesPro_presets', JSON.stringify(catPresets)); } catch(e) {}
+}
+function applyPreset(catName) {
+  const p = catPresets[catName];
+  const saleEl = document.getElementById('txnSalePrice');
+  const costEl = document.getElementById('txnProvCost');
+  if (!saleEl) return;
+  if (p) {
+    saleEl.value = p.salePrice || '';
+    document.getElementById('saleCurSel').value = p.saleCur || 'USDT';
+    costEl.value  = p.provCost  || '';
+    document.getElementById('provCurSel').value = p.provCur || 'USDT';
+    document.getElementById('presetHintSale').textContent = '✓ Precio guardado';
+    document.getElementById('presetHintCost').textContent = '✓ Costo guardado';
+    updateVentaCalc();
+  } else {
+    document.getElementById('presetHintSale').textContent = '';
+    document.getElementById('presetHintCost').textContent = '';
+  }
+}
+function saveCurrentAsPreset(cat, salePrice, saleCur, provCost, provCur) {
+  if (!cat) return;
+  catPresets[cat] = { salePrice, saleCur, provCost, provCur };
+  saveCatPresets();
+}
+
+// ── per-field currency converter ──
+function toUSDTFrom(val, cur) {
+  if (cur === 'ARS') return usdtRateARS ? val / usdtRateARS : val;
+  if (cur === 'UYU') return usdtRateUYU ? val / usdtRateUYU : val;
+  return val;
+}
+
+// ── detect currency from phone prefix ──
+function detectCurFromPhone(tel) {
+  const t = (tel || '').replace(/\s/g, '');
+  if (t.startsWith('+598') || t.startsWith('598')) return 'UYU';
+  if (t.startsWith('+54')  || t.startsWith('54'))  return 'ARS';
+  return 'USDT';
+}
+
 function toUSDT(val) {
   if (currentTxnCurrency === 'ARS') return usdtRateARS ? val / usdtRateARS : val;
   if (currentTxnCurrency === 'UYU') return usdtRateUYU ? val / usdtRateUYU : val;
@@ -1667,12 +2087,13 @@ function updateARSPreview() {
   const preview = document.getElementById('arsPreview');
   if (!preview) return;
   const raw = parseFloat(document.getElementById('txnAmtUSDT')?.value || 0);
+  const egrCur = document.getElementById('egrCurSel')?.value || 'USDT';
   if (raw > 0) {
-    const usdt = toUSDT(raw);
+    const usdt = toUSDTFrom(raw, egrCur);
     const parts = [];
-    if (currentTxnCurrency !== 'USDT') parts.push(usdt.toFixed(4)+' USDT');
-    if (currentTxnCurrency !== 'ARS' && usdtRateARS)  parts.push('$ '+Math.round(usdt*usdtRateARS).toLocaleString('es-AR')+' ARS');
-    if (currentTxnCurrency !== 'UYU' && usdtRateUYU)  parts.push('$U '+Math.round(usdt*usdtRateUYU).toLocaleString('es-UY')+' UYU');
+    if (egrCur !== 'USDT') parts.push(usdt.toFixed(4)+' USDT');
+    if (egrCur !== 'ARS' && usdtRateARS)  parts.push('$ '+Math.round(usdt*usdtRateARS).toLocaleString('es-AR')+' ARS');
+    if (egrCur !== 'UYU' && usdtRateUYU)  parts.push('$U '+Math.round(usdt*usdtRateUYU).toLocaleString('es-UY')+' UYU');
     preview.textContent = parts.length ? '≈ '+parts.join(' · ') : '';
   } else {
     preview.textContent = '';
@@ -1699,6 +2120,18 @@ function updateCategoryDatalist() {
   if (!dl) return;
   dl.innerHTML = categories.map(c => `<option value="${escHtml(c)}">`).join('');
 }
+// Auto-apply preset when category is chosen
+document.addEventListener('DOMContentLoaded', () => {
+  const catEl = document.getElementById('txnCat');
+  if (catEl) {
+    catEl.addEventListener('change', () => {
+      if (currentTxnType === 'ingreso') applyPreset(catEl.value.trim());
+    });
+    catEl.addEventListener('blur', () => {
+      if (currentTxnType === 'ingreso') applyPreset(catEl.value.trim());
+    });
+  }
+});
 
 // ============================================================
 // FINANCES — TRANSACTIONS
@@ -1716,31 +2149,51 @@ function saveTransactions() {
 
 function setTxnType(type) {
   currentTxnType = type;
-  document.getElementById('btnTxnIngreso').className = 'txn-type-btn' + (type === 'ingreso' ? ' active-ingreso' : '');
-  document.getElementById('btnTxnEgreso').className  = 'txn-type-btn' + (type === 'egreso'  ? ' active-egreso'  : '');
-  document.getElementById('egresoSubtypeRow').style.display  = type === 'egreso'  ? 'flex'  : 'none';
-  document.getElementById('ventaSection').style.display      = type === 'ingreso' ? 'block' : 'none';
-  document.getElementById('egresoAmtSection').style.display  = type === 'egreso'  ? 'block' : 'none';
-  document.getElementById('txnDescLabel').textContent = type === 'ingreso' ? 'Cliente / Detalle' : 'Proveedor / Detalle';
+  document.getElementById('btnTxnIngreso').className  = 'txn-type-btn' + (type === 'ingreso'  ? ' active-ingreso'  : '');
+  document.getElementById('btnTxnTraspaso').className = 'txn-type-btn' + (type === 'traspaso' ? ' active-traspaso' : '');
+  document.getElementById('btnTxnEgreso').className   = 'txn-type-btn' + (type === 'egreso'   ? ' active-egreso'   : '');
+  document.getElementById('egresoSubtypeRow').style.display = type === 'egreso'  ? 'flex'  : 'none';
+  document.getElementById('ventaSection').style.display     = type === 'ingreso' ? 'block' : 'none';
+  document.getElementById('traspasoSection').style.display  = type === 'traspaso'? 'block' : 'none';
+  document.getElementById('egresoAmtSection').style.display = type === 'egreso'  ? 'block' : 'none';
+  // gasto personal: hide category, only show description + amount + date
+  const isGasto = type === 'egreso' && currentEgresoSubtype === 'gasto';
+  document.getElementById('txnDescLabel').textContent = type === 'ingreso' ? 'Cliente / Detalle' : 'Detalle';
+  document.querySelector('.txn-grid').style.display = isGasto ? 'none' : 'grid';
+  const gdSec = document.getElementById('gastoDetailSection');
+  if (gdSec) gdSec.style.display = (type === 'egreso' && isGasto) ? 'block' : 'none';
 }
 function setEgresoSubtype(sub) {
   currentEgresoSubtype = sub;
   document.getElementById('btnSubProveedor').className = 'txn-subtype-btn' + (sub === 'proveedor' ? ' active-proveedor' : '');
   document.getElementById('btnSubGasto').className     = 'txn-subtype-btn' + (sub === 'gasto'     ? ' active-gasto'     : '');
+  const isGasto = sub === 'gasto';
+  // shared cat+desc grid: only for proveedor
+  document.querySelector('.txn-grid').style.display = isGasto ? 'none' : 'grid';
+  // dedicated gasto section
+  document.getElementById('gastoDetailSection').style.display = isGasto ? 'block' : 'none';
+  if (isGasto) {
+    // reset cat toggle state
+    document.getElementById('gastoCatRow').style.display = 'none';
+    document.getElementById('gastoCatToggle').classList.remove('active');
+    document.getElementById('gastoCatToggle').innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2Z"/></svg> + Agregar categoría';
+  }
 }
 
 // Venta calculation helpers
 function updateVentaCalc() {
-  const saleInput = parseFloat(document.getElementById('txnSalePrice').value) || 0;
-  const costInput = parseFloat(document.getElementById('txnProvCost').value)  || 0;
-  const sale   = toUSDT(saleInput);
-  const cost   = toUSDT(costInput);
+  const saleInput  = parseFloat(document.getElementById('txnSalePrice').value) || 0;
+  const costInput  = parseFloat(document.getElementById('txnProvCost').value)  || 0;
+  const saleCur    = document.getElementById('saleCurSel')?.value || 'USDT';
+  const provCur    = document.getElementById('provCurSel')?.value || 'USDT';
+  const sale   = toUSDTFrom(saleInput, saleCur);
+  const cost   = toUSDTFrom(costInput, provCur);
   const profit = sale - cost;
   const preview = document.getElementById('ventaCalcPreview');
   if (!preview) return;
   if (sale > 0) {
     const pctLabel = sale > 0 && cost > 0 ? ` (${((cost/sale)*100).toFixed(0)}%)` : '';
-    const curNote = currentTxnCurrency !== 'USDT' ? `<div class="venta-preview-row" style="opacity:.6;font-size:11px;"><span class="vcp-label">💱 Convertido desde ${currentTxnCurrency}</span><span class="vcp-val">${saleInput.toFixed(2)} ${currentTxnCurrency}</span></div>` : '';
+    const curNote = (saleCur !== 'USDT' || provCur !== 'USDT') ? `<div class="venta-preview-row" style="opacity:.6;font-size:11px;"><span class="vcp-label">💱 Monedas: venta ${saleCur} · costo ${provCur}</span></div>` : '';
     const saleARS  = usdtRateARS ? ' · $'+Math.round(sale*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
     const saleUYU  = usdtRateUYU ? ' · $'+Math.round(sale*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
     const costARS  = usdtRateARS ? ' · $'+Math.round(cost*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
@@ -1756,31 +2209,75 @@ function updateVentaCalc() {
   }
 }
 
+function updateTraspasoPreview() {
+  const preview = document.getElementById('traspasoPreview');
+  if (!preview) return;
+  const raw = parseFloat(document.getElementById('txnTraspasoAmt')?.value || 0);
+  const cur = document.getElementById('traspasoCurSel')?.value || 'USDT';
+  if (raw > 0) {
+    const usdt = toUSDTFrom(raw, cur);
+    const parts = [];
+    if (cur !== 'USDT') parts.push(usdt.toFixed(4)+' USDT');
+    if (cur !== 'ARS' && usdtRateARS) parts.push('$ '+Math.round(usdt*usdtRateARS).toLocaleString('es-AR')+' ARS');
+    if (cur !== 'UYU' && usdtRateUYU) parts.push('$U '+Math.round(usdt*usdtRateUYU).toLocaleString('es-UY')+' UYU');
+    preview.textContent = parts.length ? '≈ '+parts.join(' · ') : '';
+  } else { preview.textContent = ''; }
+}
+
 function addTransaction() {
-  const cat  = (document.getElementById('txnCat').value  || '').trim();
-  const desc = (document.getElementById('txnDesc').value || '').trim();
   const date = (document.getElementById('txnDate').value || '').trim() || new Date().toLocaleDateString('es-AR');
-  if (!cat) { showToast('⚠️ Ingresá una categoría', 'error'); return; }
+  let cat  = (document.getElementById('txnCat').value  || '').trim();
+  const desc = (document.getElementById('txnDesc').value || '').trim();
 
   let txn;
   if (currentTxnType === 'ingreso') {
+    if (!cat) { showToast('⚠️ Ingresá una categoría', 'error'); return; }
     const saleInput = parseFloat(document.getElementById('txnSalePrice').value) || 0;
     const costInput = parseFloat(document.getElementById('txnProvCost').value)  || 0;
+    const saleCur   = document.getElementById('saleCurSel').value;
+    const provCur   = document.getElementById('provCurSel').value;
     if (saleInput <= 0) { showToast('⚠️ Ingresá el precio de venta', 'error'); return; }
-    if ((currentTxnCurrency === 'ARS' && !usdtRateARS) || (currentTxnCurrency === 'UYU' && !usdtRateUYU)) {
+    if ((saleCur === 'ARS' && !usdtRateARS) || (saleCur === 'UYU' && !usdtRateUYU)) {
       showToast('⚠️ Esperá que cargue la cotización', 'error'); return;
     }
-    const sale = toUSDT(saleInput);
-    const cost = toUSDT(costInput);
+    const sale = toUSDTFrom(saleInput, saleCur);
+    const cost = toUSDTFrom(costInput, provCur);
     txn = { id: 'txn-'+Date.now(), type: 'ingreso', subtype: null, category: cat, description: desc, salePrice: sale, providerCost: cost, profit: sale - cost, amountUSDT: sale, date };
-  } else {
-    const amtInput = parseFloat((document.getElementById('txnAmtUSDT').value || '').replace(',','.'));
+    // auto-save preset
+    saveCurrentAsPreset(cat, saleInput, saleCur, costInput, provCur);
+  } else if (currentTxnType === 'traspaso') {
+    const amtInput = parseFloat(document.getElementById('txnTraspasoAmt').value || 0);
+    const cur      = document.getElementById('traspasoCurSel').value;
     if (!amtInput || amtInput <= 0) { showToast('⚠️ Ingresá un monto válido', 'error'); return; }
-    if ((currentTxnCurrency === 'ARS' && !usdtRateARS) || (currentTxnCurrency === 'UYU' && !usdtRateUYU)) {
+    const amt = toUSDTFrom(amtInput, cur);
+    cat = cat || 'Traspaso';
+    txn = { id: 'txn-'+Date.now(), type: 'traspaso', subtype: null, category: cat, description: desc, amountUSDT: amt, date };
+  } else {
+    // egreso
+    const isGasto = currentEgresoSubtype === 'gasto';
+    let gastoDesc = desc;
+    if (isGasto) {
+      // use dedicated detalle + optional category fields
+      gastoDesc = (document.getElementById('gastoDetalle')?.value || '').trim();
+      if (!gastoDesc) { showToast('⚠️ Ingresá el detalle del gasto', 'error'); return; }
+      const gastoCatVal = (document.getElementById('gastoCatInput')?.value || '').trim();
+      cat = gastoCatVal || 'Gasto personal';
+      // auto-save category if user typed a new one
+      if (gastoCatVal && !categories.find(c => c.toLowerCase() === gastoCatVal.toLowerCase())) {
+        categories.push(gastoCatVal); categories.sort((a,b)=>a.localeCompare(b));
+        saveCategories(); updateCategoryDatalist();
+      }
+    } else {
+      if (!cat) { showToast('⚠️ Ingresá una categoría', 'error'); return; }
+    }
+    const amtInput = parseFloat((document.getElementById('txnAmtUSDT').value || '').replace(',','.'));
+    const egrCur   = document.getElementById('egrCurSel').value;
+    if (!amtInput || amtInput <= 0) { showToast('⚠️ Ingresá un monto válido', 'error'); return; }
+    if ((egrCur === 'ARS' && !usdtRateARS) || (egrCur === 'UYU' && !usdtRateUYU)) {
       showToast('⚠️ Esperá que cargue la cotización', 'error'); return;
     }
-    const amt = toUSDT(amtInput);
-    txn = { id: 'txn-'+Date.now(), type: 'egreso', subtype: currentEgresoSubtype, category: cat, description: desc, amountUSDT: amt, date };
+    const amt = toUSDTFrom(amtInput, egrCur);
+    txn = { id: 'txn-'+Date.now(), type: 'egreso', subtype: currentEgresoSubtype, category: cat, description: isGasto ? gastoDesc : desc, amountUSDT: amt, date };
   }
 
   // Auto-register new category
@@ -1804,9 +2301,18 @@ function addTransaction() {
     document.getElementById('txnSalePrice').value = '';
     document.getElementById('txnProvCost').value = '';
     document.getElementById('ventaCalcPreview').innerHTML = '';
+    document.getElementById('presetHintSale').textContent = '';
+    document.getElementById('presetHintCost').textContent = '';
+  } else if (currentTxnType === 'traspaso') {
+    document.getElementById('txnTraspasoAmt').value = '';
+    document.getElementById('traspasoPreview').textContent = '';
   } else {
     document.getElementById('txnAmtUSDT').value = '';
     document.getElementById('arsPreview').textContent = '';
+    document.getElementById('gastoDetalle').value = '';
+    document.getElementById('gastoCatInput').value = '';
+    document.getElementById('gastoCatRow').style.display = 'none';
+    document.getElementById('gastoCatToggle')?.classList.remove('active');
   }
   showToast(currentTxnType === 'ingreso' ? '💚 Venta registrada' : '🔴 Compra registrada', 'success');
 }
@@ -1828,6 +2334,7 @@ function renderFinance() {
   const gananciaVentas = transactions.filter(t => t.type === 'ingreso').reduce((s,t) => s + (t.profit      ?? t.amountUSDT), 0);
   const otrosEgresos   = transactions.filter(t => t.type === 'egreso').reduce((s,t) => s + t.amountUSDT, 0);
   const gananciaNeta   = gananciaVentas - otrosEgresos;
+  // traspasos are excluded from profit (neutral)
 
   const fmtU   = v => v.toFixed(2) + ' USDT';
   const fmtA   = v => usdtRateARS ? '$ ' + Math.round(v * usdtRateARS).toLocaleString('es-AR') + ' ARS' : '—';
@@ -1891,9 +2398,10 @@ function renderFinance() {
   if (!transactions.length) { list.innerHTML = '<div class="txn-empty">Sin movimientos registrados aún.</div>'; return; }
   const frag = document.createDocumentFragment();
   transactions.forEach(t => {
-    const subBadge = t.subtype
+    let subBadge = t.subtype
       ? `<span class="txn-sub-badge ${t.subtype}">${t.subtype==='proveedor'?'🏪 Proveedor':'💸 Gasto'}</span>`
       : '';
+    if (t.type === 'traspaso') subBadge = '<span class="txn-traspaso-badge">↔️ Traspaso</span>';
     let amountBlock;
     if (t.type === 'ingreso' && t.salePrice) {
       const profitARS = usdtRateARS ? '$ '+Math.round(t.profit*usdtRateARS).toLocaleString('es-AR')+' ARS' : '';
@@ -1904,16 +2412,17 @@ function renderFinance() {
         <div class="txn-profit-line">= +${t.profit.toFixed(2)} gan.</div>
         <div class="txn-ars">${profitARS}${profitUYU}</div>`;
     } else {
+      const sign = t.type === 'egreso' ? '-' : (t.type === 'traspaso' ? '↔' : '+');
       const arsVal = usdtRateARS ? '$ '+Math.round(t.amountUSDT*usdtRateARS).toLocaleString('es-AR')+' ARS' : '—';
       const uyuVal = usdtRateUYU ? ' · $'+Math.round(t.amountUSDT*usdtRateUYU).toLocaleString('es-UY')+' UYU' : '';
       amountBlock = `
-        <div class="txn-usdt">${t.type==='ingreso'?'+':'-'}${t.amountUSDT.toFixed(2)} USDT</div>
+        <div class="txn-usdt">${sign}${t.amountUSDT.toFixed(2)} USDT</div>
         <div class="txn-ars">${arsVal}${uyuVal}</div>`;
     }
     const div = document.createElement('div');
     div.className = `txn-item ${t.type}`;
     div.innerHTML = `
-      <div class="txn-dot">${t.type==='ingreso'?'💚':'🔴'}</div>
+      <div class="txn-dot">${t.type==='ingreso'?'💚':t.type==='traspaso'?'↔️':'🔴'}</div>
       <div class="txn-info">
         <div style="margin-bottom:3px"><span class="txn-cat-badge">${escHtml(t.category||'—')}</span>${subBadge}</div>
         <div class="txn-desc">${escHtml(t.description||t.category)}</div>
