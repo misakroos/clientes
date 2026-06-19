@@ -1977,8 +1977,8 @@ function setSyncBar(type, msg) {
   txt.textContent = msg;
 }
 async function manualSyncTxns() {
-  setSyncBar('loading', 'Cargando desde Sheets...');
-  await loadTxnsFromSheets();
+  setSyncBar('loading', 'Enviando transacciones a Sheets...');
+  await syncTxnsToSheets();
 }
 async function syncTxnsToSheets() {
   if (!scriptUrl) return;
@@ -1986,7 +1986,8 @@ async function syncTxnsToSheets() {
   try {
     await apiPost('saveTxns', { txns: transactions, balance: balanceEditado });
     txnSyncPending = false;
-    setSyncBar('ok', '✓ Sincronizado con Sheets — ' + new Date().toLocaleTimeString('es-AR'));
+    const txnCount = transactions.length;
+    setSyncBar('ok', '✓ ' + txnCount + ' transacci' + (txnCount===1?'ón':'ones') + ' guardadas en Sheets — ' + new Date().toLocaleTimeString('es-AR'));
   } catch(e) {
     console.warn('Txns sync to Sheets failed:', e.message);
     const hint = e.message.includes('404') || e.message.includes('doPost') || e.message.includes('fetch')
@@ -2009,12 +2010,16 @@ async function loadTxnsFromSheets() {
       return;
     }
     if (Array.isArray(data.txns)) {
-      // always take Sheets data as source of truth if it has records,
-      // or if local is empty (first load on new device)
-      if (data.txns.length > 0 || transactions.length === 0) {
+      if (transactions.length === 0 && data.txns.length > 0) {
+        // Local is empty (new device) → load from Sheets
+        transactions = data.txns;
+        saveTransactions();
+      } else if (data.txns.length > transactions.length) {
+        // Sheets has more → merge (Sheets wins, it's the cloud source)
         transactions = data.txns;
         saveTransactions();
       }
+      // If local has equal or more data → keep local, don't overwrite
     }
     if (data.balance !== undefined && data.balance !== null) {
       const b = parseFloat(data.balance);
