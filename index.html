@@ -1225,6 +1225,24 @@ function toggleConfig() {
 // ============================================================
 // API CALLS
 // ============================================================
+// apiPost: add/update/delete → JSONP GET; saveTxns → no-cors POST
+async function apiPost(action, body = {}) {
+  if (!scriptUrl) throw new Error('Sin URL configurada');
+  if (action === 'saveTxns') {
+    // no-cors: datos llegan al servidor, no podemos leer respuesta
+    body.action = action;
+    await fetch(scriptUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body)
+    });
+    return { ok: true };
+  }
+  // add / update / delete → JSONP GET (doGet las maneja)
+  return apiCall(action, body);
+}
+
 // apiCall usa JSONP — sin CORS, funciona desde cualquier dominio
 function apiCall(action, extraParams = {}) {
   if (!scriptUrl) return Promise.reject(new Error('Sin URL configurada'));
