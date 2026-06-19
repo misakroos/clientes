@@ -1270,20 +1270,6 @@ function apiCall(action, extraParams = {}) {
     document.head.appendChild(el);
   });
 }
-async function apiPost(action, body = {}) {
-  if (!scriptUrl) throw new Error('Sin URL configurada');
-  body.action = action;
-  const res = await fetch(scriptUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(body),
-    redirect: 'follow'
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
-}
-
 // ============================================================
 // LOAD DATA
 // ============================================================
