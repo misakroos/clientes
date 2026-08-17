@@ -12,6 +12,12 @@
 .inlineNew{margin-top:8px;padding:10px;border:1px dashed #34577a;border-radius:12px;background:#081b2c}
 .saleRow{position:relative}.removeRow{position:absolute;right:10px;top:10px}
 .datalistInput{position:relative}
+.extractor{background:#071b2b;border:1px solid #284a69;border-radius:14px;padding:12px;margin-bottom:12px}
+.extractor textarea{min-height:120px}
+.deliveryPreview{white-space:pre-wrap;background:#071421;border:1px solid var(--line);padding:12px;border-radius:12px;font-size:13px;line-height:1.45}
+.checkrow{display:flex;align-items:center;gap:8px;margin-top:8px}
+.checkrow input{width:auto}
+
 hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </style>
 </head>
@@ -36,7 +42,9 @@ const money=(n,c='ARS')=>new Intl.NumberFormat('es-AR',{style:'currency',currenc
 async function login(){loginMsg.textContent='Ingresando...';const {data,error}=await sb.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPassword.value});if(error){loginMsg.textContent=error.message;return}await boot()}
 async function logout(){await sb.auth.signOut();location.reload()}
 async function boot(){authView.classList.add('hidden');appView.classList.remove('hidden');await refreshAll()}
-async function refreshAll(){const qs=await Promise.all([sb.from('clients').select('*').order('name'),sb.from('services').select('*').order('name'),sb.from('suppliers').select('*').order('name'),sb.from('purchases').select('*').order('purchased_at',{ascending:false}),sb.from('accounts').select('*').order('created_at',{ascending:false}),sb.from('account_slots').select('*').order('slot_number'),sb.from('sales').select('*').order('sold_at',{ascending:false}),sb.from('sale_items').select('*').order('start_date',{ascending:false}),sb.from('slot_assignments').select('*').order('assigned_at',{ascending:false})]);['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments'].forEach((k,i)=>state[k]=qs[i].data||[]);renderAll()}
+async function refreshAll(){const qs=await Promise.all([sb.from('clients').select('*').order('name'),sb.from('services').select('*').order('name'),sb.from('suppliers').select('*').order('name'),sb.from('purchases').select('*').order('purchased_at',{ascending:false}),sb.from('accounts').select('*').order('created_at',{ascending:false}),sb.from('account_slots').select('*').order('slot_number'),sb.from('sales').select('*').order('sold_at',{ascending:false}),sb.from('sale_items').select('*').order('start_date',{ascending:false}),sb.from('slot_assignments').select('*').order('assigned_at',{ascending:false}),
+    sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(50),
+    sb.from('push_subscriptions').select('*').eq('active',true)]);['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments'].forEach((k,i)=>state[k]=qs[i].data||[]);renderAll()}
 function showScreen(n,b){document.querySelectorAll('[id^=screen-]').forEach(x=>x.classList.add('hidden'));$('screen-'+n).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));(b||document.querySelector(`[data-screen="${n}"]`))?.classList.add('active');renderAll()}
 function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
 function renderAll(){mClients.textContent=state.clients.length;mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));mSlots.textContent=state.slots.filter(s=>s.active&&!occ.has(s.id)).length;mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7).length;renderClients();renderSales();renderAccounts();renderMore();renderHome()}
@@ -44,6 +52,28 @@ function renderHome(){const a=state.saleItems.filter(i=>i.end_date&&daysUntil(i.
 function renderClients(){const q=(clientSearch?.value||'').toLowerCase();const a=state.clients.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q));clientsList.innerHTML=a.length?a.map(c=>`<div class="item"><div class="row between"><div><b>${esc(c.name)}</b><div class="tiny muted">${esc(c.phone_e164||c.phone_raw||'')}</div></div><button class="btn secondary small" onclick="openClientModal('${c.id}')">Editar</button></div></div>`).join(''):'<div class="muted">Sin clientes.</div>'}
 function renderSales(){salesList.innerHTML=state.saleItems.length?state.saleItems.map(i=>{const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id),as=activeAssignItem(i.id),sl=as&&slotBy(as.account_slot_id),ac=sl&&accountBy(sl.account_id);return `<div class="item"><div class="row between"><div><b>${esc(c?.name||'')}</b><div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · ${esc(as?.profile_name||'Sin perfil')}</div></div><span class="badge">${esc(i.workflow_status)}</span></div><div class="tiny muted">${esc(ac?.login_email||'Sin cuenta')} · vence ${esc(i.end_date||'-')}</div><div class="tiny">Ingreso: <b>${money(i.allocated_revenue,s?.currency||'ARS')}</b></div><div class="row wrap" style="margin-top:8px"><button class="btn warn small" onclick="markItem('${i.id}','renewal_pending')">Pend. renovar</button><button class="btn warn small" onclick="markItem('${i.id}','payment_pending')">Pend. cobrar</button><button class="btn ok small" onclick="renewItem('${i.id}')">Renovó</button><button class="btn danger small" onclick="releaseItem('${i.id}')">Liberar</button></div></div>`}).join(''):'<div class="muted">Sin ventas.</div>'}
 function renderAccounts(){accountsList.innerHTML=state.accounts.length?state.accounts.map(a=>{const sl=state.slots.filter(s=>s.account_id===a.id),o=sl.filter(s=>activeAssignSlot(s.id)).length;return `<div class="item"><b>${esc(serviceBy(a.service_id)?.name||'')}</b><div class="tiny muted">${esc(a.login_email||'Sin correo')}</div><div class="tiny">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div><div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div><div class="row wrap" style="margin-top:8px"><button class="btn secondary small" onclick="openAccountModal('${a.id}')">Editar</button><button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button></div></div>`}).join(''):'<div class="muted">Sin cuentas.</div>'}
+function renderNotifications(){
+  const el=document.getElementById('notificationsList');
+  if(!el)return;
+  const arr=state.notifications||[];
+  el.innerHTML=arr.length?arr.slice(0,12).map(n=>`<div class="item">
+    <div class="row between"><b>${esc(n.title)}</b>${n.read_at?'<span class="badge ok">Leída</span>':'<span class="badge warn">Nueva</span>'}</div>
+    <div class="tiny muted" style="margin-top:4px">${esc(n.body)}</div>
+  </div>`).join(''):'<div class="empty">Todavía no hay notificaciones.</div>';
+}
+function updatePushBadge(){
+  const el=document.getElementById('pushStatusBadge');if(!el)return;
+  if(!('Notification' in window) || !('serviceWorker' in navigator)){
+    el.textContent='No compatible';el.className='badge danger';return;
+  }
+  if(Notification.permission==='granted' && (state.pushSubscriptions||[]).length){
+    el.textContent='Activadas';el.className='badge ok';
+  }else if(Notification.permission==='denied'){
+    el.textContent='Bloqueadas';el.className='badge danger';
+  }else{
+    el.textContent='Desactivadas';el.className='badge warn';
+  }
+}
 function renderMore(){servicesList.innerHTML=state.services.map(s=>`<div class="item"><b>${esc(s.name)}</b><div class="tiny muted">${esc(s.default_account_mode||'')} · capacidad ${s.default_capacity||'-'}</div></div>`).join('')||'<div class="muted">Sin servicios.</div>';suppliersList.innerHTML=state.suppliers.map(s=>`<div class="item"><b>${esc(s.name)}</b></div>`).join('')||'<div class="muted">Sin proveedores.</div>';purchasesList.innerHTML=state.purchases.map(p=>`<div class="item"><b>${esc(serviceBy(p.service_id)?.name||'')}</b><div class="tiny muted">${esc(supplierBy(p.supplier_id)?.name||'Sin proveedor')} · ${money(p.total_cost,p.currency)} · vence ${esc(p.expires_at||'-')}</div></div>`).join('')||'<div class="muted">Sin compras.</div>'}
 function openModal(h){sheet.innerHTML=h;modal.classList.remove('hidden')}function closeModal(){modal.classList.add('hidden')}
 function normalizePhone(raw){let d=(raw||'').replace(/\D/g,'');if(!d)return'';if(d.startsWith('549')||d.startsWith('598')||d.startsWith('56'))return'+'+d;if(d.startsWith('54'))return'+54'+(d.slice(2).startsWith('9')?'':'9')+d.slice(2);if(d.length>=9&&d.length<=11)return'+549'+d.replace(/^0/,'');return'+'+d}
@@ -69,6 +99,96 @@ function findAccountByEmail(email,serviceId){const e=(email||'').trim().toLowerC
 function clientNameOptions(){return state.clients.map(c=>`<option value="${esc(c.name)}"></option>`).join('')}
 function serviceNameOptions(){return state.services.map(s=>`<option value="${esc(s.name)}"></option>`).join('')}
 function accountEmailOptions(){return state.accounts.filter(a=>a.status==='active'&&a.login_email).map(a=>`<option value="${esc(a.login_email)}"></option>`).join('')}
+
+function firstMatch(text, patterns){
+  for(const p of patterns){
+    const m=text.match(p);
+    if(m&&m[1]) return m[1].trim();
+  }
+  return '';
+}
+function parseSaleText(text){
+  const t=String(text||'').replace(/\r/g,'');
+  const lines=t.split('\n').map(x=>x.trim()).filter(Boolean);
+
+  const email=(t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||'';
+
+  const phone=firstMatch(t,[
+    /(?:tel[eé]fono|telefono|whatsapp|celular|n[uú]mero)\s*[:\-]?\s*([+\d][\d\s().-]{7,})/i
+  ]);
+
+  const client=firstMatch(t,[
+    /(?:cliente|nombre(?:\s+del\s+cliente)?)\s*[:\-]\s*([^\n]+)/i
+  ]);
+
+  const password=firstMatch(t,[
+    /(?:contrase(?:ñ|n)a|password|clave|pass|pwd)\s*[:=\-]?\s*([^\n|]+)/i
+  ]);
+
+  const profile=firstMatch(t,[
+    /perfil(?:\s*(?:n[º°o.]|numero|número)?)?\s*[:=\-]?\s*([^\n|]+)/i
+  ]);
+
+  const devices=firstMatch(t,[
+    /(\d+)\s*(?:dispositivos?|pantallas?)/i,
+    /(?:dispositivos?|pantallas?)\s*[:=\-]?\s*(\d+)/i
+  ]);
+
+  let service=firstMatch(t,[
+    /(?:servicio|plataforma|producto)\s*[:=\-]\s*([^\n]+)/i
+  ]);
+
+  if(!service){
+    const known=[
+      'Netflix','Disney+','Disney Plus','Prime Video','Amazon Prime',
+      'Max','HBO Max','Paramount+','Spotify','YouTube Premium',
+      'Crunchyroll','Apple TV+','Vix','Alfa TV','Flujo TV'
+    ];
+    const lower=t.toLowerCase();
+    service=known.find(x=>lower.includes(x.toLowerCase()))||'';
+  }
+
+  const cost=firstMatch(t,[
+    /(?:costo|cost|precio proveedor|price)\s*[:=\-]?\s*(?:usd|usdt|\$)?\s*([\d.,]+)/i
+  ]);
+
+  let costCurrency='';
+  if(/\busdt\b/i.test(t)) costCurrency='USDT';
+  else if(/\busd\b/i.test(t)) costCurrency='USD';
+  else if(/\buyu\b/i.test(t)) costCurrency='UYU';
+  else if(/\bclp\b/i.test(t)) costCurrency='CLP';
+  else if(/\bars\b/i.test(t)) costCurrency='ARS';
+
+  return {client,phone,service,email,profile,password,devices,cost,costCurrency};
+}
+function fillSaleFromExtractor(){
+  const parsed=parseSaleText(document.getElementById('saleExtractorText').value);
+  if(parsed.client) saleClientName.value=parsed.client;
+  if(parsed.phone) saleClientPhone.value=parsed.phone;
+  syncSaleClient();
+
+  let row=document.querySelector('.saleRow');
+  if(!row){addSaleRow();row=document.querySelector('.saleRow')}
+  if(parsed.service) row.querySelector('.siServiceName').value=parsed.service;
+  if(parsed.email) row.querySelector('.siAccountEmail').value=parsed.email;
+  if(parsed.profile) row.querySelector('.siProfile').value=parsed.profile;
+  if(parsed.password){
+    row.querySelector('.siPassword').value=parsed.password;
+    row.querySelector('.siIncludePassword').checked=true;
+  }
+  if(parsed.devices) row.querySelector('.siDevices').value=parsed.devices;
+  if(parsed.cost){
+    const costTarget=row.querySelector('.siProviderCost')||row.querySelector('.siExistingCost');
+    if(costTarget) costTarget.value=String(parsed.cost).replace(',','.');
+  }
+  if(parsed.costCurrency){
+    const currTarget=row.querySelector('.siProviderCurrency')||row.querySelector('.siExistingCurrency');
+    if(currTarget) currTarget.value=parsed.costCurrency;
+  }
+  syncSaleRow(row.querySelector('.siServiceName'));
+  if(parsed.email) syncSaleRow(row.querySelector('.siAccountEmail'));
+}
+
 function inlineSupplierOptions(){
   return '<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
 }
@@ -76,6 +196,16 @@ function inlineSupplierOptions(){
 
 function openSaleModal(){
   openModal(`<div class="row between"><div><div class="sectionTitle" style="margin-bottom:2px">Nueva venta</div><div class="tiny muted">Cargá la venta y MISAKROOS irá creando lo que falte.</div></div><button class="btn secondary small" onclick="closeModal()">✕</button></div>
+  <div class="extractor">
+    <div class="row between"><div><b>Extractor de texto</b><div class="tiny muted">Pegá exactamente el mensaje que te mandó el proveedor. MISAKROOS intenta encontrar servicio, correo, clave, perfil y otros datos.</div></div><span class="badge info">opcional</span></div>
+    <textarea id="saleExtractorText" placeholder="Ejemplo:
+Disney+ Premium
+Email: cuenta@gmail.com
+Pass: 123456
+Perfil 2
+1 dispositivo"></textarea>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="fillSaleFromExtractor()">Extraer y completar</button>
+  </div>
   <hr>
   <div class="sectionTitle">Cliente</div>
   <label>Nombre del cliente</label>
@@ -187,7 +317,12 @@ function addSaleRow(){
     </div>
   </div>
 
-  <label>Nombre del perfil</label><input class="siProfile" placeholder="Ej: Pepito">
+  <label>Nombre del perfil</label><input class="siProfile" placeholder="Ej: Pepito, Perfil 2, TV">
+  <label>Contraseña de la cuenta</label><input class="siPassword" placeholder="Dejala vacía si no corresponde">
+  <label class="checkrow"><input class="siIncludePassword" type="checkbox" checked> Incluir contraseña en el mensaje al cliente</label>
+  <label>Dispositivos/pantallas contratados</label><input class="siDevices" type="number" min="1" value="1">
+  <label>Nota de entrega opcional</label><input class="siDeliveryNotes" placeholder="Ej: No modificar perfiles">
+
   <div class="grid2">
     <div><label>Ingreso atribuido</label><input class="siRevenue" type="number" step="0.01" oninput="updateSaleDistribution()"></div>
     <div><label>Costo directo opcional</label><input class="siCost" type="number" step="0.01"></div>
@@ -340,15 +475,21 @@ async function createProviderProfilePurchase(row,service,existing=false){
 
 async function resolveAccountAndSlot(row,service){
   const email=row.querySelector('.siAccountEmail').value.trim();
-  if(!email)return {account:null,slotId:null};
+  if(!email)return {account:null,slotId:null,purchaseId:null};
 
   let ac=findAccountByEmail(email,service.id);
 
   if(ac){
+    const typedPassword=row.querySelector('.siPassword')?.value.trim();
+    if(typedPassword && typedPassword!==ac.login_password){
+      const upr=await sb.from('accounts').update({login_password:typedPassword}).eq('id',ac.id);
+      if(upr.error)throw upr.error;
+      ac.login_password=typedPassword;
+    }
     if(ac.account_mode==='full_account'){
       const chosen=row.querySelector('.siSlot').value;
       if(!chosen)throw new Error(`La cuenta completa ${email} no tiene un cupo libre seleccionado.`);
-      return {account:ac,slotId:chosen};
+      return {account:ac,slotId:chosen,purchaseId:null};
     }
 
     const action=row.querySelector('.siProviderAction').value;
@@ -356,7 +497,7 @@ async function resolveAccountAndSlot(row,service){
     if(action==='use_free'){
       const chosen=row.querySelector('.siSlot').value;
       if(!chosen)throw new Error(`No hay un perfil comprado libre en ${email}.`);
-      return {account:ac,slotId:chosen};
+      return {account:ac,slotId:chosen,purchaseId:null};
     }
 
     if(action==='buy_new'){
@@ -369,7 +510,7 @@ async function resolveAccountAndSlot(row,service){
       const sl=await sb.from('account_slots').select('*').eq('id',rr.data).single();
       if(sl.error)throw sl.error;
       state.slots.push(sl.data);
-      return {account:ac,slotId:sl.data.id};
+      return {account:ac,slotId:sl.data.id,purchaseId:purchase.id};
     }
 
     if(action==='convert_full'){
@@ -386,7 +527,7 @@ async function resolveAccountAndSlot(row,service){
       const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
       const free=state.slots.filter(s=>s.account_id===ac.id&&s.active&&!occ.has(s.id));
       if(!free.length)throw new Error('La cuenta convertida no tiene cupos libres.');
-      return {account:ac,slotId:free[0].id};
+      return {account:ac,slotId:free[0].id,purchaseId:null};
     }
   }
 
@@ -403,7 +544,8 @@ async function resolveAccountAndSlot(row,service){
       account_mode:'provider_managed',
       capacity:1,
       status:'active',
-      provider_expires_at:purchase.expires_at
+      provider_expires_at:purchase.expires_at,
+      login_password:row.querySelector('.siPassword')?.value.trim()||null
     }).select().single();
     if(ar.error)throw ar.error;
     ac=ar.data;
@@ -414,7 +556,7 @@ async function resolveAccountAndSlot(row,service){
     state.slots.push(...(sl.data||[]));
     const first=(sl.data||[])[0];
     if(!first)throw new Error(`No se pudo crear el perfil comprado en ${email}.`);
-    return {account:ac,slotId:first.id};
+    return {account:ac,slotId:first.id,purchaseId:purchase.id};
   }
 
   const capacity=Number(row.querySelector('.siCapacity').value||1);
@@ -425,7 +567,8 @@ async function resolveAccountAndSlot(row,service){
     login_email:email,
     account_mode:'full_account',
     capacity,
-    status:'active'
+    status:'active',
+    login_password:row.querySelector('.siPassword')?.value.trim()||null
   }).select().single();
   if(ar.error)throw ar.error;
   ac=ar.data;
@@ -436,7 +579,7 @@ async function resolveAccountAndSlot(row,service){
   state.slots.push(...(sl.data||[]));
   const first=(sl.data||[])[0];
   if(!first)throw new Error(`No se pudo generar el primer cupo de ${email}.`);
-  return {account:ac,slotId:first.id};
+  return {account:ac,slotId:first.id,purchaseId:null};
 }
 async function saveSale(){
   const rows=[...document.querySelectorAll('.saleRow')];if(!rows.length)return alert('Agregá al menos un servicio.');
@@ -465,7 +608,12 @@ async function saveSale(){
         direct_cost:cost?Number(cost):null,
         direct_cost_currency:saleCurr.value,
         start_date:row.querySelector('.siStart').value||today(),
-        end_date:row.querySelector('.siEnd').value||addDays(today(),30)
+        end_date:row.querySelector('.siEnd').value||addDays(today(),30),
+        include_password:row.querySelector('.siIncludePassword').checked,
+        contracted_devices:Number(row.querySelector('.siDevices').value||1),
+        delivery_notes:row.querySelector('.siDeliveryNotes').value.trim()||null,
+        provider_raw_text:document.getElementById('saleExtractorText')?.value.trim()||null,
+        purchase_id:resolved.purchaseId||null
       }).select().single();
       if(ir.error)throw ir.error;
 
@@ -494,6 +642,75 @@ async function renewItem(id){const i=state.saleItems.find(x=>x.id===id),ns=promp
 async function releaseItem(id){if(!confirm('¿Liberar este cupo?'))return;const a=activeAssignItem(id);if(a)await sb.from('slot_assignments').update({released_at:new Date().toISOString(),release_reason:'Liberación manual'}).eq('id',a.id);await sb.from('sale_items').update({workflow_status:'not_renewing'}).eq('id',id);refreshAll()}
 function openMigrateModal(oldId){const a=accountBy(oldId),targets=state.accounts.filter(x=>x.id!==oldId&&x.status==='active'&&x.service_id===a.service_id);openModal(`<div class="sectionTitle">Migrar cuenta</div><p class="muted">Los perfiles activos se moverán a la nueva cuenta conservando sus vencimientos.</p><label>Cuenta destino</label><select id="migTarget">${targets.map(x=>`<option value="${x.id}">${esc(x.login_email||x.id)}</option>`).join('')}</select><button class="btn warn" style="width:100%;margin-top:10px" onclick="runMigration('${oldId}')">Migrar todos</button>`)}
 async function runMigration(oldId){if(!migTarget.value)return alert('No hay destino');const r=await sb.rpc('migrate_account',{p_old_account_id:oldId,p_new_account_id:migTarget.value});if(r.error)return alert(r.error.message);alert('Migrados: '+r.data);closeModal();refreshAll()}
+
+const VAPID_PUBLIC_KEY = 'PEGAR_AQUI_TU_VAPID_PUBLIC_KEY';
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const rawData=atob(base64);
+  return Uint8Array.from([...rawData].map(c=>c.charCodeAt(0)));
+}
+
+async function enablePushNotifications(){
+  try{
+    if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
+      return alert('Este navegador no admite notificaciones push web.');
+    }
+    if(VAPID_PUBLIC_KEY.startsWith('PEGAR_')){
+      return alert('Primero falta configurar la clave pública VAPID. Te indico cómo hacerlo en el paso siguiente.');
+    }
+
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted')return alert('No se concedió permiso para mostrar notificaciones.');
+
+    const reg=await navigator.serviceWorker.register('./sw.js');
+    await navigator.serviceWorker.ready;
+
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    const j=sub.toJSON();
+    const payload={
+      endpoint:j.endpoint,
+      p256dh:j.keys.p256dh,
+      auth_key:j.keys.auth,
+      user_agent:navigator.userAgent,
+      device_name:navigator.platform||'Dispositivo',
+      active:true,
+      last_used_at:new Date().toISOString()
+    };
+
+    const r=await sb.from('push_subscriptions')
+      .upsert(payload,{onConflict:'user_id,endpoint'});
+    if(r.error)throw r.error;
+
+    await refreshAll();
+    alert('Notificaciones activadas en este dispositivo ✅');
+  }catch(e){
+    console.error(e);
+    alert(e.message||String(e));
+  }
+}
+
+async function markNotificationsRead(){
+  const ids=(state.notifications||[]).filter(n=>!n.read_at).map(n=>n.id);
+  if(!ids.length)return;
+  const r=await sb.from('notifications').update({read_at:new Date().toISOString()}).in('id',ids);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();
+}
+
+// Register worker even before enabling push, so notification clicks work later.
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.error));
+}
+
 (async()=>{const {data}=await sb.auth.getSession();if(data.session)await boot()})();
 </script>
 </body></html>
