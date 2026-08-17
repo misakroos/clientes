@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v11">
+<meta name="misakroos-version" content="v13">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -20,15 +20,101 @@
 .checkrow input{width:auto}
 
 hr{border:0;border-top:1px solid var(--line);margin:13px 0}
+
+.metricBtn{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.metricBtn:active{transform:scale(.985)}
+.filterBar{display:grid;gap:8px;margin:8px 0 12px}
+.filterGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filterChips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px}
+.filterChips .btn{white-space:nowrap}
+.itemClickable{cursor:pointer}
+.financeCurrency{margin-bottom:10px}
+.financeStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.financeStat{padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.financeStat b{display:block;font-size:1.08rem}
+.servicePills{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.servicePill{font-size:.72rem;padding:4px 7px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v11</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
-<section id="screen-home"><div class="grid2"><div class="metric"><b id="mClients">0</b><span class="muted tiny">Clientes</span></div><div class="metric"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></div><div class="metric"><b id="mSlots">0</b><span class="muted tiny">Cupos libres</span></div><div class="metric"><b id="mExpiring">0</b><span class="muted tiny">Vencen ≤ 7 días</span></div></div><div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div><div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v13</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<section id="screen-home"><div class="grid2">
+<button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
+<button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
+<button class="metric metricBtn" onclick="goAccountsFree()"><b id="mSlots">0</b><span class="muted tiny">Cupos libres</span></button>
+<button class="metric metricBtn" onclick="goSalesPreset('expiring7')"><b id="mExpiring">0</b><span class="muted tiny">Vencen ≤ 7 días</span></button>
+</div><div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div><div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
 <section id="screen-clients" class="hidden"><div class="row between"><div class="sectionTitle">Clientes</div><button class="btn primary small" onclick="openClientModal()">+ Agregar</button></div><input id="clientSearch" placeholder="Buscar..." oninput="renderClients()"><div id="clientsList" style="margin-top:10px"></div></section>
-<section id="screen-sales" class="hidden"><div class="row between"><div class="sectionTitle">Ventas</div><button class="btn primary small" onclick="openSaleModal()">+ Venta</button></div><div id="salesList"></div></section>
-<section id="screen-accounts" class="hidden"><div class="row between"><div class="sectionTitle">Cuentas</div><button class="btn primary small" onclick="openAccountModal()">+ Cuenta</button></div><div id="accountsList"></div></section>
+<section id="screen-sales" class="hidden">
+<div class="row between"><div class="sectionTitle">Ventas</div><button class="btn primary small" onclick="openSaleModal()">+ Venta</button></div>
+
+<div class="filterBar">
+  <input id="salesSearch" placeholder="Buscar cliente, servicio, cuenta o perfil..." oninput="renderSales()">
+
+  <div class="filterChips">
+    <button class="btn secondary small" onclick="setSalesStatus('all')">Todos</button>
+    <button class="btn secondary small" onclick="setSalesStatus('active')">Activos</button>
+    <button class="btn secondary small" onclick="setSalesStatus('today')">Vencen hoy</button>
+    <button class="btn secondary small" onclick="setSalesStatus('expiring7')">≤ 7 días</button>
+    <button class="btn secondary small" onclick="setSalesStatus('pending')">Pendientes</button>
+    <button class="btn secondary small" onclick="setSalesStatus('expired')">Vencidos</button>
+  </div>
+
+  <div class="filterGrid">
+    <select id="salesServiceFilter" onchange="renderSales()">
+      <option value="">Todos los servicios</option>
+    </select>
+    <select id="salesSort" onchange="renderSales()">
+      <option value="nearest">Próximo vencimiento</option>
+      <option value="farthest">Vencimiento más lejano</option>
+      <option value="az">Cliente A-Z</option>
+      <option value="za">Cliente Z-A</option>
+    </select>
+  </div>
+
+  <div id="salesFilterInfo" class="tiny muted"></div>
+</div>
+
+<div id="salesList"></div>
+</section>
+<section id="screen-accounts" class="hidden">
+<div class="row between"><div class="sectionTitle">Cuentas</div><button class="btn primary small" onclick="openAccountModal()">+ Cuenta</button></div>
+<div id="accountsFilterInfo" class="tiny muted hidden" style="margin-bottom:9px"></div>
+<div id="accountsList"></div>
+</section>
+<section id="screen-finance" class="hidden">
+  <div class="row between">
+    <div>
+      <div class="sectionTitle" style="margin-bottom:2px">Finanzas</div>
+      <div class="tiny muted">Balance calculado por ventas reales.</div>
+    </div>
+    <button class="btn secondary small" onclick="showScreen('more')">← Volver</button>
+  </div>
+
+  <div class="card">
+    <div class="filterGrid">
+      <div><label>Desde</label><input id="finFrom" type="date" onchange="renderFinance()"></div>
+      <div><label>Hasta</label><input id="finTo" type="date" onchange="renderFinance()"></div>
+    </div>
+    <div class="filterGrid">
+      <select id="finService" onchange="renderFinance()"><option value="">Todos los servicios</option></select>
+      <input id="finSearch" placeholder="Cliente..." oninput="renderFinance()">
+    </div>
+    <div class="filterChips" style="margin-top:8px">
+      <button class="btn secondary small" onclick="financeToday()">Hoy</button>
+      <button class="btn secondary small" onclick="financeThisMonth()">Este mes</button>
+      <button class="btn secondary small" onclick="financeLast30()">Últimos 30 días</button>
+      <button class="btn secondary small" onclick="financeAll()">Todo</button>
+    </div>
+  </div>
+
+  <div id="financeSummary"></div>
+  <div class="sectionTitle">Ventas del período</div>
+  <div id="financeSalesList"></div>
+</section>
 <section id="screen-more" class="hidden">
   <div class="sectionTitle">Gestión</div>
 
@@ -53,6 +139,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   </div>
 
   <div class="grid2">
+    <button class="btn primary" onclick="openFinanceScreen()">💰 Finanzas</button>
     <button class="btn secondary" onclick="openServiceModal()">Servicios</button>
     <button class="btn secondary" onclick="openSupplierModal()">Proveedores</button>
     <button class="btn secondary" onclick="openPurchaseModal()">Compras</button>
@@ -74,13 +161,75 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     <div id="purchasesList"></div>
   </div>
 </section>
-</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
+</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
 <div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()"><div id="sheet" class="sheet"></div></div>
 <script>
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_tlT-G0ziq1E5Cwnp2AEx3w_Ip0Xzi-6';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[]};
+let salesStatusFilter='all';
+let accountsOnlyFree=false;
+
+function goClients(){
+  if(window.clientSearch)clientSearch.value='';
+  showScreen('clients');
+}
+function goSalesPreset(filter){
+  salesStatusFilter=filter||'all';
+  showScreen('sales');
+  renderSales();
+}
+function goAccountsFree(){
+  accountsOnlyFree=true;
+  showScreen('accounts');
+  renderAccounts();
+}
+function setSalesStatus(filter){
+  salesStatusFilter=filter||'all';
+  renderSales();
+}
+function showAllAccounts(){
+  accountsOnlyFree=false;
+  renderAccounts();
+}
+
+function saleItemsFor(saleId){return state.saleItems.filter(i=>i.sale_id===saleId)}
+function saleClient(sale){return sale&&clientBy(sale.client_id)}
+function saleEarliestEnd(saleId){
+  const ds=saleItemsFor(saleId).map(i=>i.end_date).filter(Boolean).sort();
+  return ds[0]||'9999-12-31';
+}
+function saleLatestEnd(saleId){
+  const ds=saleItemsFor(saleId).map(i=>i.end_date).filter(Boolean).sort();
+  return ds[ds.length-1]||'';
+}
+function saleDirectCosts(saleId){
+  const map={};
+  saleItemsFor(saleId).forEach(i=>{
+    if(i.direct_cost==null)return;
+    const c=i.direct_cost_currency||saleBy(saleId)?.currency||'ARS';
+    map[c]=(map[c]||0)+Number(i.direct_cost||0);
+  });
+  return map;
+}
+function saleServiceNames(saleId){
+  return saleItemsFor(saleId).map(i=>serviceBy(i.service_id)?.name||'Servicio');
+}
+function saleHasStatus(saleId,kind){
+  const items=saleItemsFor(saleId);
+  if(!items.length)return false;
+  return items.some(i=>{
+    const d=i.end_date?daysUntil(i.end_date):99999;
+    if(kind==='active')return d>=0&&['active','renewal_pending','payment_pending'].includes(i.workflow_status);
+    if(kind==='today')return d===0;
+    if(kind==='expiring7')return d>=0&&d<=7;
+    if(kind==='pending')return ['renewal_pending','payment_pending'].includes(i.workflow_status);
+    if(kind==='expired')return d<0;
+    return true;
+  });
+}
+
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const today=()=>new Date().toISOString().slice(0,10),addDays=(d,n)=>{let x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},daysUntil=d=>Math.ceil((new Date(d+'T23:59:59')-new Date())/86400000);
 const money=(n,c='ARS')=>new Intl.NumberFormat('es-AR',{style:'currency',currency:c==='USDT'?'USD':c,maximumFractionDigits:2}).format(Number(n||0)).replace('US$','USDT ');
@@ -92,8 +241,33 @@ async function refreshAll(){const qs=await Promise.all([sb.from('clients').selec
     sb.from('push_subscriptions').select('*').eq('active',true)]);['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions'].forEach((k,i)=>state[k]=qs[i].data||[]);renderAll()}
 function showScreen(n,b){document.querySelectorAll('[id^=screen-]').forEach(x=>x.classList.add('hidden'));$('screen-'+n).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));(b||document.querySelector(`[data-screen="${n}"]`))?.classList.add('active');renderAll()}
 function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
-function renderAll(){mClients.textContent=state.clients.length;mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));mSlots.textContent=state.slots.filter(s=>s.active&&!occ.has(s.id)).length;mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7).length;renderClients();renderSales();renderAccounts();renderMore();renderHome()}
-function renderHome(){const a=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7);homeExpiring.innerHTML=a.length?a.map(i=>{const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);return `<div class="item"><b>${esc(c?.name||'')}</b><div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${esc(i.end_date)}</div></div>`}).join(''):'<div class="muted">Nada próximo a vencer.</div>'}
+function renderAll(){
+  mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
+  mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;
+  const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
+  const activeAccountIds=new Set(state.accounts.filter(a=>!a.archived_at&&a.status==='active').map(a=>a.id));
+  mSlots.textContent=state.slots.filter(s=>s.active&&activeAccountIds.has(s.account_id)&&!occ.has(s.id)).length;
+  mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing').length;
+  renderClients();renderSales();renderAccounts();renderMore();renderHome();
+}
+function renderHome(){
+  const a=state.saleItems
+    .filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing')
+    .sort((x,y)=>String(x.end_date).localeCompare(String(y.end_date)));
+
+  homeExpiring.innerHTML=a.length?a.map(i=>{
+    const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);
+    const d=daysUntil(i.end_date);
+    return `<button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${i.sale_id}')">
+      <div class="row between">
+        <b>${esc(c?.name||'')}</b>
+        <span class="badge ${d===0?'danger':'warn'}">${d===0?'Hoy':d+' días'}</span>
+      </div>
+      <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${esc(i.end_date)}</div>
+      <div class="tiny muted">Tocá para abrir la venta completa</div>
+    </button>`;
+  }).join(''):'<div class="muted">Nada próximo a vencer.</div>';
+}
 function renderClients(){
   const q=(clientSearch?.value||'').toLowerCase();
   const a=state.clients.filter(c=>!c.archived_at&&((c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q)||(c.phone_e164||'').includes(q)));
@@ -112,48 +286,98 @@ function renderClients(){
     </div>`).join(''):'<div class="muted">Sin clientes.</div>';
 }
 function renderSales(){
-  salesList.innerHTML=state.saleItems.length
-    ?state.saleItems.map(i=>{
-      const s=saleBy(i.sale_id),
-            c=s&&clientBy(s.client_id),
-            as=activeAssignItem(i.id),
-            sl=as&&slotBy(as.account_slot_id),
-            ac=sl&&accountBy(sl.account_id);
+  const search=(document.getElementById('salesSearch')?.value||'').trim().toLowerCase();
+  const serviceFilter=document.getElementById('salesServiceFilter')?.value||'';
+  const sort=document.getElementById('salesSort')?.value||'nearest';
 
-      return `<div class="item">
+  const serviceSelect=document.getElementById('salesServiceFilter');
+  if(serviceSelect){
+    const current=serviceSelect.value;
+    serviceSelect.innerHTML=['<option value="">Todos los servicios</option>']
+      .concat(state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)).join('');
+    if([...serviceSelect.options].some(o=>o.value===current))serviceSelect.value=current;
+  }
+
+  let arr=state.sales.filter(sale=>{
+    const items=saleItemsFor(sale.id);
+    const client=saleClient(sale);
+    if(!items.length)return false;
+
+    if(serviceFilter&&!items.some(i=>i.service_id===serviceFilter))return false;
+    if(salesStatusFilter!=='all'&&!saleHasStatus(sale.id,salesStatusFilter))return false;
+
+    if(search){
+      const itemText=items.map(i=>{
+        const a=activeAssignItem(i.id),sl=a&&slotBy(a.account_slot_id),ac=sl&&accountBy(sl.account_id);
+        return [serviceBy(i.service_id)?.name,a?.profile_name,ac?.login_email].filter(Boolean).join(' ');
+      }).join(' ');
+      const haystack=[client?.name,client?.phone_e164,client?.phone_raw,itemText].filter(Boolean).join(' ').toLowerCase();
+      if(!haystack.includes(search))return false;
+    }
+    return true;
+  });
+
+  arr.sort((a,b)=>{
+    const ca=saleClient(a),cb=saleClient(b);
+    if(sort==='farthest')return saleLatestEnd(b.id).localeCompare(saleLatestEnd(a.id));
+    if(sort==='az')return String(ca?.name||'').localeCompare(String(cb?.name||''),'es');
+    if(sort==='za')return String(cb?.name||'').localeCompare(String(ca?.name||''),'es');
+    return saleEarliestEnd(a.id).localeCompare(saleEarliestEnd(b.id));
+  });
+
+  const labels={all:'Todas',active:'Activas',today:'Vencen hoy',expiring7:'Vencen en 7 días',pending:'Pendientes',expired:'Vencidas'};
+  if(window.salesFilterInfo)salesFilterInfo.innerHTML=`Mostrando <b>${arr.length}</b> venta(s) · ${labels[salesStatusFilter]||'Todas'}`;
+
+  salesList.innerHTML=arr.length?arr.map(sale=>{
+    const client=saleClient(sale),items=saleItemsFor(sale.id);
+    const names=items.map(i=>serviceBy(i.service_id)?.name||'Servicio');
+    const costs=saleDirectCosts(sale.id);
+    const costText=Object.entries(costs).map(([c,n])=>money(n,c)).join(' + ')||'Sin costo cargado';
+    const closest=saleEarliestEnd(sale.id);
+    const d=closest==='9999-12-31'?null:daysUntil(closest);
+
+    return `<div class="item">
+      <button type="button" onclick="openSaleDetail('${sale.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
         <div class="row between">
           <div>
-            <button type="button" onclick="openClientDetail('${c?.id||''}')" style="background:none;border:0;color:inherit;padding:0;text-align:left">
-              <b>${esc(c?.name||'')}</b>
-            </button>
-            <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · ${esc(as?.profile_name||'Sin perfil')}</div>
+            <b>${esc(client?.name||'Cliente')}</b>
+            <div class="tiny muted">${esc(names.join(' / '))}</div>
           </div>
-          <span class="badge">${esc(i.workflow_status)}</span>
+          <span class="badge ${d===0?'danger':(d!==null&&d>=0&&d<=7?'warn':'')}">${items.length} ${items.length===1?'servicio':'servicios'}</span>
         </div>
-
-        <div class="tiny muted">${esc(ac?.login_email||'Sin cuenta')} · ${esc(i.start_date||'-')} → ${esc(i.end_date||'-')}</div>
-        <div class="tiny">Total cobrado venta: <b>${money(s?.total_amount||0,s?.currency||'ARS')}</b>${i.direct_cost!=null?` · costo: <b>${money(i.direct_cost,i.direct_cost_currency||s?.currency||'ARS')}</b>`:''}</div>
-
-        <div class="row wrap" style="margin-top:10px">
-          <button class="btn primary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar venta</button>
-          <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
-          <button class="btn secondary small" onclick="sendRenewalWhatsApp('${i.id}')">💬 WhatsApp renovación</button>
-        </div>
-
-        <div class="row wrap" style="margin-top:8px">
-          <button class="btn warn small" onclick="markItem('${i.id}','renewal_pending')">Pend. renovar</button>
-          <button class="btn warn small" onclick="markItem('${i.id}','payment_pending')">Pend. cobrar</button>
-          <button class="btn ok small" onclick="renewItem('${i.id}')">Renovó</button>
-          <button class="btn danger small" onclick="releaseItem('${i.id}')">Liberar</button>
-        </div>
-      </div>`;
-    }).join('')
-    :'<div class="muted">Sin ventas.</div>';
+        <div class="tiny muted">Venta: ${esc(sale.sold_at||'-')} · próximo vencimiento: ${closest==='9999-12-31'?'-':esc(closest)}</div>
+        <div class="tiny" style="margin-top:5px">Total cobrado: <b>${money(sale.total_amount,sale.currency||'ARS')}</b> · Inversión: <b>${esc(costText)}</b></div>
+        <div class="tiny muted" style="margin-top:5px">Tocá para ver todos los servicios de esta venta</div>
+      </button>
+      <div class="row wrap" style="margin-top:9px">
+        <button class="btn primary small" onclick="openSaleDetail('${sale.id}')">Ver venta</button>
+        <button class="btn ok small" onclick="openSaleDeliveryModal('${sale.id}')">📲 Enviar compra por WhatsApp</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted">No hay ventas que coincidan con este filtro.</div>';
 }
 function renderAccounts(){
-  const visible=state.accounts.filter(a=>!a.archived_at);
+  let visible=state.accounts.filter(a=>!a.archived_at);
+  if(accountsOnlyFree){
+    visible=visible.filter(a=>{
+      const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
+      return slots.some(s=>!activeAssignSlot(s.id));
+    });
+  }
+
+  const info=document.getElementById('accountsFilterInfo');
+  if(info){
+    if(accountsOnlyFree){
+      info.classList.remove('hidden');
+      info.innerHTML=`Mostrando cuentas con cupos libres · <button class="btn secondary small" onclick="showAllAccounts()">Ver todas</button>`;
+    }else{
+      info.classList.add('hidden');
+      info.innerHTML='';
+    }
+  }
+
   accountsList.innerHTML=visible.length?visible.map(a=>{
-    const sl=state.slots.filter(s=>s.account_id===a.id),
+    const sl=state.slots.filter(s=>s.account_id===a.id&&s.active),
           o=sl.filter(s=>activeAssignSlot(s.id)).length;
     return `<div class="item">
       <b>${esc(serviceBy(a.service_id)?.name||'')}</b>
@@ -166,7 +390,7 @@ function renderAccounts(){
         <button class="btn danger small" onclick="deleteAccount('${a.id}')">Eliminar</button>
       </div>
     </div>`;
-  }).join(''):'<div class="muted">Sin cuentas.</div>';
+  }).join(''):'<div class="muted">No hay cuentas que coincidan con este filtro.</div>';
 }
 function renderNotifications(){
   const el=document.getElementById('notificationsList');
@@ -212,6 +436,184 @@ function openWhatsApp(phone,message){
   if(!number)return;
   const url=`https://wa.me/${number}?text=${encodeURIComponent(message)}`;
   window.open(url,'_blank');
+}
+
+
+function openSaleDetail(saleId){
+  const sale=saleBy(saleId);if(!sale)return;
+  const client=saleClient(sale),items=saleItemsFor(saleId);
+  const costs=saleDirectCosts(saleId);
+  const sameCurrencyCost=Number(costs[sale.currency]||0);
+  const otherCosts=Object.entries(costs).filter(([c])=>c!==sale.currency);
+  const profit=Number(sale.total_amount||0)-sameCurrencyCost;
+
+  const itemsHtml=items.map((i,idx)=>{
+    const service=serviceBy(i.service_id),a=activeAssignItem(i.id),sl=a&&slotBy(a.account_slot_id),ac=sl&&accountBy(sl.account_id);
+    return `<div class="item">
+      <div class="row between"><b>${idx+1}. ${esc(service?.name||'Servicio')}</b><span class="badge">${esc(i.workflow_status||'')}</span></div>
+      <div class="tiny muted">Cuenta: ${esc(ac?.login_email||'Sin cuenta')}</div>
+      <div class="tiny muted">Perfil: ${esc(a?.profile_name||'Sin perfil')} · ${Number(i.contracted_devices||1)} dispositivo(s)</div>
+      <div class="tiny">Inicio: <b>${esc(i.start_date||'-')}</b> · Vence: <b>${esc(i.end_date||'-')}</b></div>
+      <div class="tiny">Costo: <b>${i.direct_cost==null?'Sin cargar':money(i.direct_cost,i.direct_cost_currency||sale.currency||'ARS')}</b></div>
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar servicio</button>
+        <button class="btn secondary small" onclick="openDeliveryModal('${i.id}')">Enviar solo este</button>
+        <button class="btn warn small" onclick="sendRenewalWhatsApp('${i.id}')">Renovación</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  openModal(`
+    <div class="row between">
+      <div><div class="sectionTitle" style="margin-bottom:2px">Venta · ${esc(client?.name||'Cliente')}</div><div class="tiny muted">${esc(sale.sold_at||'-')} · ${items.length} servicio(s)</div></div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+    <div class="card">
+      <div class="tiny muted">Total cobrado</div><div style="font-size:1.35rem;font-weight:800">${money(sale.total_amount,sale.currency||'ARS')}</div>
+      <div class="tiny" style="margin-top:7px">Inversión en ${esc(sale.currency||'ARS')}: <b>${money(sameCurrencyCost,sale.currency||'ARS')}</b> · Ganancia: <b>${money(profit,sale.currency||'ARS')}</b></div>
+      ${otherCosts.length?`<div class="tiny muted" style="margin-top:4px">Otros costos sin convertir: ${otherCosts.map(([c,n])=>money(n,c)).join(' + ')}</div>`:''}
+      <div class="row wrap" style="margin-top:10px">
+        <button class="btn primary small" onclick="openEditSaleHeader('${sale.id}')">✏️ Editar datos de venta</button>
+        <button class="btn ok small" onclick="openSaleDeliveryModal('${sale.id}')">📲 Enviar compra completa</button>
+      </div>
+    </div>
+    <div class="sectionTitle">Servicios incluidos</div>
+    ${itemsHtml}
+  `);
+}
+
+function openEditSaleHeader(saleId){
+  const sale=saleBy(saleId);if(!sale)return;
+  openModal(`
+    <div class="sectionTitle">Editar datos de la venta</div>
+    <label>Cliente</label>
+    <select id="saleHdrClient">${state.clients.filter(c=>!c.archived_at).map(c=>`<option value="${c.id}" ${c.id===sale.client_id?'selected':''}>${esc(c.name)} · ${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</option>`).join('')}</select>
+    <div class="grid2">
+      <div><label>Total cobrado</label><input id="saleHdrTotal" type="number" step="0.01" value="${Number(sale.total_amount||0)}"></div>
+      <div><label>Moneda</label><select id="saleHdrCurr">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===sale.currency?'selected':''}>${c}</option>`).join('')}</select></div>
+    </div>
+    <label>Fecha de la venta</label><input id="saleHdrDate" type="date" value="${esc(sale.sold_at||today())}">
+    <div class="tiny muted" style="margin-top:7px">Cambiar esta fecha no modifica automáticamente los vencimientos ya guardados. Cada servicio se puede editar por separado.</div>
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSaleHeader('${saleId}')">Guardar cambios</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openSaleDetail('${saleId}')">Cancelar</button>
+  `);
+}
+
+async function saveSaleHeader(saleId){
+  const r=await sb.from('sales').update({client_id:saleHdrClient.value,total_amount:Number(saleHdrTotal.value||0),currency:saleHdrCurr.value,sold_at:saleHdrDate.value||today()}).eq('id',saleId);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openSaleDetail(saleId);
+}
+
+function buildSaleDeliveryMessage(saleId){
+  const sale=saleBy(saleId);if(!sale)return '';
+  const client=saleClient(sale),items=saleItemsFor(saleId);
+  const lines=[`Hola ${client?.name||''} 👋`,'','Gracias por tu compra en MISAKROOS 💙',''];
+
+  items.forEach((item,idx)=>{
+    const service=serviceBy(item.service_id),a=activeAssignItem(item.id),sl=a&&slotBy(a.account_slot_id),account=sl&&accountBy(sl.account_id);
+    lines.push(`${idx+1}️⃣ ${service?.name||'Servicio'}`);
+    if(account?.login_email)lines.push(`📧 Cuenta: ${account.login_email}`);
+    if(item.include_password!==false&&account?.login_password)lines.push(`🔐 Contraseña: ${account.login_password}`);
+    if(a?.profile_name)lines.push(`👤 Perfil: ${a.profile_name}`);
+    if(item.contracted_devices)lines.push(`📱 Dispositivos/pantallas: ${Number(item.contracted_devices)}`);
+    if(item.end_date)lines.push(`📅 Válido hasta: ${item.end_date}`);
+    if(item.delivery_notes)lines.push(`📝 ${item.delivery_notes}`);
+    lines.push('');
+  });
+
+  lines.push('⚠️ Importante: cada cuenta debe vincularse únicamente en la cantidad de dispositivos/pantallas contratados. No modifiques correos, contraseñas ni perfiles ajenos.');
+  lines.push('');
+  lines.push('Ante cualquier inconveniente, escribinos por este mismo medio.');
+  return lines.join('\n');
+}
+
+function openSaleDeliveryModal(saleId){
+  const sale=saleBy(saleId);if(!sale)return alert('No se encontró esta venta.');
+  const client=saleClient(sale),phone=requireClientWhatsapp(client);if(!phone)return;
+  const msg=buildSaleDeliveryMessage(saleId);
+  openModal(`
+    <div class="sectionTitle">Enviar compra completa por WhatsApp</div>
+    <div class="tiny muted">${esc(client?.name||'')} · ${saleItemsFor(saleId).length} servicio(s) en un solo mensaje</div>
+    <label>Mensaje</label><textarea id="saleDeliveryMessageEdit" style="min-height:360px">${esc(msg)}</textarea>
+    <button class="btn ok" style="width:100%;margin-top:12px" onclick="sendSaleDeliveryWhatsApp('${saleId}')">📲 Abrir WhatsApp y enviar todo</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openSaleDetail('${saleId}')">Volver a la venta</button>
+  `);
+}
+
+async function sendSaleDeliveryWhatsApp(saleId){
+  const sale=saleBy(saleId);if(!sale)return;
+  const client=saleClient(sale),phone=requireClientWhatsapp(client);if(!phone)return;
+  const msg=document.getElementById('saleDeliveryMessageEdit')?.value||buildSaleDeliveryMessage(saleId);
+  const ids=saleItemsFor(saleId).map(i=>i.id);
+  if(ids.length){
+    const r=await sb.from('sale_items').update({delivered_at:new Date().toISOString()}).in('id',ids);
+    if(r.error)console.warn(r.error);
+  }
+  openWhatsApp(phone,msg);
+}
+
+function openFinanceScreen(){
+  showScreen('finance');
+  financeThisMonth();
+}
+function isoLocal(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function financeToday(){const d=isoLocal(new Date());finFrom.value=d;finTo.value=d;renderFinance()}
+function financeThisMonth(){const n=new Date();finFrom.value=isoLocal(new Date(n.getFullYear(),n.getMonth(),1));finTo.value=isoLocal(n);renderFinance()}
+function financeLast30(){const n=new Date(),f=new Date(n);f.setDate(f.getDate()-29);finFrom.value=isoLocal(f);finTo.value=isoLocal(n);renderFinance()}
+function financeAll(){finFrom.value='';finTo.value='';renderFinance()}
+
+function renderFinance(){
+  if(!document.getElementById('financeSummary'))return;
+  const ss=document.getElementById('finService');
+  if(ss){
+    const cur=ss.value;
+    ss.innerHTML=['<option value="">Todos los servicios</option>'].concat(state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)).join('');
+    if([...ss.options].some(o=>o.value===cur))ss.value=cur;
+  }
+  const from=finFrom.value||'',to=finTo.value||'',service=finService.value||'',q=(finSearch.value||'').trim().toLowerCase();
+  const sales=state.sales.filter(s=>{
+    if(from&&s.sold_at<from)return false;if(to&&s.sold_at>to)return false;
+    const items=saleItemsFor(s.id),c=saleClient(s);
+    if(service&&!items.some(i=>i.service_id===service))return false;
+    if(q&&!String(c?.name||'').toLowerCase().includes(q))return false;
+    return items.length>0;
+  }).sort((a,b)=>String(b.sold_at||'').localeCompare(String(a.sold_at||'')));
+
+  const sums={};
+  sales.forEach(s=>{
+    const cur=s.currency||'ARS';
+    sums[cur]??={sales:0,revenue:0,cost:0};
+    sums[cur].sales++;sums[cur].revenue+=Number(s.total_amount||0);
+    saleItemsFor(s.id).forEach(i=>{
+      const cc=i.direct_cost_currency||cur;
+      sums[cc]??={sales:0,revenue:0,cost:0};
+      sums[cc].cost+=Number(i.direct_cost||0);
+    });
+  });
+
+  const cards=Object.keys(sums).length?Object.entries(sums).map(([cur,x])=>{
+    const profit=x.revenue-x.cost;
+    const margin=x.revenue?profit/x.revenue*100:0;
+    return `<div class="card financeCurrency"><b>${esc(cur)}</b><div class="financeStats">
+      <div class="financeStat"><span class="tiny muted">Ventas</span><b>${x.sales}</b></div>
+      <div class="financeStat"><span class="tiny muted">Facturado</span><b>${money(x.revenue,cur)}</b></div>
+      <div class="financeStat"><span class="tiny muted">Costos</span><b>${money(x.cost,cur)}</b></div>
+      <div class="financeStat"><span class="tiny muted">Resultado*</span><b>${money(profit,cur)}</b><span class="tiny muted">Margen ${margin.toFixed(1)}%</span></div>
+    </div></div>`;
+  }).join(''):'<div class="card muted">No hay ventas en este período.</div>';
+  financeSummary.innerHTML=`<div class="tiny muted" style="margin-bottom:7px">${sales.length} venta(s) real(es) en el período. *El resultado se calcula por moneda; no mezcla ARS con USDT/USD sin conversión.</div>${cards}`;
+
+  financeSalesList.innerHTML=sales.length?sales.map(s=>{
+    const c=saleClient(s),names=saleServiceNames(s.id);
+    return `<button class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${s.id}')">
+      <div class="row between"><b>${esc(c?.name||'Cliente')}</b><b>${money(s.total_amount,s.currency||'ARS')}</b></div>
+      <div class="tiny muted">${esc(s.sold_at||'-')} · ${esc(names.join(' / '))}</div>
+    </button>`;
+  }).join(''):'<div class="muted">Sin ventas.</div>';
 }
 
 function getSaleItemContext(itemId){
@@ -369,7 +771,7 @@ function openClientDetail(id){
       <div class="tiny muted">Perfil: ${esc(assignment?.profile_name||'Sin perfil')}</div>
       <div class="tiny muted">Cuenta: ${esc(account?.login_email||'Sin cuenta')}</div>
       <div class="tiny"><b>Inicio:</b> ${esc(i.start_date||'-')} · <b>Vence:</b> ${esc(i.end_date||'-')}</div>
-      <div class="tiny">Cobrado: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
+      <div class="tiny">Total de la venta: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
       <button class="btn secondary small" style="margin-top:7px" onclick="openEditSaleItemModal('${i.id}')">Editar esta venta</button>
     </div>`;
   }).join(''):'<div class="muted">Este cliente no tiene servicios asociados.</div>';
@@ -1170,7 +1572,7 @@ function openEditSaleItemModal(itemId){
   openModal(`
     <div class="row between">
       <div>
-        <div class="sectionTitle" style="margin-bottom:2px">Editar venta</div>
+        <div class="sectionTitle" style="margin-bottom:2px">Editar servicio de la venta</div>
         <div class="tiny muted">${esc(client?.name||'')} · ${esc(serviceBy(i.service_id)?.name||'')}</div>
       </div>
       <button class="btn secondary small" onclick="closeModal()">✕</button>
