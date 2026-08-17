@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -94,7 +94,42 @@ function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy
 function renderAll(){mClients.textContent=state.clients.length;mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));mSlots.textContent=state.slots.filter(s=>s.active&&!occ.has(s.id)).length;mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7).length;renderClients();renderSales();renderAccounts();renderMore();renderHome()}
 function renderHome(){const a=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7);homeExpiring.innerHTML=a.length?a.map(i=>{const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);return `<div class="item"><b>${esc(c?.name||'')}</b><div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${esc(i.end_date)}</div></div>`}).join(''):'<div class="muted">Nada próximo a vencer.</div>'}
 function renderClients(){const q=(clientSearch?.value||'').toLowerCase();const a=state.clients.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q));clientsList.innerHTML=a.length?a.map(c=>`<div class="item"><div class="row between"><div><b>${esc(c.name)}</b><div class="tiny muted">${esc(c.phone_e164||c.phone_raw||'')}</div></div><button class="btn secondary small" onclick="openClientModal('${c.id}')">Editar</button></div></div>`).join(''):'<div class="muted">Sin clientes.</div>'}
-function renderSales(){salesList.innerHTML=state.saleItems.length?state.saleItems.map(i=>{const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id),as=activeAssignItem(i.id),sl=as&&slotBy(as.account_slot_id),ac=sl&&accountBy(sl.account_id);return `<div class="item"><div class="row between"><div><b>${esc(c?.name||'')}</b><div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · ${esc(as?.profile_name||'Sin perfil')}</div></div><span class="badge">${esc(i.workflow_status)}</span></div><div class="tiny muted">${esc(ac?.login_email||'Sin cuenta')} · vence ${esc(i.end_date||'-')}</div><div class="tiny">Ingreso: <b>${money(i.allocated_revenue,s?.currency||'ARS')}</b></div><div class="row wrap" style="margin-top:8px"><button class="btn warn small" onclick="markItem('${i.id}','renewal_pending')">Pend. renovar</button><button class="btn warn small" onclick="markItem('${i.id}','payment_pending')">Pend. cobrar</button><button class="btn ok small" onclick="renewItem('${i.id}')">Renovó</button><button class="btn danger small" onclick="releaseItem('${i.id}')">Liberar</button></div></div>`}).join(''):'<div class="muted">Sin ventas.</div>'}
+function renderSales(){
+  salesList.innerHTML=state.saleItems.length
+    ?state.saleItems.map(i=>{
+      const s=saleBy(i.sale_id),
+            c=s&&clientBy(s.client_id),
+            as=activeAssignItem(i.id),
+            sl=as&&slotBy(as.account_slot_id),
+            ac=sl&&accountBy(sl.account_id);
+
+      return `<div class="item">
+        <div class="row between">
+          <div>
+            <b>${esc(c?.name||'')}</b>
+            <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · ${esc(as?.profile_name||'Sin perfil')}</div>
+          </div>
+          <span class="badge">${esc(i.workflow_status)}</span>
+        </div>
+
+        <div class="tiny muted">${esc(ac?.login_email||'Sin cuenta')} · vence ${esc(i.end_date||'-')}</div>
+        <div class="tiny">Ingreso: <b>${money(i.allocated_revenue,s?.currency||'ARS')}</b></div>
+
+        <div class="row wrap" style="margin-top:10px">
+          <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
+          <button class="btn secondary small" onclick="sendRenewalWhatsApp('${i.id}')">💬 WhatsApp renovación</button>
+        </div>
+
+        <div class="row wrap" style="margin-top:8px">
+          <button class="btn warn small" onclick="markItem('${i.id}','renewal_pending')">Pend. renovar</button>
+          <button class="btn warn small" onclick="markItem('${i.id}','payment_pending')">Pend. cobrar</button>
+          <button class="btn ok small" onclick="renewItem('${i.id}')">Renovó</button>
+          <button class="btn danger small" onclick="releaseItem('${i.id}')">Liberar</button>
+        </div>
+      </div>`;
+    }).join('')
+    :'<div class="muted">Sin ventas.</div>';
+}
 function renderAccounts(){accountsList.innerHTML=state.accounts.length?state.accounts.map(a=>{const sl=state.slots.filter(s=>s.account_id===a.id),o=sl.filter(s=>activeAssignSlot(s.id)).length;return `<div class="item"><b>${esc(serviceBy(a.service_id)?.name||'')}</b><div class="tiny muted">${esc(a.login_email||'Sin correo')}</div><div class="tiny">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div><div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div><div class="row wrap" style="margin-top:8px"><button class="btn secondary small" onclick="openAccountModal('${a.id}')">Editar</button><button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button></div></div>`}).join(''):'<div class="muted">Sin cuentas.</div>'}
 function renderNotifications(){
   const el=document.getElementById('notificationsList');
@@ -121,6 +156,158 @@ function updatePushBadge(){
 function renderMore(){renderNotifications();updatePushBadge();servicesList.innerHTML=state.services.map(s=>`<div class="item"><b>${esc(s.name)}</b><div class="tiny muted">${esc(s.default_account_mode||'')} · capacidad ${s.default_capacity||'-'}</div></div>`).join('')||'<div class="muted">Sin servicios.</div>';suppliersList.innerHTML=state.suppliers.map(s=>`<div class="item"><b>${esc(s.name)}</b></div>`).join('')||'<div class="muted">Sin proveedores.</div>';purchasesList.innerHTML=state.purchases.map(p=>`<div class="item"><b>${esc(serviceBy(p.service_id)?.name||'')}</b><div class="tiny muted">${esc(supplierBy(p.supplier_id)?.name||'Sin proveedor')} · ${money(p.total_cost,p.currency)} · vence ${esc(p.expires_at||'-')}</div></div>`).join('')||'<div class="muted">Sin compras.</div>'}
 function openModal(h){sheet.innerHTML=h;modal.classList.remove('hidden')}function closeModal(){modal.classList.add('hidden')}
 function normalizePhone(raw){let d=(raw||'').replace(/\D/g,'');if(!d)return'';if(d.startsWith('549')||d.startsWith('598')||d.startsWith('56'))return'+'+d;if(d.startsWith('54'))return'+54'+(d.slice(2).startsWith('9')?'':'9')+d.slice(2);if(d.length>=9&&d.length<=11)return'+549'+d.replace(/^0/,'');return'+'+d}
+
+function clientWhatsappNumber(client){
+  if(!client)return '';
+  const raw=client.phone_e164||client.phone_raw||'';
+  return normalizePhone(raw).replace(/\D/g,'');
+}
+
+function requireClientWhatsapp(client){
+  const phone=clientWhatsappNumber(client);
+  if(phone)return phone;
+  alert(`El cliente ${client?.name||''} no tiene un número de WhatsApp válido. Entrá a Clientes → Editar y cargalo.`);
+  return '';
+}
+
+function openWhatsApp(phone,message){
+  const number=String(phone||'').replace(/\D/g,'');
+  if(!number)return;
+  const url=`https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  window.open(url,'_blank');
+}
+
+function getSaleItemContext(itemId){
+  const item=state.saleItems.find(x=>x.id===itemId);
+  if(!item)return null;
+
+  const sale=saleBy(item.sale_id);
+  const client=sale?clientBy(sale.client_id):null;
+  const service=serviceBy(item.service_id);
+  const assignment=activeAssignItem(item.id);
+  const slot=assignment?slotBy(assignment.account_slot_id):null;
+  const account=slot?accountBy(slot.account_id):null;
+
+  return {item,sale,client,service,assignment,slot,account};
+}
+
+function buildDeliveryMessage(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return '';
+
+  const {item,client,service,assignment,account}=ctx;
+  const lines=[];
+
+  lines.push(`Hola ${client?.name||''} 👋`);
+  lines.push('');
+  lines.push('Gracias por tu compra en MISAKROOS 💙');
+  lines.push('');
+  lines.push(`📺 Servicio: ${service?.name||'Servicio'}`);
+
+  if(account?.login_email) lines.push(`📧 Cuenta: ${account.login_email}`);
+
+  if(item.include_password!==false && account?.login_password){
+    lines.push(`🔐 Contraseña: ${account.login_password}`);
+  }
+
+  if(assignment?.profile_name){
+    lines.push(`👤 Perfil: ${assignment.profile_name}`);
+  }
+
+  if(item.contracted_devices){
+    const n=Number(item.contracted_devices);
+    lines.push(`📱 ${n===1?'Dispositivo/pantalla contratada':'Dispositivos/pantallas contratados'}: ${n}`);
+  }
+
+  if(item.end_date){
+    lines.push(`📅 Válido hasta: ${item.end_date}`);
+  }
+
+  lines.push('');
+  lines.push('⚠️ Importante: vinculá la cuenta únicamente en la cantidad de dispositivos/pantallas contratados y no modifiques correo, contraseña ni perfiles ajenos.');
+
+  if(item.delivery_notes){
+    lines.push('');
+    lines.push(`📝 ${item.delivery_notes}`);
+  }
+
+  lines.push('');
+  lines.push('Ante cualquier inconveniente, escribinos por este mismo medio.');
+
+  return lines.join('\n');
+}
+
+function openDeliveryModal(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return alert('No se encontró esta venta.');
+
+  const phone=requireClientWhatsapp(ctx.client);
+  if(!phone)return;
+
+  const msg=buildDeliveryMessage(itemId);
+
+  openModal(`
+    <div class="sectionTitle">Enviar cuenta por WhatsApp</div>
+    <div class="tiny muted" style="margin-bottom:8px">
+      Cliente: <b>${esc(ctx.client?.name||'')}</b> · ${esc(ctx.client?.phone_e164||ctx.client?.phone_raw||'')}
+    </div>
+
+    <label>Mensaje</label>
+    <textarea id="deliveryMessageEdit" style="min-height:300px">${esc(msg)}</textarea>
+
+    <button class="btn ok" style="width:100%;margin-top:12px"
+      onclick="sendDeliveryWhatsApp('${itemId}')">
+      📲 Abrir WhatsApp y enviar
+    </button>
+
+    <button class="btn secondary" style="width:100%;margin-top:8px"
+      onclick="closeModal()">
+      Cancelar
+    </button>
+  `);
+}
+
+async function sendDeliveryWhatsApp(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return alert('No se encontró esta venta.');
+
+  const phone=requireClientWhatsapp(ctx.client);
+  if(!phone)return;
+
+  const msg=document.getElementById('deliveryMessageEdit')?.value||buildDeliveryMessage(itemId);
+
+  const r=await sb.from('sale_items')
+    .update({delivered_at:new Date().toISOString()})
+    .eq('id',itemId);
+
+  if(r.error){
+    console.warn(r.error);
+  }
+
+  openWhatsApp(phone,msg);
+}
+
+function sendRenewalWhatsApp(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return alert('No se encontró esta venta.');
+
+  const phone=requireClientWhatsapp(ctx.client);
+  if(!phone)return;
+
+  const service=ctx.service?.name||'tu servicio';
+  const expiry=ctx.item.end_date||'próximamente';
+
+  const msg=[
+    `Hola ${ctx.client?.name||''} 👋`,
+    '',
+    `Te escribimos de MISAKROOS para recordarte que tu ${service} vence el ${expiry}.`,
+    '',
+    '¿Querés renovarlo? Respondeme por acá y te paso los datos para continuar 💙'
+  ].join('\n');
+
+  openWhatsApp(phone,msg);
+}
+
 function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
 async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
 function openServiceModal(){openModal(`<div class="sectionTitle">Nuevo servicio</div><label>Nombre</label><input id="fsName"><label>Precio referencia</label><input id="fsPrice" type="number"><label>Moneda</label><select id="fsCurr"><option>ARS</option><option>USD</option><option>USDT</option><option>UYU</option><option>CLP</option></select><label>Tipo</label><select id="fsMode"><option value="full_account">Cuenta completa administrada por mí</option><option value="provider_managed">Perfil comprado a proveedor</option></select><label>Capacidad</label><input id="fsCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveService()">Guardar</button>`)}
@@ -863,5 +1050,17 @@ document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {
 document.addEventListener('gestureend', function(e){ e.preventDefault(); }, {passive:false});
 
 (async()=>{const {data}=await sb.auth.getSession();if(data.session)await boot()})();
+
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+
+let lastTouchEnd=0;
+document.addEventListener('touchend',function(e){
+  const now=Date.now();
+  if(now-lastTouchEnd<=300)e.preventDefault();
+  lastTouchEnd=now;
+},{passive:false});
+
 </script>
 </body></html>
