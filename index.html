@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
+<meta name="misakroos-version" content="v11">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -23,7 +24,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v11</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2"><div class="metric"><b id="mClients">0</b><span class="muted tiny">Clientes</span></div><div class="metric"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></div><div class="metric"><b id="mSlots">0</b><span class="muted tiny">Cupos libres</span></div><div class="metric"><b id="mExpiring">0</b><span class="muted tiny">Vencen ≤ 7 días</span></div></div><div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div><div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
 <section id="screen-clients" class="hidden"><div class="row between"><div class="sectionTitle">Clientes</div><button class="btn primary small" onclick="openClientModal()">+ Agregar</button></div><input id="clientSearch" placeholder="Buscar..." oninput="renderClients()"><div id="clientsList" style="margin-top:10px"></div></section>
 <section id="screen-sales" class="hidden"><div class="row between"><div class="sectionTitle">Ventas</div><button class="btn primary small" onclick="openSaleModal()">+ Venta</button></div><div id="salesList"></div></section>
@@ -93,7 +94,23 @@ function showScreen(n,b){document.querySelectorAll('[id^=screen-]').forEach(x=>x
 function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
 function renderAll(){mClients.textContent=state.clients.length;mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));mSlots.textContent=state.slots.filter(s=>s.active&&!occ.has(s.id)).length;mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7).length;renderClients();renderSales();renderAccounts();renderMore();renderHome()}
 function renderHome(){const a=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7);homeExpiring.innerHTML=a.length?a.map(i=>{const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);return `<div class="item"><b>${esc(c?.name||'')}</b><div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${esc(i.end_date)}</div></div>`}).join(''):'<div class="muted">Nada próximo a vencer.</div>'}
-function renderClients(){const q=(clientSearch?.value||'').toLowerCase();const a=state.clients.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q));clientsList.innerHTML=a.length?a.map(c=>`<div class="item"><div class="row between"><div><b>${esc(c.name)}</b><div class="tiny muted">${esc(c.phone_e164||c.phone_raw||'')}</div></div><button class="btn secondary small" onclick="openClientModal('${c.id}')">Editar</button></div></div>`).join(''):'<div class="muted">Sin clientes.</div>'}
+function renderClients(){
+  const q=(clientSearch?.value||'').toLowerCase();
+  const a=state.clients.filter(c=>!c.archived_at&&((c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q)||(c.phone_e164||'').includes(q)));
+  clientsList.innerHTML=a.length?a.map(c=>`
+    <div class="item">
+      <div class="row between">
+        <button type="button" onclick="openClientDetail('${c.id}')" style="background:none;border:0;color:inherit;text-align:left;padding:0;flex:1">
+          <b style="text-decoration:underline;text-underline-offset:3px">${esc(c.name)}</b>
+          <div class="tiny muted">${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</div>
+        </button>
+        <div class="row wrap">
+          <button class="btn secondary small" onclick="openClientModal('${c.id}')">Editar</button>
+          <button class="btn danger small" onclick="deleteClient('${c.id}')">Eliminar</button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="muted">Sin clientes.</div>';
+}
 function renderSales(){
   salesList.innerHTML=state.saleItems.length
     ?state.saleItems.map(i=>{
@@ -106,16 +123,19 @@ function renderSales(){
       return `<div class="item">
         <div class="row between">
           <div>
-            <b>${esc(c?.name||'')}</b>
+            <button type="button" onclick="openClientDetail('${c?.id||''}')" style="background:none;border:0;color:inherit;padding:0;text-align:left">
+              <b>${esc(c?.name||'')}</b>
+            </button>
             <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · ${esc(as?.profile_name||'Sin perfil')}</div>
           </div>
           <span class="badge">${esc(i.workflow_status)}</span>
         </div>
 
-        <div class="tiny muted">${esc(ac?.login_email||'Sin cuenta')} · vence ${esc(i.end_date||'-')}</div>
-        <div class="tiny">Ingreso: <b>${money(i.allocated_revenue,s?.currency||'ARS')}</b></div>
+        <div class="tiny muted">${esc(ac?.login_email||'Sin cuenta')} · ${esc(i.start_date||'-')} → ${esc(i.end_date||'-')}</div>
+        <div class="tiny">Total cobrado venta: <b>${money(s?.total_amount||0,s?.currency||'ARS')}</b>${i.direct_cost!=null?` · costo: <b>${money(i.direct_cost,i.direct_cost_currency||s?.currency||'ARS')}</b>`:''}</div>
 
         <div class="row wrap" style="margin-top:10px">
+          <button class="btn primary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar venta</button>
           <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
           <button class="btn secondary small" onclick="sendRenewalWhatsApp('${i.id}')">💬 WhatsApp renovación</button>
         </div>
@@ -130,7 +150,24 @@ function renderSales(){
     }).join('')
     :'<div class="muted">Sin ventas.</div>';
 }
-function renderAccounts(){accountsList.innerHTML=state.accounts.length?state.accounts.map(a=>{const sl=state.slots.filter(s=>s.account_id===a.id),o=sl.filter(s=>activeAssignSlot(s.id)).length;return `<div class="item"><b>${esc(serviceBy(a.service_id)?.name||'')}</b><div class="tiny muted">${esc(a.login_email||'Sin correo')}</div><div class="tiny">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div><div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div><div class="row wrap" style="margin-top:8px"><button class="btn secondary small" onclick="openAccountModal('${a.id}')">Editar</button><button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button></div></div>`}).join(''):'<div class="muted">Sin cuentas.</div>'}
+function renderAccounts(){
+  const visible=state.accounts.filter(a=>!a.archived_at);
+  accountsList.innerHTML=visible.length?visible.map(a=>{
+    const sl=state.slots.filter(s=>s.account_id===a.id),
+          o=sl.filter(s=>activeAssignSlot(s.id)).length;
+    return `<div class="item">
+      <b>${esc(serviceBy(a.service_id)?.name||'')}</b>
+      <div class="tiny muted">${esc(a.login_email||'Sin correo')}</div>
+      <div class="tiny">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div>
+      <div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div>
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn secondary small" onclick="openAccountModal('${a.id}')">✏️ Editar</button>
+        <button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button>
+        <button class="btn danger small" onclick="deleteAccount('${a.id}')">Eliminar</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted">Sin cuentas.</div>';
+}
 function renderNotifications(){
   const el=document.getElementById('notificationsList');
   if(!el)return;
@@ -308,6 +345,93 @@ function sendRenewalWhatsApp(itemId){
   openWhatsApp(phone,msg);
 }
 
+
+function openClientDetail(id){
+  const c=clientBy(id);
+  if(!c)return;
+
+  const sales=state.sales.filter(s=>s.client_id===id);
+  const saleIds=new Set(sales.map(s=>s.id));
+  const items=state.saleItems
+    .filter(i=>saleIds.has(i.sale_id))
+    .sort((a,b)=>String(b.end_date||'').localeCompare(String(a.end_date||'')));
+
+  const servicesHtml=items.length?items.map(i=>{
+    const sale=saleBy(i.sale_id);
+    const assignment=activeAssignItem(i.id);
+    const slot=assignment&&slotBy(assignment.account_slot_id);
+    const account=slot&&accountBy(slot.account_id);
+    return `<div class="item">
+      <div class="row between">
+        <b>${esc(serviceBy(i.service_id)?.name||'Servicio')}</b>
+        <span class="badge">${esc(i.workflow_status||'')}</span>
+      </div>
+      <div class="tiny muted">Perfil: ${esc(assignment?.profile_name||'Sin perfil')}</div>
+      <div class="tiny muted">Cuenta: ${esc(account?.login_email||'Sin cuenta')}</div>
+      <div class="tiny"><b>Inicio:</b> ${esc(i.start_date||'-')} · <b>Vence:</b> ${esc(i.end_date||'-')}</div>
+      <div class="tiny">Cobrado: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
+      <button class="btn secondary small" style="margin-top:7px" onclick="openEditSaleItemModal('${i.id}')">Editar esta venta</button>
+    </div>`;
+  }).join(''):'<div class="muted">Este cliente no tiene servicios asociados.</div>';
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">Ficha del cliente</div>
+        <div class="tiny muted">Información y servicios asociados</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="card">
+      <div style="font-size:1.25rem;font-weight:800">${esc(c.name)}</div>
+      <div class="muted" style="margin-top:4px">${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</div>
+      ${c.notes?`<div class="tiny" style="margin-top:8px">${esc(c.notes)}</div>`:''}
+      <div class="row wrap" style="margin-top:10px">
+        <button class="btn secondary small" onclick="openClientModal('${c.id}')">✏️ Editar cliente</button>
+        ${clientWhatsappNumber(c)?`<button class="btn ok small" onclick="openWhatsApp('${clientWhatsappNumber(c)}','Hola ${esc(c.name)} 👋')">📲 WhatsApp</button>`:''}
+        <button class="btn danger small" onclick="deleteClient('${c.id}')">Eliminar cliente</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle">Servicios asociados</div>
+    ${servicesHtml}
+  `);
+}
+
+async function deleteClient(id){
+  const c=clientBy(id);if(!c)return;
+  if(!confirm(`¿Eliminar a ${c.name} de la lista de clientes?\n\nSus ventas anteriores se conservarán en el historial.`))return;
+  const r=await sb.from('clients').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){
+    if(String(r.error.message||'').includes('archived_at')){
+      return alert('Falta ejecutar la migración v11 en Supabase antes de poder eliminar clientes.');
+    }
+    return alert(r.error.message);
+  }
+  closeModal();
+  await refreshAll();
+}
+
+async function deleteAccount(id){
+  const a=accountBy(id);if(!a)return;
+  const slotIds=new Set(state.slots.filter(s=>s.account_id===id).map(s=>s.id));
+  const active=state.assignments.filter(x=>!x.released_at&&slotIds.has(x.account_slot_id));
+  if(active.length){
+    return alert(`Esta cuenta tiene ${active.length} perfil(es) activo(s). Primero migralos o liberá esos perfiles; después vas a poder eliminarla.`);
+  }
+  if(!confirm(`¿Eliminar la cuenta ${a.login_email||''} de la lista?\n\nEl historial anterior se conservará.`))return;
+  const r=await sb.from('accounts').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){
+    if(String(r.error.message||'').includes('archived_at')){
+      return alert('Falta ejecutar la migración v11 en Supabase antes de poder eliminar cuentas.');
+    }
+    return alert(r.error.message);
+  }
+  closeModal();
+  await refreshAll();
+}
+
 function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
 async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
 function openServiceModal(){openModal(`<div class="sectionTitle">Nuevo servicio</div><label>Nombre</label><input id="fsName"><label>Precio referencia</label><input id="fsPrice" type="number"><label>Moneda</label><select id="fsCurr"><option>ARS</option><option>USD</option><option>USDT</option><option>UYU</option><option>CLP</option></select><label>Tipo</label><select id="fsMode"><option value="full_account">Cuenta completa administrada por mí</option><option value="provider_managed">Perfil comprado a proveedor</option></select><label>Capacidad</label><input id="fsCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveService()">Guardar</button>`)}
@@ -317,8 +441,38 @@ async function saveSupplier(){const r=await sb.from('suppliers').insert({name:fp
 const serviceOpts=()=>state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),supplierOpts=()=>'<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),clientOpts=()=>state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
 function openPurchaseModal(){if(!state.services.length){return openServiceModal()} openModal(`<div class="sectionTitle">Nueva compra</div><label>Servicio</label><select id="purService">${serviceOpts()}</select><label>Proveedor</label><select id="purSupplier">${supplierOpts()}</select><label>¿Qué compraste?</label><select id="purType" onchange="purCap.closest('label')"><option value="full_account">Cuenta completa</option><option value="provider_managed">Un perfil dentro de una cuenta del proveedor</option></select><label>Costo</label><input id="purCost" type="number"><label>Moneda</label><select id="purCurr"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select><label>Vence</label><input id="purExp" type="date" value="${addDays(today(),30)}"><label>Correo</label><input id="purEmail"><label>Capacidad</label><input id="purCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="savePurchase()">Guardar compra y crear cuenta</button>`)}
 async function savePurchase(){const p={supplier_id:purSupplier.value||null,service_id:purService.value,purchase_type:(purType.value==='provider_managed'?'provider_profile':'full_account'),total_cost:Number(purCost.value||0),currency:purCurr.value,purchased_at:today(),expires_at:purExp.value};const pr=await sb.from('purchases').insert(p).select().single();if(pr.error)return alert(pr.error.message);const ar=await sb.from('accounts').insert({service_id:p.service_id,purchase_id:pr.data.id,supplier_id:p.supplier_id,login_email:purEmail.value.trim()||null,account_mode:p.purchase_type,capacity:Number(purCap.value||1),provider_expires_at:p.expires_at});if(ar.error)return alert(ar.error.message);closeModal();refreshAll()}
-function openAccountModal(id=''){if(!state.services.length&&!id){return openServiceModal()} const a=id?accountBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nueva'} cuenta</div><label>Servicio</label><select id="accService">${serviceOpts()}</select><label>Correo</label><input id="accEmail" value="${esc(a?.login_email||'')}"><label>Tipo</label><select id="accMode"><option value="full_account">Cuenta completa administrada por mí</option><option value="provider_managed">Perfil comprado a proveedor</option></select><label>Capacidad</label><input id="accCap" type="number" value="${a?.capacity||5}" ${id?'disabled':''}><label>Vence proveedor</label><input id="accExp" type="date" value="${esc(a?.provider_expires_at||addDays(today(),30))}"><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveAccount('${id}')">Guardar</button>`);if(id){accService.value=a.service_id;accMode.value=a.account_mode}}
-async function saveAccount(id){const p={service_id:accService.value,login_email:accEmail.value.trim()||null,account_mode:accMode.value,provider_expires_at:accExp.value||null};if(!id)p.capacity=Number(accCap.value||1);const r=id?await sb.from('accounts').update(p).eq('id',id):await sb.from('accounts').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
+function openAccountModal(id=''){
+  if(!state.services.length&&!id){return openServiceModal()}
+  const a=id?accountBy(id):{};
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nueva'} cuenta</div>
+    <label>Servicio</label><select id="accService">${serviceOpts()}</select>
+    <label>Correo / usuario</label><input id="accEmail" value="${esc(a?.login_email||'')}">
+    <label>Contraseña</label><input id="accPassword" value="${esc(a?.login_password||'')}" placeholder="Contraseña de acceso">
+    <label>Tipo</label>
+    <select id="accMode" ${id?'disabled':''}>
+      <option value="full_account">Cuenta completa administrada por mí</option>
+      <option value="provider_managed">Perfil comprado a proveedor</option>
+    </select>
+    <label>Capacidad</label><input id="accCap" type="number" value="${a?.capacity||5}" ${id?'disabled':''}>
+    <label>Vence con proveedor</label><input id="accExp" type="date" value="${esc(a?.provider_expires_at||addDays(today(),30))}">
+    <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveAccount('${id}')">Guardar cambios</button>
+  `);
+  if(id){accService.value=a.service_id;accMode.value=a.account_mode}
+}
+async function saveAccount(id){
+  const p={
+    service_id:accService.value,
+    login_email:accEmail.value.trim()||null,
+    login_password:accPassword.value.trim()||null,
+    account_mode:accMode.value,
+    provider_expires_at:accExp.value||null
+  };
+  if(!id)p.capacity=Number(accCap.value||1);
+  const r=id?await sb.from('accounts').update(p).eq('id',id):await sb.from('accounts').insert(p);
+  if(r.error)return alert(r.error.message);
+  closeModal();refreshAll();
+}
 function freeSlotOptionsForAccount(accountId){
   const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
   return state.slots.filter(s=>s.account_id===accountId&&s.active&&!occ.has(s.id))
@@ -326,7 +480,7 @@ function freeSlotOptionsForAccount(accountId){
 }
 function clientsByExactName(name){
   const n=(name||'').trim().toLowerCase();
-  return state.clients.filter(c=>(c.name||'').trim().toLowerCase()===n);
+  return state.clients.filter(c=>!c.archived_at&&(c.name||'').trim().toLowerCase()===n);
 }
 function findClientByName(name){
   const matches=clientsByExactName(name);
@@ -336,11 +490,11 @@ function clientMatchesByText(text){
   const q=(text||'').trim().toLowerCase();
   if(!q) return [];
   return state.clients
-    .filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone_e164||c.phone_raw||'').includes(q))
+    .filter(c=>!c.archived_at&&((c.name||'').toLowerCase().includes(q)||(c.phone_e164||c.phone_raw||'').includes(q)))
     .slice(0,12);
 }
 function findServiceByName(name){const n=(name||'').trim().toLowerCase();return state.services.find(s=>(s.name||'').trim().toLowerCase()===n)}
-function findAccountByEmail(email,serviceId){const e=(email||'').trim().toLowerCase();return state.accounts.find(a=>(a.login_email||'').trim().toLowerCase()===e&&(!serviceId||a.service_id===serviceId)&&a.status==='active')}
+function findAccountByEmail(email,serviceId){const e=(email||'').trim().toLowerCase();return state.accounts.find(a=>(a.login_email||'').trim().toLowerCase()===e&&(!serviceId||a.service_id===serviceId)&&a.status==='active'&&!a.archived_at)}
 function clientNameOptions(){return state.clients.map(c=>`<option value="${esc(c.name)}"></option>`).join('')}
 function serviceNameOptions(){return state.services.map(s=>`<option value="${esc(s.name)}"></option>`).join('')}
 function accountEmailOptions(){return state.accounts.filter(a=>a.status==='active'&&a.login_email).map(a=>`<option value="${esc(a.login_email)}"></option>`).join('')}
@@ -468,15 +622,15 @@ Perfil 2
   <hr>
   <div class="grid2">
     <div><label>Total cobrado</label><input id="saleTotal" type="number" step="0.01" oninput="updateSaleDistribution()"></div>
-    <div><label>Moneda</label><select id="saleCurr"><option>ARS</option><option>UYU</option><option>CLP</option><option>USD</option><option>USDT</option></select></div>
+    <div><label>Moneda</label><select id="saleCurr" onchange="updateSaleDistribution()"><option>ARS</option><option>UYU</option><option>CLP</option><option>USD</option><option>USDT</option></select></div>
   </div>
-  <label>Fecha de venta</label><input id="saleDate" type="date" value="${today()}">
+  <label>Fecha de venta / inicio</label><input id="saleDate" type="date" value="${today()}" onchange="syncSaleDatesFromSaleDate()">
 
   <hr>
   <div class="row between"><div class="sectionTitle" style="margin:0">Servicios de esta venta</div><span class="badge">varios permitidos</span></div>
   <div id="saleBuilder"></div>
   <button class="btn secondary" style="width:100%" onclick="addSaleRow()">+ Agregar otro perfil / servicio</button>
-  <div id="saleDist" class="hint">El total atribuido entre los ítems debería coincidir con el total cobrado.</div>
+  <div id="saleDist" class="hint">Total cobrado, inversión y ganancia se calculan automáticamente.</div>
   <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSale()">Guardar venta</button>`);
   addSaleRow();
 }
@@ -626,17 +780,29 @@ function addSaleRow(){
   <label>Dispositivos/pantallas contratados</label><input class="siDevices" type="number" min="1" value="1">
   <label>Nota de entrega opcional</label><input class="siDeliveryNotes" placeholder="Ej: No modificar perfiles">
 
+  <label>Costo / inversión de este servicio</label>
+  <input class="siCost" type="number" step="0.01" oninput="updateSaleDistribution()" placeholder="Lo que te costó">
+
   <div class="grid2">
-    <div><label>Ingreso atribuido</label><input class="siRevenue" type="number" step="0.01" oninput="updateSaleDistribution()"></div>
-    <div><label>Costo directo opcional</label><input class="siCost" type="number" step="0.01"></div>
-  </div>
-  <div class="grid2">
-    <div><label>Inicio</label><input class="siStart" type="date" value="${today()}" onchange="autoEndDate(this)"></div>
-    <div><label>Vence</label><input class="siEnd" type="date" value="${addDays(today(),30)}"></div>
+    <div><label>Inicio</label><input class="siStart" type="date" value="${saleDate?.value||today()}" onchange="autoEndDate(this)"></div>
+    <div><label>Vence</label><input class="siEnd" type="date" value="${addDays(saleDate?.value||today(),30)}"></div>
   </div>`;
   saleBuilder.appendChild(d);
   syncSaleRow(d.querySelector('.siServiceName'));
   updateSaleDistribution();
+}
+
+
+function syncSaleDatesFromSaleDate(){
+  const base=saleDate?.value||today();
+  document.querySelectorAll('.saleRow').forEach(row=>{
+    const start=row.querySelector('.siStart');
+    const end=row.querySelector('.siEnd');
+    const sv=findServiceByName(row.querySelector('.siServiceName')?.value||'');
+    const days=sv?.default_duration_days||30;
+    if(start)start.value=base;
+    if(end)end.value=addDays(base,days);
+  });
 }
 
 function autoEndDate(el){
@@ -733,11 +899,13 @@ function syncSaleRow(el){
 function updateSaleDistribution(){
   if(!window.saleDist)return;
   const total=Number(saleTotal?.value||0);
-  const sum=[...document.querySelectorAll('.siRevenue')].reduce((a,x)=>a+Number(x.value||0),0);
-  const diff=total-sum;
-  saleDist.innerHTML=`Total cobrado: <b>${total.toFixed(2)}</b> · atribuido: <b>${sum.toFixed(2)}</b> · diferencia: <b>${diff.toFixed(2)}</b>`;
+  const invested=[...document.querySelectorAll('.siCost')].reduce((a,x)=>a+Number(x.value||0),0);
+  const profit=total-invested;
+  const margin=total>0?(profit/total*100):0;
+  saleDist.innerHTML=`Total cobrado: <b>${money(total,saleCurr?.value||'ARS')}</b><br>
+    Total invertido: <b>${money(invested,saleCurr?.value||'ARS')}</b><br>
+    Ganancia: <b>${money(profit,saleCurr?.value||'ARS')}</b> · Margen: <b>${margin.toFixed(1)}%</b>`;
 }
-
 async function resolveClientForSale(){
   const selectedId=document.getElementById('saleClientId')?.value||'';
 
@@ -916,8 +1084,7 @@ async function resolveAccountAndSlot(row,service){
 }
 async function saveSale(){
   const rows=[...document.querySelectorAll('.saleRow')];if(!rows.length)return alert('Agregá al menos un servicio.');
-  const total=Number(saleTotal.value||0),sum=rows.reduce((a,r)=>a+Number(r.querySelector('.siRevenue').value||0),0);
-  if(Math.abs(total-sum)>.01&&!confirm(`Cobraste ${total}, pero atribuiste ${sum} entre los servicios. ¿Querés guardar igual?`))return;
+  const total=Number(saleTotal.value||0);
 
   try{
     const client=await resolveClientForSale();
@@ -937,7 +1104,7 @@ async function saveSale(){
       const ir=await sb.from('sale_items').insert({
         sale_id:sr.data.id,
         service_id:service.id,
-        allocated_revenue:Number(row.querySelector('.siRevenue').value||0),
+        allocated_revenue:rows.length?total/rows.length:total,
         direct_cost:cost?Number(cost):null,
         direct_cost_currency:saleCurr.value,
         start_date:row.querySelector('.siStart').value||today(),
@@ -970,6 +1137,155 @@ async function saveSale(){
     await refreshAll();
   }
 }
+
+function editSaleAccountOptions(item){
+  const currentAssign=activeAssignItem(item.id);
+  const currentSlot=currentAssign&&slotBy(currentAssign.account_slot_id);
+  const currentAccount=currentSlot&&accountBy(currentSlot.account_id);
+
+  const accounts=state.accounts.filter(a=>!a.archived_at&&a.service_id===item.service_id&&a.status==='active');
+  let opts='<option value="">Sin cuenta asignada</option>';
+  for(const a of accounts){
+    const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
+    const available=slots.filter(s=>{
+      const occ=activeAssignSlot(s.id);
+      return !occ || occ.sale_item_id===item.id;
+    });
+    if(available.length){
+      opts+=`<optgroup label="${esc(a.login_email||'Cuenta')}">`;
+      for(const sl of available){
+        opts+=`<option value="${sl.id}" ${currentSlot?.id===sl.id?'selected':''}>${esc(a.login_email||'Cuenta')} · Cupo ${sl.slot_number}</option>`;
+      }
+      opts+='</optgroup>';
+    }
+  }
+  return opts;
+}
+
+function openEditSaleItemModal(itemId){
+  const i=state.saleItems.find(x=>x.id===itemId);if(!i)return;
+  const sale=saleBy(i.sale_id),client=sale&&clientBy(sale.client_id);
+  const as=activeAssignItem(i.id);
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">Editar venta</div>
+        <div class="tiny muted">${esc(client?.name||'')} · ${esc(serviceBy(i.service_id)?.name||'')}</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <label>Cliente</label>
+    <select id="editSaleClient">
+      ${state.clients.filter(c=>!c.archived_at).map(c=>`<option value="${c.id}" ${c.id===sale.client_id?'selected':''}>${esc(c.name)} · ${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</option>`).join('')}
+    </select>
+
+    <div class="grid2">
+      <div><label>Total cobrado de la venta</label><input id="editSaleTotal" type="number" step="0.01" value="${Number(sale.total_amount||0)}"></div>
+      <div><label>Moneda</label><select id="editSaleCurr">
+        ${['ARS','UYU','CLP','USD','USDT'].map(x=>`<option ${x===sale.currency?'selected':''}>${x}</option>`).join('')}
+      </select></div>
+    </div>
+
+    <label>Fecha de venta</label><input id="editSoldAt" type="date" value="${esc(sale.sold_at||i.start_date||today())}">
+
+    <label>Servicio</label>
+    <select id="editService">
+      ${state.services.map(s=>`<option value="${s.id}" ${s.id===i.service_id?'selected':''}>${esc(s.name)}</option>`).join('')}
+    </select>
+
+    <label>Cuenta / cupo</label>
+    <select id="editSlot">${editSaleAccountOptions(i)}</select>
+    <div class="tiny muted">Si cambiás de cuenta, el cupo anterior se libera automáticamente.</div>
+
+    <label>Perfil</label><input id="editProfile" value="${esc(as?.profile_name||'')}">
+
+    <div class="grid2">
+      <div><label>Inicio</label><input id="editStart" type="date" value="${esc(i.start_date||sale.sold_at||today())}" onchange="editEnd.value=addDays(this.value,30)"></div>
+      <div><label>Vence</label><input id="editEnd" type="date" value="${esc(i.end_date||addDays(i.start_date||today(),30))}"></div>
+    </div>
+
+    <label>Costo / inversión</label><input id="editCost" type="number" step="0.01" value="${i.direct_cost==null?'':Number(i.direct_cost)}">
+
+    <label>Dispositivos/pantallas</label><input id="editDevices" type="number" min="1" value="${Number(i.contracted_devices||1)}">
+    <label class="checkrow"><input id="editIncludePassword" type="checkbox" ${i.include_password!==false?'checked':''}> Incluir contraseña al enviar</label>
+    <label>Nota de entrega</label><textarea id="editDeliveryNotes">${esc(i.delivery_notes||'')}</textarea>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveEditedSaleItem('${itemId}')">Guardar cambios</button>
+  `);
+}
+
+async function saveEditedSaleItem(itemId){
+  const i=state.saleItems.find(x=>x.id===itemId);if(!i)return;
+  const sale=saleBy(i.sale_id);
+  try{
+    const saleUpdate=await sb.from('sales').update({
+      client_id:editSaleClient.value,
+      total_amount:Number(editSaleTotal.value||0),
+      currency:editSaleCurr.value,
+      sold_at:editSoldAt.value||today()
+    }).eq('id',sale.id);
+    if(saleUpdate.error)throw saleUpdate.error;
+
+    const itemUpdate=await sb.from('sale_items').update({
+      service_id:editService.value,
+      direct_cost:editCost.value===''?null:Number(editCost.value),
+      direct_cost_currency:editSaleCurr.value,
+      start_date:editStart.value||editSoldAt.value||today(),
+      end_date:editEnd.value||addDays(editStart.value||editSoldAt.value||today(),30),
+      contracted_devices:Number(editDevices.value||1),
+      include_password:editIncludePassword.checked,
+      delivery_notes:editDeliveryNotes.value.trim()||null
+    }).eq('id',itemId);
+    if(itemUpdate.error)throw itemUpdate.error;
+
+    const oldAssign=activeAssignItem(itemId);
+    const newSlotId=editSlot.value||null;
+
+    if(oldAssign && oldAssign.account_slot_id!==newSlotId){
+      const rel=await sb.from('slot_assignments').update({
+        released_at:new Date().toISOString(),
+        release_reason:'Cambio de cuenta al editar venta'
+      }).eq('id',oldAssign.id);
+      if(rel.error)throw rel.error;
+    }
+
+    if(newSlotId){
+      const stillCurrent=oldAssign && oldAssign.account_slot_id===newSlotId;
+      if(stillCurrent){
+        const up=await sb.from('slot_assignments').update({
+          client_id:editSaleClient.value,
+          profile_name:editProfile.value.trim()||null
+        }).eq('id',oldAssign.id);
+        if(up.error)throw up.error;
+      }else{
+        const ins=await sb.from('slot_assignments').insert({
+          account_slot_id:newSlotId,
+          sale_item_id:itemId,
+          client_id:editSaleClient.value,
+          profile_name:editProfile.value.trim()||null
+        });
+        if(ins.error)throw ins.error;
+      }
+    }else if(oldAssign && oldAssign.account_slot_id===newSlotId){
+      const up=await sb.from('slot_assignments').update({
+        client_id:editSaleClient.value,
+        profile_name:editProfile.value.trim()||null
+      }).eq('id',oldAssign.id);
+      if(up.error)throw up.error;
+    }
+
+    closeModal();
+    await refreshAll();
+    alert('Venta actualizada ✅');
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
 async function markItem(id,status){const r=await sb.from('sale_items').update({workflow_status:status}).eq('id',id);if(r.error)return alert(r.error.message);refreshAll()}
 async function renewItem(id){const i=state.saleItems.find(x=>x.id===id),ns=prompt('Nueva fecha de inicio',i.end_date||today());if(!ns)return;const ne=prompt('Nuevo vencimiento',addDays(ns,30));if(!ne)return;const r=await sb.from('sale_items').update({start_date:ns,end_date:ne,workflow_status:'active'}).eq('id',id);if(r.error)return alert(r.error.message);refreshAll()}
 async function releaseItem(id){if(!confirm('¿Liberar este cupo?'))return;const a=activeAssignItem(id);if(a)await sb.from('slot_assignments').update({released_at:new Date().toISOString(),release_reason:'Liberación manual'}).eq('id',a.id);await sb.from('sale_items').update({workflow_status:'not_renewing'}).eq('id',id);refreshAll()}
