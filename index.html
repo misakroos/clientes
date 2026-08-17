@@ -137,7 +137,21 @@ function freeSlotOptionsForAccount(accountId){
   return state.slots.filter(s=>s.account_id===accountId&&s.active&&!occ.has(s.id))
     .map(s=>`<option value="${s.id}">Cupo ${s.slot_number}${s.custom_label?' · '+esc(s.custom_label):''}</option>`).join('');
 }
-function findClientByName(name){const n=(name||'').trim().toLowerCase();return state.clients.find(c=>(c.name||'').trim().toLowerCase()===n)}
+function clientsByExactName(name){
+  const n=(name||'').trim().toLowerCase();
+  return state.clients.filter(c=>(c.name||'').trim().toLowerCase()===n);
+}
+function findClientByName(name){
+  const matches=clientsByExactName(name);
+  return matches.length===1?matches[0]:null;
+}
+function clientMatchesByText(text){
+  const q=(text||'').trim().toLowerCase();
+  if(!q) return [];
+  return state.clients
+    .filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone_e164||c.phone_raw||'').includes(q))
+    .slice(0,12);
+}
 function findServiceByName(name){const n=(name||'').trim().toLowerCase();return state.services.find(s=>(s.name||'').trim().toLowerCase()===n)}
 function findAccountByEmail(email,serviceId){const e=(email||'').trim().toLowerCase();return state.accounts.find(a=>(a.login_email||'').trim().toLowerCase()===e&&(!serviceId||a.service_id===serviceId)&&a.status==='active')}
 function clientNameOptions(){return state.clients.map(c=>`<option value="${esc(c.name)}"></option>`).join('')}
@@ -252,10 +266,14 @@ Perfil 2
   </div>
   <hr>
   <div class="sectionTitle">Cliente</div>
-  <label>Nombre del cliente</label>
-  <input id="saleClientName" list="clientNames" placeholder="Escribí el nombre..." oninput="syncSaleClient()">
-  <datalist id="clientNames">${clientNameOptions()}</datalist>
-  <div id="saleClientHint" class="hint">Si el cliente no existe, se guardará automáticamente al confirmar la venta.</div>
+  <div class="clientPicker">
+    <label>Nombre o teléfono del cliente</label>
+    <input id="saleClientName" placeholder="Escribí al menos 2 letras..." autocomplete="off" oninput="syncSaleClient()">
+    <input id="saleClientId" type="hidden">
+    <div id="saleClientMatches" class="clientMatches hidden"></div>
+    <div id="saleClientSelected" class="clientSelected hidden"></div>
+  </div>
+  <div id="saleClientHint" class="hint">Si hay varios clientes con el mismo nombre, elegí el correcto por su teléfono.</div>
   <div id="saleNewClientFields">
     <label>Teléfono</label><input id="saleClientPhone" placeholder="Pegá el número como lo tengas">
   </div>
@@ -276,18 +294,72 @@ Perfil 2
   addSaleRow();
 }
 
-function syncSaleClient(){
-  const c=findClientByName(saleClientName.value);
-  if(c){
-    saleClientPhone.value=c.phone_raw||c.phone_e164||'';
-    saleClientHint.innerHTML=`✓ Cliente existente: <b>${esc(c.name)}</b>. Se usará su ficha actual.`;
-    saleNewClientFields.classList.add('hidden');
-  }else{
-    saleNewClientFields.classList.remove('hidden');
-    saleClientHint.innerHTML='Cliente nuevo: se creará automáticamente cuando guardes la venta.';
-  }
+function selectSaleClient(clientId){
+  const c=state.clients.find(x=>x.id===clientId);
+  if(!c)return;
+
+  saleClientId.value=c.id;
+  saleClientName.value=c.name;
+  saleClientPhone.value=c.phone_raw||c.phone_e164||'';
+
+  saleClientMatches.classList.add('hidden');
+  saleClientSelected.classList.remove('hidden');
+  saleClientSelected.innerHTML=`✓ Seleccionado: <b>${esc(c.name)}</b><br><span class="tiny">${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</span>`;
+  saleClientHint.innerHTML='Se usará este cliente existente.';
+  saleNewClientFields.classList.add('hidden');
 }
 
+function clearSaleClientSelection(){
+  saleClientId.value='';
+  saleClientSelected.classList.add('hidden');
+}
+
+function syncSaleClient(){
+  const text=saleClientName.value.trim();
+
+  // Si el usuario modifica el texto después de seleccionar alguien,
+  // anulamos la selección previa para evitar asignar al cliente incorrecto.
+  const selected=state.clients.find(x=>x.id===saleClientId.value);
+  if(selected && selected.name!==text){
+    clearSaleClientSelection();
+  }
+
+  if(saleClientId.value){
+    saleClientMatches.classList.add('hidden');
+    return;
+  }
+
+  if(text.length<2){
+    saleClientMatches.classList.add('hidden');
+    saleNewClientFields.classList.remove('hidden');
+    saleClientHint.innerHTML='Escribí al menos 2 letras para buscar clientes existentes.';
+    return;
+  }
+
+  const matches=clientMatchesByText(text);
+
+  if(matches.length){
+    saleClientMatches.innerHTML=matches.map(c=>`
+      <button type="button" class="clientMatch" onclick="selectSaleClient('${c.id}')">
+        <b>${esc(c.name)}</b>
+        <small>${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</small>
+      </button>
+    `).join('');
+    saleClientMatches.classList.remove('hidden');
+
+    const exact=clientsByExactName(text);
+    if(exact.length>1){
+      saleClientHint.innerHTML=`Hay <b>${exact.length} clientes llamados ${esc(text)}</b>. Elegí el correcto por su número.`;
+    }else{
+      saleClientHint.innerHTML='Elegí un cliente de la lista o completá teléfono si querés crear uno nuevo.';
+    }
+  }else{
+    saleClientMatches.classList.add('hidden');
+    saleClientHint.innerHTML=`Cliente nuevo: <b>${esc(text)}</b> se creará al guardar la venta.`;
+  }
+
+  saleNewClientFields.classList.remove('hidden');
+}
 function addSaleRow(){
   const d=document.createElement('div');d.className='card saleRow';
   d.innerHTML=`<button class="btn danger small removeRow" onclick="this.closest('.saleRow').remove();updateSaleDistribution()">Quitar</button>
@@ -480,12 +552,42 @@ function updateSaleDistribution(){
 }
 
 async function resolveClientForSale(){
-  const name=saleClientName.value.trim();if(!name)throw new Error('Ingresá el nombre del cliente.');
-  let c=findClientByName(name);if(c)return c;
+  const selectedId=document.getElementById('saleClientId')?.value||'';
+
+  if(selectedId){
+    const selected=state.clients.find(c=>c.id===selectedId);
+    if(!selected)throw new Error('El cliente seleccionado ya no está disponible.');
+    return selected;
+  }
+
+  const name=saleClientName.value.trim();
+  if(!name)throw new Error('Ingresá el nombre del cliente.');
+
+  const exact=clientsByExactName(name);
+
+  if(exact.length>1){
+    throw new Error(`Hay varios clientes llamados "${name}". Elegí el correcto de la lista usando su teléfono.`);
+  }
+
+  if(exact.length===1){
+    throw new Error(`Ya existe un cliente llamado "${name}". Seleccionalo de la lista para confirmar que es la persona correcta.`);
+  }
+
   const raw=saleClientPhone.value.trim();
-  const r=await sb.from('clients').insert({name,phone_raw:raw||null,phone_e164:normalizePhone(raw)||null}).select().single();
+  if(!raw){
+    const ok=confirm(`Vas a crear un cliente nuevo llamado "${name}" sin número de teléfono. ¿Continuar?`);
+    if(!ok)throw new Error('Completá el número del cliente.');
+  }
+
+  const r=await sb.from('clients').insert({
+    name,
+    phone_raw:raw||null,
+    phone_e164:normalizePhone(raw)||null
+  }).select().single();
+
   if(r.error)throw r.error;
-  state.clients.push(r.data);return r.data;
+  state.clients.push(r.data);
+  return r.data;
 }
 async function resolveServiceForRow(row){
   const name=row.querySelector('.siServiceName').value.trim();if(!name)throw new Error('Hay un ítem sin nombre de servicio.');
@@ -754,6 +856,11 @@ async function markNotificationsRead(){
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.error));
 }
+
+
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('gestureend', function(e){ e.preventDefault(); }, {passive:false});
 
 (async()=>{const {data}=await sb.auth.getSession();if(data.session)await boot()})();
 </script>
