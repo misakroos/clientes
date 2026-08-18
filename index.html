@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v14">
+<meta name="misakroos-version" content="v15">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -40,7 +40,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v14</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v15</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -896,7 +896,28 @@ function clientMatchesByText(text){
     .slice(0,12);
 }
 function findServiceByName(name){const n=(name||'').trim().toLowerCase();return state.services.find(s=>(s.name||'').trim().toLowerCase()===n)}
-function findAccountByEmail(email,serviceId){const e=(email||'').trim().toLowerCase();return state.accounts.find(a=>(a.login_email||'').trim().toLowerCase()===e&&(!serviceId||a.service_id===serviceId)&&a.status==='active'&&!a.archived_at)}
+function normalizeAccountEmail(email){
+  return String(email||'').trim().toLowerCase();
+}
+function findAccountsByEmail(email,serviceId){
+  const e=normalizeAccountEmail(email);
+  if(!e)return [];
+  return state.accounts.filter(a=>
+    normalizeAccountEmail(a.login_email)===e &&
+    (!serviceId||a.service_id===serviceId) &&
+    a.status==='active' &&
+    !a.archived_at
+  );
+}
+function findAccountByEmail(email,serviceId){
+  const matches=findAccountsByEmail(email,serviceId);
+  if(!matches.length)return null;
+  return matches.map(a=>({
+    account:a,
+    free:state.slots.filter(s=>s.account_id===a.id&&s.active&&!activeAssignSlot(s.id)).length,
+    total:state.slots.filter(s=>s.account_id===a.id&&s.active).length
+  })).sort((x,y)=>y.free-x.free || y.total-x.total)[0].account;
+}
 function clientNameOptions(){return state.clients.map(c=>`<option value="${esc(c.name)}"></option>`).join('')}
 function serviceNameOptions(){return state.services.map(s=>`<option value="${esc(s.name)}"></option>`).join('')}
 function accountEmailOptions(){return state.accounts.filter(a=>a.status==='active'&&a.login_email).map(a=>`<option value="${esc(a.login_email)}"></option>`).join('')}
@@ -1254,14 +1275,26 @@ function accountsForServiceSuggestion(row,query=''){
   const service=findServiceByName(serviceName);
   if(!service)return [];
 
-  const q=(query||'').trim().toLowerCase();
-  return state.accounts
+  const q=normalizeAccountEmail(query);
+  const grouped=new Map();
+
+  state.accounts
     .filter(a=>!a.archived_at && a.status==='active' && a.service_id===service.id && a.login_email)
-    .filter(a=>!q || (a.login_email||'').toLowerCase().includes(q))
+    .filter(a=>!q || normalizeAccountEmail(a.login_email).includes(q))
+    .forEach(a=>{
+      const key=normalizeAccountEmail(a.login_email);
+      const free=state.slots.filter(s=>s.account_id===a.id&&s.active&&!activeAssignSlot(s.id)).length;
+      const total=state.slots.filter(s=>s.account_id===a.id&&s.active).length;
+      const current=grouped.get(key);
+      if(!current || free>current._free || (free===current._free && total>current._total)){
+        grouped.set(key,{...a,_free:free,_total:total});
+      }
+    });
+
+  return [...grouped.values()]
     .sort((a,b)=>(a.login_email||'').localeCompare(b.login_email||'','es'))
     .slice(0,12);
 }
-
 function accountFreeSlotsCount(accountId){
   return state.slots.filter(s=>s.account_id===accountId&&s.active&&!activeAssignSlot(s.id)).length;
 }
@@ -1291,7 +1324,7 @@ function updateSaleAccountSuggestions(input){
   }
 
   box.innerHTML=matches.map(a=>{
-    const free=accountFreeSlotsCount(a.id);
+    const free=(a._free!==undefined?a._free:accountFreeSlotsCount(a.id));
     const mode=a.account_mode==='provider_managed'?'Proveedor':'Cuenta completa';
     return `<button type="button" class="clientMatch" onclick="chooseSaleAccount(this,'${a.id}')">
       <b>${esc(a.login_email)}</b>
@@ -1478,6 +1511,7 @@ async function resolveAccountAndSlot(row,service){
 
   let ac=findAccountByEmail(email,service.id);
 
+  // v15: si el correo ya existe para este servicio, se reutiliza y no se crea otra cuenta.
   if(ac){
     const typedPassword=row.querySelector('.siPassword')?.value.trim();
     if(typedPassword && typedPassword!==ac.login_password){
