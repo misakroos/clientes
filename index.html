@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v13">
+<meta name="misakroos-version" content="v14">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -40,7 +40,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v13</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v14</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -1107,14 +1107,18 @@ function addSaleRow(){
   const d=document.createElement('div');d.className='card saleRow';
   d.innerHTML=`<button class="btn danger small removeRow" onclick="this.closest('.saleRow').remove();updateSaleDistribution()">Quitar</button>
   <label>Servicio</label>
-  <input class="siServiceName" list="serviceNamesGlobal" placeholder="Ej: Disney+" oninput="syncSaleRow(this)">
+  <input class="siServiceName" list="serviceNamesGlobal" placeholder="Ej: Disney+" oninput="syncSaleRow(this);refreshRowAccountSuggestionsFromService(this)">
   <datalist id="serviceNamesGlobal">${serviceNameOptions()}</datalist>
   <div class="siServiceHint hint">Si el servicio no existe, se creará automáticamente.</div>
 
   <label>Correo / cuenta del servicio</label>
-  <input class="siAccountEmail" list="accountEmailsGlobal" placeholder="correo@ejemplo.com" oninput="syncSaleRow(this)">
-  <datalist id="accountEmailsGlobal">${accountEmailOptions()}</datalist>
-  <div class="siAccountHint hint">Podés usar una cuenta existente o escribir una nueva.</div>
+  <div class="clientPicker">
+    <input class="siAccountEmail" autocomplete="off" placeholder="Escribí para buscar una cuenta..."
+      oninput="updateSaleAccountSuggestions(this);syncSaleRow(this)"
+      onfocus="updateSaleAccountSuggestions(this)">
+    <div class="siAccountMatches clientMatches hidden"></div>
+  </div>
+  <div class="siAccountHint hint">Elegí una cuenta ya usada para este servicio o escribí un correo nuevo.</div>
 
   <div class="siNewAccount inlineNew">
     <div class="tiny muted">Configuración del correo</div>
@@ -1244,6 +1248,98 @@ function syncProviderExistingAction(el){
   }
 }
 
+
+function accountsForServiceSuggestion(row,query=''){
+  const serviceName=row.querySelector('.siServiceName')?.value.trim()||'';
+  const service=findServiceByName(serviceName);
+  if(!service)return [];
+
+  const q=(query||'').trim().toLowerCase();
+  return state.accounts
+    .filter(a=>!a.archived_at && a.status==='active' && a.service_id===service.id && a.login_email)
+    .filter(a=>!q || (a.login_email||'').toLowerCase().includes(q))
+    .sort((a,b)=>(a.login_email||'').localeCompare(b.login_email||'','es'))
+    .slice(0,12);
+}
+
+function accountFreeSlotsCount(accountId){
+  return state.slots.filter(s=>s.account_id===accountId&&s.active&&!activeAssignSlot(s.id)).length;
+}
+
+function updateSaleAccountSuggestions(input){
+  const row=input.closest('.saleRow');
+  if(!row)return;
+
+  const box=row.querySelector('.siAccountMatches');
+  if(!box)return;
+
+  const serviceName=row.querySelector('.siServiceName')?.value.trim()||'';
+  const service=findServiceByName(serviceName);
+
+  if(!service){
+    box.classList.add('hidden');
+    box.innerHTML='';
+    return;
+  }
+
+  const matches=accountsForServiceSuggestion(row,input.value);
+
+  if(!matches.length){
+    box.classList.add('hidden');
+    box.innerHTML='';
+    return;
+  }
+
+  box.innerHTML=matches.map(a=>{
+    const free=accountFreeSlotsCount(a.id);
+    const mode=a.account_mode==='provider_managed'?'Proveedor':'Cuenta completa';
+    return `<button type="button" class="clientMatch" onclick="chooseSaleAccount(this,'${a.id}')">
+      <b>${esc(a.login_email)}</b>
+      <small>${mode} · ${free} cupo(s) libre(s)</small>
+    </button>`;
+  }).join('');
+
+  box.classList.remove('hidden');
+}
+
+function chooseSaleAccount(button,accountId){
+  const row=button.closest('.saleRow');
+  const account=state.accounts.find(a=>a.id===accountId);
+  if(!row||!account)return;
+
+  const input=row.querySelector('.siAccountEmail');
+  input.value=account.login_email||'';
+
+  const pass=row.querySelector('.siPassword');
+  if(pass && account.login_password && !pass.value){
+    pass.value=account.login_password;
+  }
+
+  const box=row.querySelector('.siAccountMatches');
+  box.classList.add('hidden');
+  box.innerHTML='';
+
+  syncSaleRow(input);
+}
+
+function refreshRowAccountSuggestionsFromService(serviceInput){
+  const row=serviceInput.closest('.saleRow');
+  if(!row)return;
+
+  const email=row.querySelector('.siAccountEmail');
+  const box=row.querySelector('.siAccountMatches');
+
+  // Si cambia el servicio, no dejamos visible una lista del servicio anterior.
+  if(box){
+    box.classList.add('hidden');
+    box.innerHTML='';
+  }
+
+  if(email && email.value.trim()){
+    updateSaleAccountSuggestions(email);
+  }
+}
+
 function syncSaleRow(el){
   const row=el.closest('.saleRow');if(!row)return;
   const serviceName=row.querySelector('.siServiceName').value.trim();
@@ -1295,7 +1391,7 @@ function syncSaleRow(el){
     slotWrap.classList.add('hidden');
     newBox.classList.remove('hidden');
     if(email) ah.innerHTML=`Correo nuevo: <b>${esc(email)}</b>. Indicá si lo administrás completo o si el proveedor sólo te vendió este perfil.`;
-    else ah.textContent='Escribí un correo. Si ya existe, MISAKROOS lo reconocerá.';
+    else ah.textContent=sv?`Escribí el correo: te voy a sugerir solamente cuentas de ${sv.name}.`:'Elegí primero el servicio y después escribí el correo.';
   }
 }
 function updateSaleDistribution(){
@@ -1779,6 +1875,15 @@ document.addEventListener('touchend',function(e){
   if(now-lastTouchEnd<=300)e.preventDefault();
   lastTouchEnd=now;
 },{passive:false});
+
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.clientPicker')){
+    document.querySelectorAll('.siAccountMatches').forEach(box=>{
+      box.classList.add('hidden');
+    });
+  }
+});
 
 </script>
 </body></html>
