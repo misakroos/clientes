@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v16">
+<meta name="misakroos-version" content="v17">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -28,6 +28,14 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 .filterChips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px}
 .filterChips .btn{white-space:nowrap}
 .itemClickable{cursor:pointer}
+
+.saleCardUrgent{border:2px solid #ef4444!important;box-shadow:0 0 0 1px rgba(239,68,68,.12)}
+.saleCardSoon{border:2px solid #f59e0b!important;box-shadow:0 0 0 1px rgba(245,158,11,.10)}
+.saleCardHealthy{border:2px solid #22c55e!important;box-shadow:0 0 0 1px rgba(34,197,94,.10)}
+.saleDueUrgent{color:#fca5a5;font-weight:800}
+.saleDueSoon{color:#fbbf24;font-weight:800}
+.saleDueHealthy{color:#86efac;font-weight:800}
+
 .financeCurrency{margin-bottom:10px}
 .financeStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .financeStat{padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
@@ -40,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v16</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v17</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -76,6 +84,11 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   </div>
 
   <div id="salesFilterInfo" class="tiny muted"></div>
+  <div class="tiny muted" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+    <span>🔴 vencida / hoy / mañana</span>
+    <span>🟠 2–7 días</span>
+    <span>🟢 8+ días</span>
+  </div>
 </div>
 
 <div id="salesList"></div>
@@ -231,7 +244,27 @@ function saleHasStatus(saleId,kind){
 }
 
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const today=()=>new Date().toISOString().slice(0,10),addDays=(d,n)=>{let x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)},daysUntil=d=>Math.ceil((new Date(d+'T23:59:59')-new Date())/86400000);
+const pad2=n=>String(n).padStart(2,'0');
+const today=()=>{
+  const x=new Date();
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+};
+const addDays=(d,n)=>{
+  const [y,m,day]=String(d).split('-').map(Number);
+  const x=new Date(y,m-1,day,12,0,0);
+  x.setDate(x.getDate()+Number(n||0));
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+};
+const dateDayNumber=d=>{
+  if(!d)return null;
+  const [y,m,day]=String(d).slice(0,10).split('-').map(Number);
+  if(!y||!m||!day)return null;
+  return Math.floor(Date.UTC(y,m-1,day)/86400000);
+};
+const daysUntil=d=>{
+  const target=dateDayNumber(d),now=dateDayNumber(today());
+  return target==null||now==null?99999:target-now;
+};
 const money=(n,c='ARS')=>new Intl.NumberFormat('es-AR',{style:'currency',currency:c==='USDT'?'USD':c,maximumFractionDigits:2}).format(Number(n||0)).replace('US$','USDT ');
 async function login(){loginMsg.textContent='Ingresando...';const {data,error}=await sb.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPassword.value});if(error){loginMsg.textContent=error.message;return}await boot()}
 async function logout(){await sb.auth.signOut();location.reload()}
@@ -285,6 +318,49 @@ function renderClients(){
       </div>
     </div>`).join(''):'<div class="muted">Sin clientes.</div>';
 }
+
+function saleExpiryVisual(saleId){
+  const items=saleItemsFor(saleId).filter(i=>i.end_date);
+  if(!items.length){
+    return {days:null,date:null,cardClass:'',textClass:'',label:'Sin vencimiento'};
+  }
+
+  const sorted=items
+    .map(i=>({item:i,date:i.end_date,days:daysUntil(i.end_date)}))
+    .sort((a,b)=>a.days-b.days);
+
+  const nearest=sorted[0];
+  const d=nearest.days;
+
+  if(d<=1){
+    return {
+      days:d,
+      date:nearest.date,
+      cardClass:'saleCardUrgent',
+      textClass:'saleDueUrgent',
+      label:d<0?`Vencida hace ${Math.abs(d)} ${Math.abs(d)===1?'día':'días'}`:(d===0?'Vence hoy':'Vence mañana')
+    };
+  }
+
+  if(d>=2 && d<=7){
+    return {
+      days:d,
+      date:nearest.date,
+      cardClass:'saleCardSoon',
+      textClass:'saleDueSoon',
+      label:`Vence en ${d} días`
+    };
+  }
+
+  return {
+    days:d,
+    date:nearest.date,
+    cardClass:'saleCardHealthy',
+    textClass:'saleDueHealthy',
+    label:`Vence en ${d} días`
+  };
+}
+
 function renderSales(){
   const search=(document.getElementById('salesSearch')?.value||'').trim().toLowerCase();
   const serviceFilter=document.getElementById('salesServiceFilter')?.value||'';
@@ -333,19 +409,21 @@ function renderSales(){
     const names=items.map(i=>serviceBy(i.service_id)?.name||'Servicio');
     const costs=saleDirectCosts(sale.id);
     const costText=Object.entries(costs).map(([c,n])=>money(n,c)).join(' + ')||'Sin costo cargado';
-    const closest=saleEarliestEnd(sale.id);
-    const d=closest==='9999-12-31'?null:daysUntil(closest);
+    const visual=saleExpiryVisual(sale.id);
+    const closest=visual.date||saleEarliestEnd(sale.id);
+    const d=visual.days;
 
-    return `<div class="item">
+    return `<div class="item ${visual.cardClass}">
       <button type="button" onclick="openSaleDetail('${sale.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
         <div class="row between">
           <div>
             <b>${esc(client?.name||'Cliente')}</b>
             <div class="tiny muted">${esc(names.join(' / '))}</div>
           </div>
-          <span class="badge ${d===0?'danger':(d!==null&&d>=0&&d<=7?'warn':'')}">${items.length} ${items.length===1?'servicio':'servicios'}</span>
+          <span class="badge ${d!==null&&d<=1?'danger':(d!==null&&d>=2&&d<=7?'warn':'')}">${items.length} ${items.length===1?'servicio':'servicios'}</span>
         </div>
         <div class="tiny muted">Venta: ${esc(sale.sold_at||'-')} · próximo vencimiento: ${closest==='9999-12-31'?'-':esc(closest)}</div>
+        <div class="tiny ${visual.textClass}" style="margin-top:4px">${esc(visual.label)}</div>
         <div class="tiny" style="margin-top:5px">Total cobrado: <b>${money(sale.total_amount,sale.currency||'ARS')}</b> · Inversión: <b>${esc(costText)}</b></div>
         <div class="tiny muted" style="margin-top:5px">Tocá para ver todos los servicios de esta venta</div>
       </button>
