@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v15">
+<meta name="misakroos-version" content="v16">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -40,7 +40,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v15</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v16</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -379,11 +379,22 @@ function renderAccounts(){
   accountsList.innerHTML=visible.length?visible.map(a=>{
     const sl=state.slots.filter(s=>s.account_id===a.id&&s.active),
           o=sl.filter(s=>activeAssignSlot(s.id)).length;
+    const service=serviceBy(a.service_id);
+
     return `<div class="item">
-      <b>${esc(serviceBy(a.service_id)?.name||'')}</b>
-      <div class="tiny muted">${esc(a.login_email||'Sin correo')}</div>
-      <div class="tiny">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div>
-      <div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div>
+      <button type="button" onclick="openAccountDetail('${a.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
+        <div class="row between">
+          <div>
+            <b style="text-decoration:underline;text-underline-offset:3px">${esc(service?.name||'')}</b>
+            <div class="tiny muted">${esc(a.login_email||'Sin correo')}</div>
+          </div>
+          <span class="badge">${o}/${sl.length}</span>
+        </div>
+        <div class="tiny" style="margin-top:4px">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div>
+        <div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div>
+        <div class="tiny muted" style="margin-top:5px">Tocá para ver clientes dentro de esta cuenta</div>
+      </button>
+
       <div class="row wrap" style="margin-top:8px">
         <button class="btn secondary small" onclick="openAccountModal('${a.id}')">✏️ Editar</button>
         <button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button>
@@ -843,6 +854,110 @@ async function saveSupplier(){const r=await sb.from('suppliers').insert({name:fp
 const serviceOpts=()=>state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),supplierOpts=()=>'<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),clientOpts=()=>state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
 function openPurchaseModal(){if(!state.services.length){return openServiceModal()} openModal(`<div class="sectionTitle">Nueva compra</div><label>Servicio</label><select id="purService">${serviceOpts()}</select><label>Proveedor</label><select id="purSupplier">${supplierOpts()}</select><label>¿Qué compraste?</label><select id="purType" onchange="purCap.closest('label')"><option value="full_account">Cuenta completa</option><option value="provider_managed">Un perfil dentro de una cuenta del proveedor</option></select><label>Costo</label><input id="purCost" type="number"><label>Moneda</label><select id="purCurr"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select><label>Vence</label><input id="purExp" type="date" value="${addDays(today(),30)}"><label>Correo</label><input id="purEmail"><label>Capacidad</label><input id="purCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="savePurchase()">Guardar compra y crear cuenta</button>`)}
 async function savePurchase(){const p={supplier_id:purSupplier.value||null,service_id:purService.value,purchase_type:(purType.value==='provider_managed'?'provider_profile':'full_account'),total_cost:Number(purCost.value||0),currency:purCurr.value,purchased_at:today(),expires_at:purExp.value};const pr=await sb.from('purchases').insert(p).select().single();if(pr.error)return alert(pr.error.message);const ar=await sb.from('accounts').insert({service_id:p.service_id,purchase_id:pr.data.id,supplier_id:p.supplier_id,login_email:purEmail.value.trim()||null,account_mode:p.purchase_type,capacity:Number(purCap.value||1),provider_expires_at:p.expires_at});if(ar.error)return alert(ar.error.message);closeModal();refreshAll()}
+
+function openAccountDetail(accountId){
+  const account=accountBy(accountId);
+  if(!account)return;
+
+  const service=serviceBy(account.service_id);
+  const slots=state.slots
+    .filter(s=>s.account_id===accountId&&s.active)
+    .sort((a,b)=>Number(a.slot_number||0)-Number(b.slot_number||0));
+
+  const occupiedRows=[];
+  const freeRows=[];
+
+  for(const slot of slots){
+    const assignment=activeAssignSlot(slot.id);
+
+    if(!assignment){
+      freeRows.push(`
+        <div class="item">
+          <div class="row between">
+            <b>Cupo ${slot.slot_number}</b>
+            <span class="badge">Libre</span>
+          </div>
+          <div class="tiny muted">Sin cliente asignado</div>
+        </div>
+      `);
+      continue;
+    }
+
+    const item=state.saleItems.find(i=>i.id===assignment.sale_item_id);
+    const sale=item&&saleBy(item.sale_id);
+    const client=sale&&clientBy(sale.client_id);
+
+    occupiedRows.push(`
+      <div class="item">
+        <div class="row between">
+          <div>
+            <button type="button" onclick="openClientDetail('${client?.id||''}')" style="background:none;border:0;color:inherit;padding:0;text-align:left">
+              <b>${esc(client?.name||'Cliente')}</b>
+            </button>
+            <div class="tiny muted">Perfil: ${esc(assignment.profile_name||'Sin perfil')}</div>
+          </div>
+          <span class="badge">Cupo ${slot.slot_number}</span>
+        </div>
+
+        <div class="tiny muted">Inicio: ${esc(item?.start_date||'-')} · Vence: ${esc(item?.end_date||'-')}</div>
+        <div class="tiny muted">Venta: ${sale?money(sale.total_amount||0,sale.currency||'ARS'):'-'}</div>
+
+        <div class="row wrap" style="margin-top:8px">
+          ${item?`<button class="btn secondary small" onclick="openEditSaleItemModal('${item.id}')">✏️ Editar servicio</button>`:''}
+          ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
+        </div>
+      </div>
+    `);
+  }
+
+  const occupied=occupiedRows.length;
+  const total=slots.length;
+  const free=total-occupied;
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">${esc(service?.name||'Cuenta')}</div>
+        <div class="tiny muted">${esc(account.login_email||'Sin correo')}</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <div class="tiny muted">Ocupados</div>
+          <div style="font-size:1.35rem;font-weight:800">${occupied}</div>
+        </div>
+        <div>
+          <div class="tiny muted">Libres</div>
+          <div style="font-size:1.35rem;font-weight:800">${free}</div>
+        </div>
+      </div>
+
+      <div class="tiny muted" style="margin-top:8px">
+        ${account.account_mode==='provider_managed'?'Cuenta administrada por proveedor':'Cuenta completa administrada por vos'}
+      </div>
+
+      ${account.provider_expires_at?`<div class="tiny" style="margin-top:4px"><b>Vence con proveedor:</b> ${esc(account.provider_expires_at)}</div>`:''}
+
+      <div class="row wrap" style="margin-top:10px">
+        <button class="btn secondary small" onclick="openAccountModal('${account.id}')">✏️ Editar cuenta</button>
+        <button class="btn warn small" onclick="openMigrateModal('${account.id}')">Migrar cuenta</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle">Clientes dentro de esta cuenta</div>
+    ${occupiedRows.length?occupiedRows.join(''):'<div class="muted">No hay clientes activos en esta cuenta.</div>'}
+
+    ${freeRows.length?`
+      <div class="sectionTitle">Cupos libres</div>
+      ${freeRows.join('')}
+    `:''}
+  `);
+}
+
+
 function openAccountModal(id=''){
   if(!state.services.length&&!id){return openServiceModal()}
   const a=id?accountBy(id):{};
