@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v22">
+<meta name="misakroos-version" content="v23">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v22</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v23</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -773,6 +773,98 @@ async function saveSaleHeader(saleId){
 }
 
 
+
+async function renewSingleService(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId);
+  if(!item)return alert('No se encontró este servicio.');
+
+  const service=serviceBy(item.service_id);
+  const type=item.renewal_type_override||serviceRenewalType(service);
+  const days=Number(item.renewal_days_override||serviceRenewalDays(service)||30);
+
+  const defaultStart=item.end_date||today();
+  const newStart=prompt(`Nueva fecha de inicio para ${service?.name||'el servicio'}`,defaultStart);
+  if(!newStart)return;
+
+  let suggestedEnd='';
+  let label='';
+
+  if(type==='monthly_same_day'){
+    suggestedEnd=addMonthsSameDay(newStart,1);
+    label='Mismo día del mes siguiente';
+  }else if(type==='manual'){
+    suggestedEnd='';
+    label='Manual';
+  }else{
+    suggestedEnd=addDays(newStart,days);
+    label=`${days} días exactos`;
+  }
+
+  const newEnd=prompt(`Nuevo vencimiento · ${label}`,suggestedEnd);
+  if(!newEnd)return;
+
+  const r=await sb.from('sale_items').update({
+    start_date:newStart,
+    end_date:newEnd,
+    workflow_status:'active'
+  }).eq('id',itemId);
+
+  if(r.error)return alert(r.error.message);
+
+  await refreshAll();
+  openSaleDetail(item.sale_id);
+}
+
+async function deleteSingleService(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId);
+  if(!item)return alert('No se encontró este servicio.');
+
+  const sale=saleBy(item.sale_id);
+  const service=serviceBy(item.service_id);
+  const assignment=activeAssignItem(itemId);
+
+  const ok=confirm(
+    `¿Eliminar ${service?.name||'este servicio'} de esta venta?\n\n`+
+    `Se liberará el cupo de la cuenta si está ocupado.\n`+
+    `La venta y los demás servicios seguirán existiendo.`
+  );
+  if(!ok)return;
+
+  try{
+    if(assignment){
+      const rel=await sb.from('slot_assignments').update({
+        released_at:new Date().toISOString(),
+        release_reason:'Servicio eliminado de la venta'
+      }).eq('id',assignment.id);
+      if(rel.error)throw rel.error;
+    }
+
+    const del=await sb.from('sale_items').delete().eq('id',itemId);
+    if(del.error)throw del.error;
+
+    await refreshAll();
+
+    const remaining=saleItemsFor(sale.id);
+    if(!remaining.length){
+      const deleteSale=confirm('Esta venta ya no tiene servicios. ¿También querés eliminar la venta vacía?');
+      if(deleteSale){
+        const sr=await sb.from('sales').delete().eq('id',sale.id);
+        if(sr.error)throw sr.error;
+        await refreshAll();
+        closeModal();
+        renderSales();
+        return;
+      }
+    }
+
+    openSaleDetail(sale.id);
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
 function sendItemRenewalWhatsApp(itemId){
   const item=state.saleItems.find(i=>i.id===itemId);
   if(!item)return alert('No se encontró este servicio.');
@@ -1304,7 +1396,9 @@ function openAccountDetail(accountId){
 
         <div class="row wrap" style="margin-top:8px">
           ${item?`<button class="btn secondary small" onclick="openEditSaleItemModal('${item.id}')">✏️ Editar servicio</button>
-          <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${item.id}')">💬 Renovación</button>`:''}
+          <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${item.id}')">💬 Mensaje renovación</button>
+          <button class="btn ok small" onclick="renewSingleService('${item.id}')">🔄 Renovar servicio</button>
+          <button class="btn danger small" onclick="deleteSingleService('${item.id}')">🗑 Eliminar servicio</button>`:''}
           ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
         </div>
       </div>
