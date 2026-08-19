@@ -1,112 +1,2321 @@
-begin;
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<title>MISAKROOS CRM</title>
+<meta name="misakroos-version" content="v18">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
+*{box-sizing:border-box}body{margin:0;background:#07111f;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.app{max-width:520px;margin:auto;min-height:100vh;background:#081522}.topbar{position:sticky;top:0;z-index:10;background:#07111fee;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.main{padding:14px 14px 90px}.card,.item{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.metric b{display:block;font-size:22px}.muted{color:var(--muted)}.tiny{font-size:12px}.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.hidden{display:none!important}.sectionTitle{font-weight:800;font-size:18px;margin:4px 0 12px}.btn{border:0;border-radius:11px;padding:10px 12px;font-weight:700}.primary{background:var(--accent);color:#fff}.secondary{background:var(--panel2);color:#fff;border:1px solid var(--line)}.warn{background:#33250d;color:#ffd47a;border:1px solid #6a4b13}.danger{background:#321117;color:#ff9ba4;border:1px solid #6b222b}.ok{background:#0d2d1d;color:#83efac;border:1px solid #216e44}.small{padding:7px 9px;font-size:12px}input,select,textarea{width:100%;background:#071421;color:#fff;border:1px solid var(--line);border-radius:11px;padding:10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 5px}.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(5,1fr);background:#07111ff5;border-top:1px solid var(--line);padding:7px}.navbtn{background:none;border:0;color:var(--muted);font-size:11px;padding:7px}.navbtn.active{color:#fff}.navbtn b{display:block;font-size:18px}.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:30}.sheet{width:min(520px,100%);max-height:90vh;overflow:auto;background:#091725;border-radius:20px 20px 0 0;border:1px solid var(--line);padding:16px}.auth{min-height:100vh;display:grid;place-items:center;padding:22px}.authbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}.badge.info{color:#9fc4ff}.badge.ok{color:#7af0a9}.badge.warn{color:#ffd883}.badge.danger{color:#ff9ca5}.badge{padding:4px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+.hint{margin-top:7px;padding:9px 10px;border-radius:11px;background:#0b2034;border:1px solid #244766;color:#b9cbe0;font-size:12px}
+.inlineNew{margin-top:8px;padding:10px;border:1px dashed #34577a;border-radius:12px;background:#081b2c}
+.saleRow{position:relative}.removeRow{position:absolute;right:10px;top:10px}
+.datalistInput{position:relative}
+.extractor{background:#071b2b;border:1px solid #284a69;border-radius:14px;padding:12px;margin-bottom:12px}
+.extractor textarea{min-height:120px}
+.deliveryPreview{white-space:pre-wrap;background:#071421;border:1px solid var(--line);padding:12px;border-radius:12px;font-size:13px;line-height:1.45}
+.checkrow{display:flex;align-items:center;gap:8px;margin-top:8px}
+.checkrow input{width:auto}
 
--- MISAKROOS CRM v18
--- Renovación configurable por servicio:
---   days              = cantidad exacta de días
---   monthly_same_day  = mismo día del mes siguiente
---   manual            = vencimiento elegido manualmente
+hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 
-alter table public.services
-  add column if not exists renewal_type text not null default 'days';
+.metricBtn{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.metricBtn:active{transform:scale(.985)}
+.filterBar{display:grid;gap:8px;margin:8px 0 12px}
+.filterGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filterChips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px}
+.filterChips .btn{white-space:nowrap}
+.itemClickable{cursor:pointer}
 
-alter table public.services
-  add column if not exists renewal_days integer not null default 30;
+.saleCardUrgent{border:2px solid #ef4444!important;box-shadow:0 0 0 1px rgba(239,68,68,.12)}
+.saleCardSoon{border:2px solid #f59e0b!important;box-shadow:0 0 0 1px rgba(245,158,11,.10)}
+.saleCardHealthy{border:2px solid #22c55e!important;box-shadow:0 0 0 1px rgba(34,197,94,.10)}
+.saleDueUrgent{color:#fca5a5;font-weight:800}
+.saleDueSoon{color:#fbbf24;font-weight:800}
+.saleDueHealthy{color:#86efac;font-weight:800}
 
-alter table public.services
-  drop constraint if exists services_renewal_type_check;
+.financeCurrency{margin-bottom:10px}
+.financeStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.financeStat{padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.financeStat b{display:block;font-size:1.08rem}
+.servicePills{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.servicePill{font-size:.72rem;padding:4px 7px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
 
-alter table public.services
-  add constraint services_renewal_type_check
-  check (renewal_type in ('days','monthly_same_day','manual'));
 
-alter table public.services
-  drop constraint if exists services_renewal_days_check;
+</style>
+</head>
+<body>
+<div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v18</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<section id="screen-home"><div class="grid2">
+<button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
+<button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
+<button class="metric metricBtn" onclick="goAccountsFree()"><b id="mSlots">0</b><span class="muted tiny">Cupos libres</span></button>
+<button class="metric metricBtn" onclick="goSalesPreset('expiring7')"><b id="mExpiring">0</b><span class="muted tiny">Vencen ≤ 7 días</span></button>
+</div><div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div><div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
+<section id="screen-clients" class="hidden"><div class="row between"><div class="sectionTitle">Clientes</div><button class="btn primary small" onclick="openClientModal()">+ Agregar</button></div><input id="clientSearch" placeholder="Buscar..." oninput="renderClients()"><div id="clientsList" style="margin-top:10px"></div></section>
+<section id="screen-sales" class="hidden">
+<div class="row between"><div class="sectionTitle">Ventas</div><button class="btn primary small" onclick="openSaleModal()">+ Venta</button></div>
 
-alter table public.services
-  add constraint services_renewal_days_check
-  check (renewal_days > 0);
+<div class="filterBar">
+  <input id="salesSearch" placeholder="Buscar cliente, servicio, cuenta o perfil..." oninput="renderSales()">
 
--- Conservamos la duración que ya tenía cada servicio.
-update public.services
-set renewal_days = coalesce(default_duration_days,30)
-where renewal_type = 'days';
+  <div class="filterChips">
+    <button class="btn secondary small" onclick="setSalesStatus('all')">Todos</button>
+    <button class="btn secondary small" onclick="setSalesStatus('active')">Activos</button>
+    <button class="btn secondary small" onclick="setSalesStatus('today')">Vencen hoy</button>
+    <button class="btn secondary small" onclick="setSalesStatus('expiring7')">≤ 7 días</button>
+    <button class="btn secondary small" onclick="setSalesStatus('pending')">Pendientes</button>
+    <button class="btn secondary small" onclick="setSalesStatus('expired')">Vencidos</button>
+  </div>
 
-create or replace function public.calculate_service_end_date(
-  p_service_id uuid,
-  p_start_date date
-)
-returns date
-language plpgsql
-stable
-set search_path = ''
-as $$
-declare
-  v_type text;
-  v_days integer;
-begin
-  if p_start_date is null then
-    return null;
-  end if;
+  <div class="filterGrid">
+    <select id="salesServiceFilter" onchange="renderSales()">
+      <option value="">Todos los servicios</option>
+    </select>
+    <select id="salesSort" onchange="renderSales()">
+      <option value="nearest">Próximo vencimiento</option>
+      <option value="farthest">Vencimiento más lejano</option>
+      <option value="az">Cliente A-Z</option>
+      <option value="za">Cliente Z-A</option>
+    </select>
+  </div>
 
-  select
-    coalesce(s.renewal_type,'days'),
-    coalesce(s.renewal_days,s.default_duration_days,30)
-  into v_type,v_days
-  from public.services s
-  where s.id=p_service_id;
+  <div id="salesFilterInfo" class="tiny muted"></div>
+  <div class="tiny muted" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+    <span>🔴 vencida / hoy / mañana</span>
+    <span>🟠 2–7 días</span>
+    <span>🟢 8+ días</span>
+  </div>
+</div>
 
-  if not found then
-    return p_start_date + 30;
-  end if;
+<div id="salesList"></div>
+</section>
+<section id="screen-accounts" class="hidden">
+<div class="row between"><div class="sectionTitle">Cuentas</div><button class="btn primary small" onclick="openAccountModal()">+ Cuenta</button></div>
+<div id="accountsFilterInfo" class="tiny muted hidden" style="margin-bottom:9px"></div>
+<div id="accountsList"></div>
+</section>
+<section id="screen-finance" class="hidden">
+  <div class="row between">
+    <div>
+      <div class="sectionTitle" style="margin-bottom:2px">Finanzas</div>
+      <div class="tiny muted">Balance calculado por ventas reales.</div>
+    </div>
+    <button class="btn secondary small" onclick="showScreen('more')">← Volver</button>
+  </div>
 
-  if v_type='manual' then
-    return null;
-  elsif v_type='monthly_same_day' then
-    return (p_start_date + interval '1 month')::date;
-  else
-    return p_start_date + greatest(v_days,1);
-  end if;
-end;
-$$;
+  <div class="card">
+    <div class="filterGrid">
+      <div><label>Desde</label><input id="finFrom" type="date" onchange="renderFinance()"></div>
+      <div><label>Hasta</label><input id="finTo" type="date" onchange="renderFinance()"></div>
+    </div>
+    <div class="filterGrid">
+      <select id="finService" onchange="renderFinance()"><option value="">Todos los servicios</option></select>
+      <input id="finSearch" placeholder="Cliente..." oninput="renderFinance()">
+    </div>
+    <div class="filterChips" style="margin-top:8px">
+      <button class="btn secondary small" onclick="financeToday()">Hoy</button>
+      <button class="btn secondary small" onclick="financeThisMonth()">Este mes</button>
+      <button class="btn secondary small" onclick="financeLast30()">Últimos 30 días</button>
+      <button class="btn secondary small" onclick="financeAll()">Todo</button>
+    </div>
+  </div>
 
-create or replace function public.apply_sale_item_renewal_rule()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-declare
-  v_type text;
-  v_end date;
-begin
-  select coalesce(s.renewal_type,'days')
-    into v_type
-  from public.services s
-  where s.id=new.service_id;
+  <div id="financeSummary"></div>
+  <div class="sectionTitle">Ventas del período</div>
+  <div id="financeSalesList"></div>
+</section>
+<section id="screen-more" class="hidden">
+  <div class="sectionTitle">Gestión</div>
 
-  -- En modo manual respetamos exactamente el vencimiento elegido por el usuario.
-  if v_type='manual' then
-    return new;
-  end if;
+  <div class="card">
+    <div class="row between">
+      <div>
+        <b>Notificaciones push</b>
+        <div class="tiny muted">Recibí avisos aunque MISAKROOS no esté abierto.</div>
+      </div>
+      <span id="pushStatusBadge" class="badge info">Revisando</span>
+    </div>
+    <button class="btn primary" style="width:100%;margin-top:10px" onclick="enablePushNotifications()">Activar notificaciones en este dispositivo</button>
+    <div class="tiny muted" style="margin-top:8px">Tenés que activarlas una vez en cada celular o PC donde quieras recibir avisos.</div>
+  </div>
 
-  v_end=public.calculate_service_end_date(new.service_id,new.start_date);
+  <div class="card">
+    <div class="row between">
+      <div class="sectionTitle" style="margin:0">Notificaciones</div>
+      <button class="btn small secondary" onclick="markNotificationsRead()">Marcar leídas</button>
+    </div>
+    <div id="notificationsList" class="list" style="margin-top:10px"></div>
+  </div>
 
-  if v_end is not null then
-    new.end_date=v_end;
-  end if;
+  <div class="grid2">
+    <button class="btn primary" onclick="openFinanceScreen()">💰 Finanzas</button>
+    <button class="btn secondary" onclick="openServiceModal()">Servicios</button>
+    <button class="btn secondary" onclick="openSupplierModal()">Proveedores</button>
+    <button class="btn secondary" onclick="openPurchaseModal()">Compras</button>
+    <button class="btn secondary" onclick="refreshAll()">Actualizar</button>
+  </div>
 
-  return new;
-end;
-$$;
+  <div class="card" style="margin-top:12px">
+    <div class="sectionTitle">Servicios</div>
+    <div id="servicesList"></div>
+  </div>
 
-drop trigger if exists zz_sale_items_apply_renewal_rule
-on public.sale_items;
+  <div class="card">
+    <div class="sectionTitle">Proveedores</div>
+    <div id="suppliersList"></div>
+  </div>
 
-create trigger zz_sale_items_apply_renewal_rule
-before insert or update of start_date, service_id
-on public.sale_items
-for each row
-execute function public.apply_sale_item_renewal_rule();
+  <div class="card">
+    <div class="sectionTitle">Compras</div>
+    <div id="purchasesList"></div>
+  </div>
+</section>
+</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
+<div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()"><div id="sheet" class="sheet"></div></div>
+<script>
+const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_tlT-G0ziq1E5Cwnp2AEx3w_Ip0Xzi-6';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[]};
+let salesStatusFilter='all';
+let accountsOnlyFree=false;
 
-notify pgrst, 'reload schema';
+function goClients(){
+  if(window.clientSearch)clientSearch.value='';
+  showScreen('clients');
+}
+function goSalesPreset(filter){
+  salesStatusFilter=filter||'all';
+  showScreen('sales');
+  renderSales();
+}
+function goAccountsFree(){
+  accountsOnlyFree=true;
+  showScreen('accounts');
+  renderAccounts();
+}
+function setSalesStatus(filter){
+  salesStatusFilter=filter||'all';
+  renderSales();
+}
+function showAllAccounts(){
+  accountsOnlyFree=false;
+  renderAccounts();
+}
 
-commit;
+function saleItemsFor(saleId){return state.saleItems.filter(i=>i.sale_id===saleId)}
+function saleClient(sale){return sale&&clientBy(sale.client_id)}
+function saleEarliestEnd(saleId){
+  const ds=saleItemsFor(saleId).map(i=>i.end_date).filter(Boolean).sort();
+  return ds[0]||'9999-12-31';
+}
+function saleLatestEnd(saleId){
+  const ds=saleItemsFor(saleId).map(i=>i.end_date).filter(Boolean).sort();
+  return ds[ds.length-1]||'';
+}
+function saleDirectCosts(saleId){
+  const map={};
+  saleItemsFor(saleId).forEach(i=>{
+    if(i.direct_cost==null)return;
+    const c=i.direct_cost_currency||saleBy(saleId)?.currency||'ARS';
+    map[c]=(map[c]||0)+Number(i.direct_cost||0);
+  });
+  return map;
+}
+function saleServiceNames(saleId){
+  return saleItemsFor(saleId).map(i=>serviceBy(i.service_id)?.name||'Servicio');
+}
+function saleHasStatus(saleId,kind){
+  const items=saleItemsFor(saleId);
+  if(!items.length)return false;
+  return items.some(i=>{
+    const d=i.end_date?daysUntil(i.end_date):99999;
+    if(kind==='active')return d>=0&&['active','renewal_pending','payment_pending'].includes(i.workflow_status);
+    if(kind==='today')return d===0;
+    if(kind==='expiring7')return d>=0&&d<=7;
+    if(kind==='pending')return ['renewal_pending','payment_pending'].includes(i.workflow_status);
+    if(kind==='expired')return d<0;
+    return true;
+  });
+}
+
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const pad2=n=>String(n).padStart(2,'0');
+const today=()=>{
+  const x=new Date();
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+};
+const addDays=(d,n)=>{
+  const [y,m,day]=String(d).split('-').map(Number);
+  const x=new Date(y,m-1,day,12,0,0);
+  x.setDate(x.getDate()+Number(n||0));
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+};
+const dateDayNumber=d=>{
+  if(!d)return null;
+  const [y,m,day]=String(d).slice(0,10).split('-').map(Number);
+  if(!y||!m||!day)return null;
+  return Math.floor(Date.UTC(y,m-1,day)/86400000);
+};
+const daysUntil=d=>{
+  const target=dateDayNumber(d),now=dateDayNumber(today());
+  return target==null||now==null?99999:target-now;
+};
+
+function addMonthsSameDay(dateStr,months=1){
+  if(!dateStr)return '';
+  const [y,m,d]=String(dateStr).split('-').map(Number);
+  if(!y||!m||!d)return '';
+  const targetMonthIndex=(m-1)+Number(months||1);
+  const targetYear=y+Math.floor(targetMonthIndex/12);
+  const targetMonth=((targetMonthIndex%12)+12)%12;
+  const lastDay=new Date(targetYear,targetMonth+1,0).getDate();
+  const day=Math.min(d,lastDay);
+  return `${targetYear}-${pad2(targetMonth+1)}-${pad2(day)}`;
+}
+
+function serviceRenewalType(service){
+  return service?.renewal_type||'days';
+}
+
+function serviceRenewalDays(service){
+  return Number(service?.renewal_days||service?.default_duration_days||30);
+}
+
+function calculateServiceEndDate(startDate,service){
+  if(!startDate)return '';
+  const type=serviceRenewalType(service);
+  if(type==='monthly_same_day')return addMonthsSameDay(startDate,1);
+  if(type==='manual')return '';
+  return addDays(startDate,serviceRenewalDays(service));
+}
+
+function renewalRuleLabel(service){
+  const type=serviceRenewalType(service);
+  if(type==='monthly_same_day')return 'Mismo día del mes siguiente';
+  if(type==='manual')return 'Vencimiento manual';
+  const days=serviceRenewalDays(service);
+  return `${days} días exactos`;
+}
+
+const money=(n,c='ARS')=>new Intl.NumberFormat('es-AR',{style:'currency',currency:c==='USDT'?'USD':c,maximumFractionDigits:2}).format(Number(n||0)).replace('US$','USDT ');
+async function login(){loginMsg.textContent='Ingresando...';const {data,error}=await sb.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPassword.value});if(error){loginMsg.textContent=error.message;return}await boot()}
+async function logout(){await sb.auth.signOut();location.reload()}
+async function boot(){authView.classList.add('hidden');appView.classList.remove('hidden');await refreshAll()}
+async function refreshAll(){const qs=await Promise.all([sb.from('clients').select('*').order('name'),sb.from('services').select('*').order('name'),sb.from('suppliers').select('*').order('name'),sb.from('purchases').select('*').order('purchased_at',{ascending:false}),sb.from('accounts').select('*').order('created_at',{ascending:false}),sb.from('account_slots').select('*').order('slot_number'),sb.from('sales').select('*').order('sold_at',{ascending:false}),sb.from('sale_items').select('*').order('start_date',{ascending:false}),sb.from('slot_assignments').select('*').order('assigned_at',{ascending:false}),
+    sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(50),
+    sb.from('push_subscriptions').select('*').eq('active',true)]);['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions'].forEach((k,i)=>state[k]=qs[i].data||[]);renderAll()}
+function showScreen(n,b){document.querySelectorAll('[id^=screen-]').forEach(x=>x.classList.add('hidden'));$('screen-'+n).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));(b||document.querySelector(`[data-screen="${n}"]`))?.classList.add('active');renderAll()}
+function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
+function renderAll(){
+  mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
+  mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;
+  const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
+  const activeAccountIds=new Set(state.accounts.filter(a=>!a.archived_at&&a.status==='active').map(a=>a.id));
+  mSlots.textContent=state.slots.filter(s=>s.active&&activeAccountIds.has(s.account_id)&&!occ.has(s.id)).length;
+  mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing').length;
+  renderClients();renderSales();renderAccounts();renderMore();renderHome();
+}
+function renderHome(){
+  const a=state.saleItems
+    .filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing')
+    .sort((x,y)=>String(x.end_date).localeCompare(String(y.end_date)));
+
+  homeExpiring.innerHTML=a.length?a.map(i=>{
+    const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);
+    const d=daysUntil(i.end_date);
+    return `<button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${i.sale_id}')">
+      <div class="row between">
+        <b>${esc(c?.name||'')}</b>
+        <span class="badge ${d===0?'danger':'warn'}">${d===0?'Hoy':d+' días'}</span>
+      </div>
+      <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${esc(i.end_date)}</div>
+      <div class="tiny muted">Tocá para abrir la venta completa</div>
+    </button>`;
+  }).join(''):'<div class="muted">Nada próximo a vencer.</div>';
+}
+function renderClients(){
+  const q=(clientSearch?.value||'').toLowerCase();
+  const a=state.clients.filter(c=>!c.archived_at&&((c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q)||(c.phone_e164||'').includes(q)));
+  clientsList.innerHTML=a.length?a.map(c=>`
+    <div class="item">
+      <div class="row between">
+        <button type="button" onclick="openClientDetail('${c.id}')" style="background:none;border:0;color:inherit;text-align:left;padding:0;flex:1">
+          <b style="text-decoration:underline;text-underline-offset:3px">${esc(c.name)}</b>
+          <div class="tiny muted">${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</div>
+        </button>
+        <div class="row wrap">
+          <button class="btn secondary small" onclick="openClientModal('${c.id}')">Editar</button>
+          <button class="btn danger small" onclick="deleteClient('${c.id}')">Eliminar</button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="muted">Sin clientes.</div>';
+}
+
+function saleExpiryVisual(saleId){
+  const items=saleItemsFor(saleId).filter(i=>i.end_date);
+  if(!items.length){
+    return {days:null,date:null,cardClass:'',textClass:'',label:'Sin vencimiento'};
+  }
+
+  const sorted=items
+    .map(i=>({item:i,date:i.end_date,days:daysUntil(i.end_date)}))
+    .sort((a,b)=>a.days-b.days);
+
+  const nearest=sorted[0];
+  const d=nearest.days;
+
+  if(d<=1){
+    return {
+      days:d,
+      date:nearest.date,
+      cardClass:'saleCardUrgent',
+      textClass:'saleDueUrgent',
+      label:d<0?`Vencida hace ${Math.abs(d)} ${Math.abs(d)===1?'día':'días'}`:(d===0?'Vence hoy':'Vence mañana')
+    };
+  }
+
+  if(d>=2 && d<=7){
+    return {
+      days:d,
+      date:nearest.date,
+      cardClass:'saleCardSoon',
+      textClass:'saleDueSoon',
+      label:`Vence en ${d} días`
+    };
+  }
+
+  return {
+    days:d,
+    date:nearest.date,
+    cardClass:'saleCardHealthy',
+    textClass:'saleDueHealthy',
+    label:`Vence en ${d} días`
+  };
+}
+
+function renderSales(){
+  const search=(document.getElementById('salesSearch')?.value||'').trim().toLowerCase();
+  const serviceFilter=document.getElementById('salesServiceFilter')?.value||'';
+  const sort=document.getElementById('salesSort')?.value||'nearest';
+
+  const serviceSelect=document.getElementById('salesServiceFilter');
+  if(serviceSelect){
+    const current=serviceSelect.value;
+    serviceSelect.innerHTML=['<option value="">Todos los servicios</option>']
+      .concat(state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)).join('');
+    if([...serviceSelect.options].some(o=>o.value===current))serviceSelect.value=current;
+  }
+
+  let arr=state.sales.filter(sale=>{
+    const items=saleItemsFor(sale.id);
+    const client=saleClient(sale);
+    if(!items.length)return false;
+
+    if(serviceFilter&&!items.some(i=>i.service_id===serviceFilter))return false;
+    if(salesStatusFilter!=='all'&&!saleHasStatus(sale.id,salesStatusFilter))return false;
+
+    if(search){
+      const itemText=items.map(i=>{
+        const a=activeAssignItem(i.id),sl=a&&slotBy(a.account_slot_id),ac=sl&&accountBy(sl.account_id);
+        return [serviceBy(i.service_id)?.name,a?.profile_name,ac?.login_email].filter(Boolean).join(' ');
+      }).join(' ');
+      const haystack=[client?.name,client?.phone_e164,client?.phone_raw,itemText].filter(Boolean).join(' ').toLowerCase();
+      if(!haystack.includes(search))return false;
+    }
+    return true;
+  });
+
+  arr.sort((a,b)=>{
+    const ca=saleClient(a),cb=saleClient(b);
+    if(sort==='farthest')return saleLatestEnd(b.id).localeCompare(saleLatestEnd(a.id));
+    if(sort==='az')return String(ca?.name||'').localeCompare(String(cb?.name||''),'es');
+    if(sort==='za')return String(cb?.name||'').localeCompare(String(ca?.name||''),'es');
+    return saleEarliestEnd(a.id).localeCompare(saleEarliestEnd(b.id));
+  });
+
+  const labels={all:'Todas',active:'Activas',today:'Vencen hoy',expiring7:'Vencen en 7 días',pending:'Pendientes',expired:'Vencidas'};
+  if(window.salesFilterInfo)salesFilterInfo.innerHTML=`Mostrando <b>${arr.length}</b> venta(s) · ${labels[salesStatusFilter]||'Todas'}`;
+
+  salesList.innerHTML=arr.length?arr.map(sale=>{
+    const client=saleClient(sale),items=saleItemsFor(sale.id);
+    const names=items.map(i=>serviceBy(i.service_id)?.name||'Servicio');
+    const costs=saleDirectCosts(sale.id);
+    const costText=Object.entries(costs).map(([c,n])=>money(n,c)).join(' + ')||'Sin costo cargado';
+    const visual=saleExpiryVisual(sale.id);
+    const closest=visual.date||saleEarliestEnd(sale.id);
+    const d=visual.days;
+
+    return `<div class="item ${visual.cardClass}">
+      <button type="button" onclick="openSaleDetail('${sale.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
+        <div class="row between">
+          <div>
+            <b>${esc(client?.name||'Cliente')}</b>
+            <div class="tiny muted">${esc(names.join(' / '))}</div>
+          </div>
+          <span class="badge ${d!==null&&d<=1?'danger':(d!==null&&d>=2&&d<=7?'warn':'')}">${items.length} ${items.length===1?'servicio':'servicios'}</span>
+        </div>
+        <div class="tiny muted">Venta: ${esc(sale.sold_at||'-')} · próximo vencimiento: ${closest==='9999-12-31'?'-':esc(closest)}</div>
+        <div class="tiny ${visual.textClass}" style="margin-top:4px">${esc(visual.label)}</div>
+        <div class="tiny" style="margin-top:5px">Total cobrado: <b>${money(sale.total_amount,sale.currency||'ARS')}</b> · Inversión: <b>${esc(costText)}</b></div>
+        <div class="tiny muted" style="margin-top:5px">Tocá para ver todos los servicios de esta venta</div>
+      </button>
+      <div class="row wrap" style="margin-top:9px">
+        <button class="btn primary small" onclick="openSaleDetail('${sale.id}')">Ver venta</button>
+        <button class="btn ok small" onclick="openSaleDeliveryModal('${sale.id}')">📲 Enviar compra por WhatsApp</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted">No hay ventas que coincidan con este filtro.</div>';
+}
+function renderAccounts(){
+  let visible=state.accounts.filter(a=>!a.archived_at);
+  if(accountsOnlyFree){
+    visible=visible.filter(a=>{
+      const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
+      return slots.some(s=>!activeAssignSlot(s.id));
+    });
+  }
+
+  const info=document.getElementById('accountsFilterInfo');
+  if(info){
+    if(accountsOnlyFree){
+      info.classList.remove('hidden');
+      info.innerHTML=`Mostrando cuentas con cupos libres · <button class="btn secondary small" onclick="showAllAccounts()">Ver todas</button>`;
+    }else{
+      info.classList.add('hidden');
+      info.innerHTML='';
+    }
+  }
+
+  accountsList.innerHTML=visible.length?visible.map(a=>{
+    const sl=state.slots.filter(s=>s.account_id===a.id&&s.active),
+          o=sl.filter(s=>activeAssignSlot(s.id)).length;
+    const service=serviceBy(a.service_id);
+
+    return `<div class="item">
+      <button type="button" onclick="openAccountDetail('${a.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
+        <div class="row between">
+          <div>
+            <b style="text-decoration:underline;text-underline-offset:3px">${esc(service?.name||'')}</b>
+            <div class="tiny muted">${esc(a.login_email||'Sin correo')}</div>
+          </div>
+          <span class="badge">${o}/${sl.length}</span>
+        </div>
+        <div class="tiny" style="margin-top:4px">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div>
+        <div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div>
+        <div class="tiny muted" style="margin-top:5px">Tocá para ver clientes dentro de esta cuenta</div>
+      </button>
+
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn secondary small" onclick="openAccountModal('${a.id}')">✏️ Editar</button>
+        <button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button>
+        <button class="btn danger small" onclick="deleteAccount('${a.id}')">Eliminar</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="muted">No hay cuentas que coincidan con este filtro.</div>';
+}
+function renderNotifications(){
+  const el=document.getElementById('notificationsList');
+  if(!el)return;
+  const arr=state.notifications||[];
+  el.innerHTML=arr.length?arr.slice(0,12).map(n=>`<div class="item">
+    <div class="row between"><b>${esc(n.title)}</b>${n.read_at?'<span class="badge ok">Leída</span>':'<span class="badge warn">Nueva</span>'}</div>
+    <div class="tiny muted" style="margin-top:4px">${esc(n.body)}</div>
+  </div>`).join(''):'<div class="empty">Todavía no hay notificaciones.</div>';
+}
+function updatePushBadge(){
+  const el=document.getElementById('pushStatusBadge');if(!el)return;
+  if(!('Notification' in window) || !('serviceWorker' in navigator)){
+    el.textContent='No compatible';el.className='badge danger';return;
+  }
+  if(Notification.permission==='granted' && (state.pushSubscriptions||[]).length){
+    el.textContent='Activadas';el.className='badge ok';
+  }else if(Notification.permission==='denied'){
+    el.textContent='Bloqueadas';el.className='badge danger';
+  }else{
+    el.textContent='Desactivadas';el.className='badge warn';
+  }
+}
+function renderMore(){
+  renderNotifications();
+  updatePushBadge();
+
+  servicesList.innerHTML=state.services.map(s=>`
+    <button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openServiceModal('${s.id}')">
+      <div class="row between">
+        <b>${esc(s.name)}</b>
+        <span class="badge">Editar</span>
+      </div>
+      <div class="tiny muted">${esc(s.default_account_mode||'')} · capacidad ${s.default_capacity||'-'}</div>
+      <div class="tiny" style="margin-top:4px"><b>Renovación:</b> ${esc(renewalRuleLabel(s))}</div>
+    </button>
+  `).join('')||'<div class="muted">Sin servicios.</div>';
+
+  suppliersList.innerHTML=state.suppliers.map(s=>`<div class="item"><b>${esc(s.name)}</b></div>`).join('')||'<div class="muted">Sin proveedores.</div>';
+  purchasesList.innerHTML=state.purchases.map(p=>`<div class="item"><b>${esc(serviceBy(p.service_id)?.name||'')}</b><div class="tiny muted">${esc(supplierBy(p.supplier_id)?.name||'Sin proveedor')} · ${money(p.total_cost,p.currency)} · vence ${esc(p.expires_at||'-')}</div></div>`).join('')||'<div class="muted">Sin compras.</div>';
+}
+function openModal(h){sheet.innerHTML=h;modal.classList.remove('hidden')}function closeModal(){modal.classList.add('hidden')}
+function normalizePhone(raw){let d=(raw||'').replace(/\D/g,'');if(!d)return'';if(d.startsWith('549')||d.startsWith('598')||d.startsWith('56'))return'+'+d;if(d.startsWith('54'))return'+54'+(d.slice(2).startsWith('9')?'':'9')+d.slice(2);if(d.length>=9&&d.length<=11)return'+549'+d.replace(/^0/,'');return'+'+d}
+
+function clientWhatsappNumber(client){
+  if(!client)return '';
+  const raw=client.phone_e164||client.phone_raw||'';
+  return normalizePhone(raw).replace(/\D/g,'');
+}
+
+function requireClientWhatsapp(client){
+  const phone=clientWhatsappNumber(client);
+  if(phone)return phone;
+  alert(`El cliente ${client?.name||''} no tiene un número de WhatsApp válido. Entrá a Clientes → Editar y cargalo.`);
+  return '';
+}
+
+function openWhatsApp(phone,message){
+  const number=String(phone||'').replace(/\D/g,'');
+  if(!number)return;
+  const url=`https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  window.open(url,'_blank');
+}
+
+
+function openSaleDetail(saleId){
+  const sale=saleBy(saleId);if(!sale)return;
+  const client=saleClient(sale),items=saleItemsFor(saleId);
+  const costs=saleDirectCosts(saleId);
+  const sameCurrencyCost=Number(costs[sale.currency]||0);
+  const otherCosts=Object.entries(costs).filter(([c])=>c!==sale.currency);
+  const profit=Number(sale.total_amount||0)-sameCurrencyCost;
+
+  const itemsHtml=items.map((i,idx)=>{
+    const service=serviceBy(i.service_id),a=activeAssignItem(i.id),sl=a&&slotBy(a.account_slot_id),ac=sl&&accountBy(sl.account_id);
+    return `<div class="item">
+      <div class="row between"><b>${idx+1}. ${esc(service?.name||'Servicio')}</b><span class="badge">${esc(i.workflow_status||'')}</span></div>
+      <div class="tiny muted">Cuenta: ${esc(ac?.login_email||'Sin cuenta')}</div>
+      <div class="tiny muted">Perfil: ${esc(a?.profile_name||'Sin perfil')} · ${Number(i.contracted_devices||1)} dispositivo(s)</div>
+      <div class="tiny">Inicio: <b>${esc(i.start_date||'-')}</b> · Vence: <b>${esc(i.end_date||'-')}</b></div>
+      <div class="tiny">Costo: <b>${i.direct_cost==null?'Sin cargar':money(i.direct_cost,i.direct_cost_currency||sale.currency||'ARS')}</b></div>
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar servicio</button>
+        <button class="btn secondary small" onclick="openDeliveryModal('${i.id}')">Enviar solo este</button>
+        <button class="btn warn small" onclick="sendRenewalWhatsApp('${i.id}')">Renovación</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  openModal(`
+    <div class="row between">
+      <div><div class="sectionTitle" style="margin-bottom:2px">Venta · ${esc(client?.name||'Cliente')}</div><div class="tiny muted">${esc(sale.sold_at||'-')} · ${items.length} servicio(s)</div></div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+    <div class="card">
+      <div class="tiny muted">Total cobrado</div><div style="font-size:1.35rem;font-weight:800">${money(sale.total_amount,sale.currency||'ARS')}</div>
+      <div class="tiny" style="margin-top:7px">Inversión en ${esc(sale.currency||'ARS')}: <b>${money(sameCurrencyCost,sale.currency||'ARS')}</b> · Ganancia: <b>${money(profit,sale.currency||'ARS')}</b></div>
+      ${otherCosts.length?`<div class="tiny muted" style="margin-top:4px">Otros costos sin convertir: ${otherCosts.map(([c,n])=>money(n,c)).join(' + ')}</div>`:''}
+      <div class="row wrap" style="margin-top:10px">
+        <button class="btn primary small" onclick="openEditSaleHeader('${sale.id}')">✏️ Editar datos de venta</button>
+        <button class="btn ok small" onclick="openSaleDeliveryModal('${sale.id}')">📲 Enviar compra completa</button>
+      </div>
+    </div>
+    <div class="sectionTitle">Servicios incluidos</div>
+    ${itemsHtml}
+  `);
+}
+
+function openEditSaleHeader(saleId){
+  const sale=saleBy(saleId);if(!sale)return;
+  openModal(`
+    <div class="sectionTitle">Editar datos de la venta</div>
+    <label>Cliente</label>
+    <select id="saleHdrClient">${state.clients.filter(c=>!c.archived_at).map(c=>`<option value="${c.id}" ${c.id===sale.client_id?'selected':''}>${esc(c.name)} · ${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</option>`).join('')}</select>
+    <div class="grid2">
+      <div><label>Total cobrado</label><input id="saleHdrTotal" type="number" step="0.01" value="${Number(sale.total_amount||0)}"></div>
+      <div><label>Moneda</label><select id="saleHdrCurr">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===sale.currency?'selected':''}>${c}</option>`).join('')}</select></div>
+    </div>
+    <label>Fecha de la venta</label><input id="saleHdrDate" type="date" value="${esc(sale.sold_at||today())}">
+    <div class="tiny muted" style="margin-top:7px">Cambiar esta fecha no modifica automáticamente los vencimientos ya guardados. Cada servicio se puede editar por separado.</div>
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSaleHeader('${saleId}')">Guardar cambios</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openSaleDetail('${saleId}')">Cancelar</button>
+  `);
+}
+
+async function saveSaleHeader(saleId){
+  const r=await sb.from('sales').update({client_id:saleHdrClient.value,total_amount:Number(saleHdrTotal.value||0),currency:saleHdrCurr.value,sold_at:saleHdrDate.value||today()}).eq('id',saleId);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openSaleDetail(saleId);
+}
+
+function buildSaleDeliveryMessage(saleId){
+  const sale=saleBy(saleId);if(!sale)return '';
+  const client=saleClient(sale),items=saleItemsFor(saleId);
+  const lines=[`Hola ${client?.name||''} 👋`,'','Gracias por tu compra en MISAKROOS 💙',''];
+
+  items.forEach((item,idx)=>{
+    const service=serviceBy(item.service_id),a=activeAssignItem(item.id),sl=a&&slotBy(a.account_slot_id),account=sl&&accountBy(sl.account_id);
+    lines.push(`${idx+1}️⃣ ${service?.name||'Servicio'}`);
+    if(account?.login_email)lines.push(`📧 Cuenta: ${account.login_email}`);
+    if(item.include_password!==false&&account?.login_password)lines.push(`🔐 Contraseña: ${account.login_password}`);
+    if(a?.profile_name)lines.push(`👤 Perfil: ${a.profile_name}`);
+    if(item.contracted_devices)lines.push(`📱 Dispositivos/pantallas: ${Number(item.contracted_devices)}`);
+    if(item.end_date)lines.push(`📅 Válido hasta: ${item.end_date}`);
+    if(item.delivery_notes)lines.push(`📝 ${item.delivery_notes}`);
+    lines.push('');
+  });
+
+  lines.push('⚠️ Importante: cada cuenta debe vincularse únicamente en la cantidad de dispositivos/pantallas contratados. No modifiques correos, contraseñas ni perfiles ajenos.');
+  lines.push('');
+  lines.push('Ante cualquier inconveniente, escribinos por este mismo medio.');
+  return lines.join('\n');
+}
+
+function openSaleDeliveryModal(saleId){
+  const sale=saleBy(saleId);if(!sale)return alert('No se encontró esta venta.');
+  const client=saleClient(sale),phone=requireClientWhatsapp(client);if(!phone)return;
+  const msg=buildSaleDeliveryMessage(saleId);
+  openModal(`
+    <div class="sectionTitle">Enviar compra completa por WhatsApp</div>
+    <div class="tiny muted">${esc(client?.name||'')} · ${saleItemsFor(saleId).length} servicio(s) en un solo mensaje</div>
+    <label>Mensaje</label><textarea id="saleDeliveryMessageEdit" style="min-height:360px">${esc(msg)}</textarea>
+    <button class="btn ok" style="width:100%;margin-top:12px" onclick="sendSaleDeliveryWhatsApp('${saleId}')">📲 Abrir WhatsApp y enviar todo</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openSaleDetail('${saleId}')">Volver a la venta</button>
+  `);
+}
+
+async function sendSaleDeliveryWhatsApp(saleId){
+  const sale=saleBy(saleId);if(!sale)return;
+  const client=saleClient(sale),phone=requireClientWhatsapp(client);if(!phone)return;
+  const msg=document.getElementById('saleDeliveryMessageEdit')?.value||buildSaleDeliveryMessage(saleId);
+  const ids=saleItemsFor(saleId).map(i=>i.id);
+  if(ids.length){
+    const r=await sb.from('sale_items').update({delivered_at:new Date().toISOString()}).in('id',ids);
+    if(r.error)console.warn(r.error);
+  }
+  openWhatsApp(phone,msg);
+}
+
+function openFinanceScreen(){
+  showScreen('finance');
+  financeThisMonth();
+}
+function isoLocal(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function financeToday(){const d=isoLocal(new Date());finFrom.value=d;finTo.value=d;renderFinance()}
+function financeThisMonth(){const n=new Date();finFrom.value=isoLocal(new Date(n.getFullYear(),n.getMonth(),1));finTo.value=isoLocal(n);renderFinance()}
+function financeLast30(){const n=new Date(),f=new Date(n);f.setDate(f.getDate()-29);finFrom.value=isoLocal(f);finTo.value=isoLocal(n);renderFinance()}
+function financeAll(){finFrom.value='';finTo.value='';renderFinance()}
+
+function renderFinance(){
+  if(!document.getElementById('financeSummary'))return;
+  const ss=document.getElementById('finService');
+  if(ss){
+    const cur=ss.value;
+    ss.innerHTML=['<option value="">Todos los servicios</option>'].concat(state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)).join('');
+    if([...ss.options].some(o=>o.value===cur))ss.value=cur;
+  }
+  const from=finFrom.value||'',to=finTo.value||'',service=finService.value||'',q=(finSearch.value||'').trim().toLowerCase();
+  const sales=state.sales.filter(s=>{
+    if(from&&s.sold_at<from)return false;if(to&&s.sold_at>to)return false;
+    const items=saleItemsFor(s.id),c=saleClient(s);
+    if(service&&!items.some(i=>i.service_id===service))return false;
+    if(q&&!String(c?.name||'').toLowerCase().includes(q))return false;
+    return items.length>0;
+  }).sort((a,b)=>String(b.sold_at||'').localeCompare(String(a.sold_at||'')));
+
+  const sums={};
+  sales.forEach(s=>{
+    const cur=s.currency||'ARS';
+    sums[cur]??={sales:0,revenue:0,cost:0};
+    sums[cur].sales++;sums[cur].revenue+=Number(s.total_amount||0);
+    saleItemsFor(s.id).forEach(i=>{
+      const cc=i.direct_cost_currency||cur;
+      sums[cc]??={sales:0,revenue:0,cost:0};
+      sums[cc].cost+=Number(i.direct_cost||0);
+    });
+  });
+
+  const cards=Object.keys(sums).length?Object.entries(sums).map(([cur,x])=>{
+    const profit=x.revenue-x.cost;
+    const margin=x.revenue?profit/x.revenue*100:0;
+    return `<div class="card financeCurrency"><b>${esc(cur)}</b><div class="financeStats">
+      <div class="financeStat"><span class="tiny muted">Ventas</span><b>${x.sales}</b></div>
+      <div class="financeStat"><span class="tiny muted">Facturado</span><b>${money(x.revenue,cur)}</b></div>
+      <div class="financeStat"><span class="tiny muted">Costos</span><b>${money(x.cost,cur)}</b></div>
+      <div class="financeStat"><span class="tiny muted">Resultado*</span><b>${money(profit,cur)}</b><span class="tiny muted">Margen ${margin.toFixed(1)}%</span></div>
+    </div></div>`;
+  }).join(''):'<div class="card muted">No hay ventas en este período.</div>';
+  financeSummary.innerHTML=`<div class="tiny muted" style="margin-bottom:7px">${sales.length} venta(s) real(es) en el período. *El resultado se calcula por moneda; no mezcla ARS con USDT/USD sin conversión.</div>${cards}`;
+
+  financeSalesList.innerHTML=sales.length?sales.map(s=>{
+    const c=saleClient(s),names=saleServiceNames(s.id);
+    return `<button class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${s.id}')">
+      <div class="row between"><b>${esc(c?.name||'Cliente')}</b><b>${money(s.total_amount,s.currency||'ARS')}</b></div>
+      <div class="tiny muted">${esc(s.sold_at||'-')} · ${esc(names.join(' / '))}</div>
+    </button>`;
+  }).join(''):'<div class="muted">Sin ventas.</div>';
+}
+
+function getSaleItemContext(itemId){
+  const item=state.saleItems.find(x=>x.id===itemId);
+  if(!item)return null;
+
+  const sale=saleBy(item.sale_id);
+  const client=sale?clientBy(sale.client_id):null;
+  const service=serviceBy(item.service_id);
+  const assignment=activeAssignItem(item.id);
+  const slot=assignment?slotBy(assignment.account_slot_id):null;
+  const account=slot?accountBy(slot.account_id):null;
+
+  return {item,sale,client,service,assignment,slot,account};
+}
+
+function buildDeliveryMessage(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return '';
+
+  const {item,client,service,assignment,account}=ctx;
+  const lines=[];
+
+  lines.push(`Hola ${client?.name||''} 👋`);
+  lines.push('');
+  lines.push('Gracias por tu compra en MISAKROOS 💙');
+  lines.push('');
+  lines.push(`📺 Servicio: ${service?.name||'Servicio'}`);
+
+  if(account?.login_email) lines.push(`📧 Cuenta: ${account.login_email}`);
+
+  if(item.include_password!==false && account?.login_password){
+    lines.push(`🔐 Contraseña: ${account.login_password}`);
+  }
+
+  if(assignment?.profile_name){
+    lines.push(`👤 Perfil: ${assignment.profile_name}`);
+  }
+
+  if(item.contracted_devices){
+    const n=Number(item.contracted_devices);
+    lines.push(`📱 ${n===1?'Dispositivo/pantalla contratada':'Dispositivos/pantallas contratados'}: ${n}`);
+  }
+
+  if(item.end_date){
+    lines.push(`📅 Válido hasta: ${item.end_date}`);
+  }
+
+  lines.push('');
+  lines.push('⚠️ Importante: vinculá la cuenta únicamente en la cantidad de dispositivos/pantallas contratados y no modifiques correo, contraseña ni perfiles ajenos.');
+
+  if(item.delivery_notes){
+    lines.push('');
+    lines.push(`📝 ${item.delivery_notes}`);
+  }
+
+  lines.push('');
+  lines.push('Ante cualquier inconveniente, escribinos por este mismo medio.');
+
+  return lines.join('\n');
+}
+
+function openDeliveryModal(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return alert('No se encontró esta venta.');
+
+  const phone=requireClientWhatsapp(ctx.client);
+  if(!phone)return;
+
+  const msg=buildDeliveryMessage(itemId);
+
+  openModal(`
+    <div class="sectionTitle">Enviar cuenta por WhatsApp</div>
+    <div class="tiny muted" style="margin-bottom:8px">
+      Cliente: <b>${esc(ctx.client?.name||'')}</b> · ${esc(ctx.client?.phone_e164||ctx.client?.phone_raw||'')}
+    </div>
+
+    <label>Mensaje</label>
+    <textarea id="deliveryMessageEdit" style="min-height:300px">${esc(msg)}</textarea>
+
+    <button class="btn ok" style="width:100%;margin-top:12px"
+      onclick="sendDeliveryWhatsApp('${itemId}')">
+      📲 Abrir WhatsApp y enviar
+    </button>
+
+    <button class="btn secondary" style="width:100%;margin-top:8px"
+      onclick="closeModal()">
+      Cancelar
+    </button>
+  `);
+}
+
+async function sendDeliveryWhatsApp(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return alert('No se encontró esta venta.');
+
+  const phone=requireClientWhatsapp(ctx.client);
+  if(!phone)return;
+
+  const msg=document.getElementById('deliveryMessageEdit')?.value||buildDeliveryMessage(itemId);
+
+  const r=await sb.from('sale_items')
+    .update({delivered_at:new Date().toISOString()})
+    .eq('id',itemId);
+
+  if(r.error){
+    console.warn(r.error);
+  }
+
+  openWhatsApp(phone,msg);
+}
+
+function sendRenewalWhatsApp(itemId){
+  const ctx=getSaleItemContext(itemId);
+  if(!ctx)return alert('No se encontró esta venta.');
+
+  const phone=requireClientWhatsapp(ctx.client);
+  if(!phone)return;
+
+  const service=ctx.service?.name||'tu servicio';
+  const expiry=ctx.item.end_date||'próximamente';
+
+  const msg=[
+    `Hola ${ctx.client?.name||''} 👋`,
+    '',
+    `Te escribimos de MISAKROOS para recordarte que tu ${service} vence el ${expiry}.`,
+    '',
+    '¿Querés renovarlo? Respondeme por acá y te paso los datos para continuar 💙'
+  ].join('\n');
+
+  openWhatsApp(phone,msg);
+}
+
+
+function openClientDetail(id){
+  const c=clientBy(id);
+  if(!c)return;
+
+  const sales=state.sales.filter(s=>s.client_id===id);
+  const saleIds=new Set(sales.map(s=>s.id));
+  const items=state.saleItems
+    .filter(i=>saleIds.has(i.sale_id))
+    .sort((a,b)=>String(b.end_date||'').localeCompare(String(a.end_date||'')));
+
+  const servicesHtml=items.length?items.map(i=>{
+    const sale=saleBy(i.sale_id);
+    const assignment=activeAssignItem(i.id);
+    const slot=assignment&&slotBy(assignment.account_slot_id);
+    const account=slot&&accountBy(slot.account_id);
+    return `<div class="item">
+      <div class="row between">
+        <b>${esc(serviceBy(i.service_id)?.name||'Servicio')}</b>
+        <span class="badge">${esc(i.workflow_status||'')}</span>
+      </div>
+      <div class="tiny muted">Perfil: ${esc(assignment?.profile_name||'Sin perfil')}</div>
+      <div class="tiny muted">Cuenta: ${esc(account?.login_email||'Sin cuenta')}</div>
+      <div class="tiny"><b>Inicio:</b> ${esc(i.start_date||'-')} · <b>Vence:</b> ${esc(i.end_date||'-')}</div>
+      <div class="tiny">Total de la venta: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
+      <button class="btn secondary small" style="margin-top:7px" onclick="openEditSaleItemModal('${i.id}')">Editar esta venta</button>
+    </div>`;
+  }).join(''):'<div class="muted">Este cliente no tiene servicios asociados.</div>';
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">Ficha del cliente</div>
+        <div class="tiny muted">Información y servicios asociados</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="card">
+      <div style="font-size:1.25rem;font-weight:800">${esc(c.name)}</div>
+      <div class="muted" style="margin-top:4px">${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</div>
+      ${c.notes?`<div class="tiny" style="margin-top:8px">${esc(c.notes)}</div>`:''}
+      <div class="row wrap" style="margin-top:10px">
+        <button class="btn secondary small" onclick="openClientModal('${c.id}')">✏️ Editar cliente</button>
+        ${clientWhatsappNumber(c)?`<button class="btn ok small" onclick="openWhatsApp('${clientWhatsappNumber(c)}','Hola ${esc(c.name)} 👋')">📲 WhatsApp</button>`:''}
+        <button class="btn danger small" onclick="deleteClient('${c.id}')">Eliminar cliente</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle">Servicios asociados</div>
+    ${servicesHtml}
+  `);
+}
+
+async function deleteClient(id){
+  const c=clientBy(id);if(!c)return;
+  if(!confirm(`¿Eliminar a ${c.name} de la lista de clientes?\n\nSus ventas anteriores se conservarán en el historial.`))return;
+  const r=await sb.from('clients').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){
+    if(String(r.error.message||'').includes('archived_at')){
+      return alert('Falta ejecutar la migración v11 en Supabase antes de poder eliminar clientes.');
+    }
+    return alert(r.error.message);
+  }
+  closeModal();
+  await refreshAll();
+}
+
+async function deleteAccount(id){
+  const a=accountBy(id);if(!a)return;
+  const slotIds=new Set(state.slots.filter(s=>s.account_id===id).map(s=>s.id));
+  const active=state.assignments.filter(x=>!x.released_at&&slotIds.has(x.account_slot_id));
+  if(active.length){
+    return alert(`Esta cuenta tiene ${active.length} perfil(es) activo(s). Primero migralos o liberá esos perfiles; después vas a poder eliminarla.`);
+  }
+  if(!confirm(`¿Eliminar la cuenta ${a.login_email||''} de la lista?\n\nEl historial anterior se conservará.`))return;
+  const r=await sb.from('accounts').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(r.error){
+    if(String(r.error.message||'').includes('archived_at')){
+      return alert('Falta ejecutar la migración v11 en Supabase antes de poder eliminar cuentas.');
+    }
+    return alert(r.error.message);
+  }
+  closeModal();
+  await refreshAll();
+}
+
+function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
+async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
+function openServiceModal(id=''){
+  const s=id?serviceBy(id):null;
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nuevo'} servicio</div>
+
+    <label>Nombre</label>
+    <input id="fsName" value="${esc(s?.name||'')}">
+
+    <div class="grid2">
+      <div>
+        <label>Precio referencia</label>
+        <input id="fsPrice" type="number" value="${s?.reference_price??''}">
+      </div>
+      <div>
+        <label>Moneda</label>
+        <select id="fsCurr">
+          ${['ARS','USD','USDT','UYU','CLP'].map(c=>`<option ${c===(s?.reference_currency||'ARS')?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <label>Tipo de cuenta por defecto</label>
+    <select id="fsMode">
+      <option value="full_account" ${s?.default_account_mode==='full_account'?'selected':''}>Cuenta completa administrada por mí</option>
+      <option value="provider_managed" ${s?.default_account_mode==='provider_managed'?'selected':''}>Perfil comprado a proveedor</option>
+    </select>
+
+    <label>Capacidad por defecto</label>
+    <input id="fsCap" type="number" min="1" value="${Number(s?.default_capacity||5)}">
+
+    <div class="sectionTitle" style="margin-top:18px">Tipo de renovación</div>
+    <label>¿Cómo se calcula el vencimiento?</label>
+    <select id="fsRenewalType" onchange="syncServiceRenewalFields()">
+      <option value="days" ${serviceRenewalType(s)==='days'?'selected':''}>Días exactos</option>
+      <option value="monthly_same_day" ${serviceRenewalType(s)==='monthly_same_day'?'selected':''}>Mismo día del mes siguiente</option>
+      <option value="manual" ${serviceRenewalType(s)==='manual'?'selected':''}>Manual en cada venta</option>
+    </select>
+
+    <div id="fsRenewalDaysWrap">
+      <label>Cantidad de días</label>
+      <input id="fsRenewalDays" type="number" min="1" value="${serviceRenewalDays(s)}">
+      <div class="tiny muted">Ejemplo: 13/08 + 30 días = 12/09.</div>
+    </div>
+
+    <div id="fsRenewalMonthlyHint" class="hint hidden">
+      Ejemplo: 13/08 → 13/09. Si el día no existe en el mes siguiente, se usa el último día de ese mes.
+    </div>
+
+    <div id="fsRenewalManualHint" class="hint hidden">
+      La app no calculará el vencimiento automáticamente. Lo elegís vos en cada venta.
+    </div>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveService('${id}')">
+      Guardar
+    </button>
+  `);
+  syncServiceRenewalFields();
+}
+
+function syncServiceRenewalFields(){
+  const type=document.getElementById('fsRenewalType')?.value||'days';
+  const days=document.getElementById('fsRenewalDaysWrap');
+  const monthly=document.getElementById('fsRenewalMonthlyHint');
+  const manual=document.getElementById('fsRenewalManualHint');
+  if(!days||!monthly||!manual)return;
+  days.classList.toggle('hidden',type!=='days');
+  monthly.classList.toggle('hidden',type!=='monthly_same_day');
+  manual.classList.toggle('hidden',type!=='manual');
+}
+
+async function saveService(id=''){
+  const type=fsRenewalType.value;
+  const days=Math.max(1,Number(fsRenewalDays.value||30));
+  const payload={
+    name:fsName.value.trim(),
+    reference_price:fsPrice.value||null,
+    reference_currency:fsCurr.value,
+    default_account_mode:fsMode.value,
+    default_capacity:Number(fsCap.value||1),
+    renewal_type:type,
+    renewal_days:days,
+    default_duration_days:days
+  };
+
+  if(!payload.name)return alert('Ingresá el nombre del servicio.');
+
+  const r=id
+    ?await sb.from('services').update(payload).eq('id',id)
+    :await sb.from('services').insert(payload);
+
+  if(r.error)return alert(r.error.message);
+  closeModal();
+  await refreshAll();
+}
+function openSupplierModal(){openModal(`<div class="sectionTitle">Nuevo proveedor</div><label>Nombre</label><input id="fpName"><label>Contacto</label><input id="fpContact"><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveSupplier()">Guardar</button>`)}
+async function saveSupplier(){const r=await sb.from('suppliers').insert({name:fpName.value.trim(),contact:fpContact.value.trim()||null});if(r.error)return alert(r.error.message);closeModal();refreshAll()}
+const serviceOpts=()=>state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),supplierOpts=()=>'<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),clientOpts=()=>state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+function openPurchaseModal(){if(!state.services.length){return openServiceModal()} openModal(`<div class="sectionTitle">Nueva compra</div><label>Servicio</label><select id="purService">${serviceOpts()}</select><label>Proveedor</label><select id="purSupplier">${supplierOpts()}</select><label>¿Qué compraste?</label><select id="purType" onchange="purCap.closest('label')"><option value="full_account">Cuenta completa</option><option value="provider_managed">Un perfil dentro de una cuenta del proveedor</option></select><label>Costo</label><input id="purCost" type="number"><label>Moneda</label><select id="purCurr"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select><label>Vence</label><input id="purExp" type="date" value="${addDays(today(),30)}"><label>Correo</label><input id="purEmail"><label>Capacidad</label><input id="purCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="savePurchase()">Guardar compra y crear cuenta</button>`)}
+async function savePurchase(){const p={supplier_id:purSupplier.value||null,service_id:purService.value,purchase_type:(purType.value==='provider_managed'?'provider_profile':'full_account'),total_cost:Number(purCost.value||0),currency:purCurr.value,purchased_at:today(),expires_at:purExp.value};const pr=await sb.from('purchases').insert(p).select().single();if(pr.error)return alert(pr.error.message);const ar=await sb.from('accounts').insert({service_id:p.service_id,purchase_id:pr.data.id,supplier_id:p.supplier_id,login_email:purEmail.value.trim()||null,account_mode:p.purchase_type,capacity:Number(purCap.value||1),provider_expires_at:p.expires_at});if(ar.error)return alert(ar.error.message);closeModal();refreshAll()}
+
+function openAccountDetail(accountId){
+  const account=accountBy(accountId);
+  if(!account)return;
+
+  const service=serviceBy(account.service_id);
+  const slots=state.slots
+    .filter(s=>s.account_id===accountId&&s.active)
+    .sort((a,b)=>Number(a.slot_number||0)-Number(b.slot_number||0));
+
+  const occupiedRows=[];
+  const freeRows=[];
+
+  for(const slot of slots){
+    const assignment=activeAssignSlot(slot.id);
+
+    if(!assignment){
+      freeRows.push(`
+        <div class="item">
+          <div class="row between">
+            <b>Cupo ${slot.slot_number}</b>
+            <span class="badge">Libre</span>
+          </div>
+          <div class="tiny muted">Sin cliente asignado</div>
+        </div>
+      `);
+      continue;
+    }
+
+    const item=state.saleItems.find(i=>i.id===assignment.sale_item_id);
+    const sale=item&&saleBy(item.sale_id);
+    const client=sale&&clientBy(sale.client_id);
+
+    occupiedRows.push(`
+      <div class="item">
+        <div class="row between">
+          <div>
+            <button type="button" onclick="openClientDetail('${client?.id||''}')" style="background:none;border:0;color:inherit;padding:0;text-align:left">
+              <b>${esc(client?.name||'Cliente')}</b>
+            </button>
+            <div class="tiny muted">Perfil: ${esc(assignment.profile_name||'Sin perfil')}</div>
+          </div>
+          <span class="badge">Cupo ${slot.slot_number}</span>
+        </div>
+
+        <div class="tiny muted">Inicio: ${esc(item?.start_date||'-')} · Vence: ${esc(item?.end_date||'-')}</div>
+        <div class="tiny muted">Venta: ${sale?money(sale.total_amount||0,sale.currency||'ARS'):'-'}</div>
+
+        <div class="row wrap" style="margin-top:8px">
+          ${item?`<button class="btn secondary small" onclick="openEditSaleItemModal('${item.id}')">✏️ Editar servicio</button>`:''}
+          ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
+        </div>
+      </div>
+    `);
+  }
+
+  const occupied=occupiedRows.length;
+  const total=slots.length;
+  const free=total-occupied;
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">${esc(service?.name||'Cuenta')}</div>
+        <div class="tiny muted">${esc(account.login_email||'Sin correo')}</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <div class="tiny muted">Ocupados</div>
+          <div style="font-size:1.35rem;font-weight:800">${occupied}</div>
+        </div>
+        <div>
+          <div class="tiny muted">Libres</div>
+          <div style="font-size:1.35rem;font-weight:800">${free}</div>
+        </div>
+      </div>
+
+      <div class="tiny muted" style="margin-top:8px">
+        ${account.account_mode==='provider_managed'?'Cuenta administrada por proveedor':'Cuenta completa administrada por vos'}
+      </div>
+
+      ${account.provider_expires_at?`<div class="tiny" style="margin-top:4px"><b>Vence con proveedor:</b> ${esc(account.provider_expires_at)}</div>`:''}
+
+      <div class="row wrap" style="margin-top:10px">
+        <button class="btn secondary small" onclick="openAccountModal('${account.id}')">✏️ Editar cuenta</button>
+        <button class="btn warn small" onclick="openMigrateModal('${account.id}')">Migrar cuenta</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle">Clientes dentro de esta cuenta</div>
+    ${occupiedRows.length?occupiedRows.join(''):'<div class="muted">No hay clientes activos en esta cuenta.</div>'}
+
+    ${freeRows.length?`
+      <div class="sectionTitle">Cupos libres</div>
+      ${freeRows.join('')}
+    `:''}
+  `);
+}
+
+
+function openAccountModal(id=''){
+  if(!state.services.length&&!id){return openServiceModal()}
+  const a=id?accountBy(id):{};
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nueva'} cuenta</div>
+    <label>Servicio</label><select id="accService">${serviceOpts()}</select>
+    <label>Correo / usuario</label><input id="accEmail" value="${esc(a?.login_email||'')}">
+    <label>Contraseña</label><input id="accPassword" value="${esc(a?.login_password||'')}" placeholder="Contraseña de acceso">
+    <label>Tipo</label>
+    <select id="accMode" ${id?'disabled':''}>
+      <option value="full_account">Cuenta completa administrada por mí</option>
+      <option value="provider_managed">Perfil comprado a proveedor</option>
+    </select>
+    <label>Capacidad</label><input id="accCap" type="number" value="${a?.capacity||5}" ${id?'disabled':''}>
+    <label>Vence con proveedor</label><input id="accExp" type="date" value="${esc(a?.provider_expires_at||addDays(today(),30))}">
+    <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveAccount('${id}')">Guardar cambios</button>
+  `);
+  if(id){accService.value=a.service_id;accMode.value=a.account_mode}
+}
+async function saveAccount(id){
+  const p={
+    service_id:accService.value,
+    login_email:accEmail.value.trim()||null,
+    login_password:accPassword.value.trim()||null,
+    account_mode:accMode.value,
+    provider_expires_at:accExp.value||null
+  };
+  if(!id)p.capacity=Number(accCap.value||1);
+  const r=id?await sb.from('accounts').update(p).eq('id',id):await sb.from('accounts').insert(p);
+  if(r.error)return alert(r.error.message);
+  closeModal();refreshAll();
+}
+function freeSlotOptionsForAccount(accountId){
+  const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
+  return state.slots.filter(s=>s.account_id===accountId&&s.active&&!occ.has(s.id))
+    .map(s=>`<option value="${s.id}">Cupo ${s.slot_number}${s.custom_label?' · '+esc(s.custom_label):''}</option>`).join('');
+}
+function clientsByExactName(name){
+  const n=(name||'').trim().toLowerCase();
+  return state.clients.filter(c=>!c.archived_at&&(c.name||'').trim().toLowerCase()===n);
+}
+function findClientByName(name){
+  const matches=clientsByExactName(name);
+  return matches.length===1?matches[0]:null;
+}
+function clientMatchesByText(text){
+  const q=(text||'').trim().toLowerCase();
+  if(!q) return [];
+  return state.clients
+    .filter(c=>!c.archived_at&&((c.name||'').toLowerCase().includes(q)||(c.phone_e164||c.phone_raw||'').includes(q)))
+    .slice(0,12);
+}
+function findServiceByName(name){const n=(name||'').trim().toLowerCase();return state.services.find(s=>(s.name||'').trim().toLowerCase()===n)}
+function normalizeAccountEmail(email){
+  return String(email||'').trim().toLowerCase();
+}
+function findAccountsByEmail(email,serviceId){
+  const e=normalizeAccountEmail(email);
+  if(!e)return [];
+  return state.accounts.filter(a=>
+    normalizeAccountEmail(a.login_email)===e &&
+    (!serviceId||a.service_id===serviceId) &&
+    a.status==='active' &&
+    !a.archived_at
+  );
+}
+function findAccountByEmail(email,serviceId){
+  const matches=findAccountsByEmail(email,serviceId);
+  if(!matches.length)return null;
+  return matches.map(a=>({
+    account:a,
+    free:state.slots.filter(s=>s.account_id===a.id&&s.active&&!activeAssignSlot(s.id)).length,
+    total:state.slots.filter(s=>s.account_id===a.id&&s.active).length
+  })).sort((x,y)=>y.free-x.free || y.total-x.total)[0].account;
+}
+function clientNameOptions(){return state.clients.map(c=>`<option value="${esc(c.name)}"></option>`).join('')}
+function serviceNameOptions(){return state.services.map(s=>`<option value="${esc(s.name)}"></option>`).join('')}
+function accountEmailOptions(){return state.accounts.filter(a=>a.status==='active'&&a.login_email).map(a=>`<option value="${esc(a.login_email)}"></option>`).join('')}
+
+function firstMatch(text, patterns){
+  for(const p of patterns){
+    const m=text.match(p);
+    if(m&&m[1]) return m[1].trim();
+  }
+  return '';
+}
+function parseSaleText(text){
+  const t=String(text||'').replace(/\r/g,'');
+  const lines=t.split('\n').map(x=>x.trim()).filter(Boolean);
+
+  const email=(t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||'';
+
+  const phone=firstMatch(t,[
+    /(?:tel[eé]fono|telefono|whatsapp|celular|n[uú]mero)\s*[:\-]?\s*([+\d][\d\s().-]{7,})/i
+  ]);
+
+  const client=firstMatch(t,[
+    /(?:cliente|nombre(?:\s+del\s+cliente)?)\s*[:\-]\s*([^\n]+)/i
+  ]);
+
+  const password=firstMatch(t,[
+    /(?:contrase(?:ñ|n)a|password|clave|pass|pwd)\s*[:=\-]?\s*([^\n|]+)/i
+  ]);
+
+  const profile=firstMatch(t,[
+    /perfil(?:\s*(?:n[º°o.]|numero|número)?)?\s*[:=\-]?\s*([^\n|]+)/i
+  ]);
+
+  const devices=firstMatch(t,[
+    /(\d+)\s*(?:dispositivos?|pantallas?)/i,
+    /(?:dispositivos?|pantallas?)\s*[:=\-]?\s*(\d+)/i
+  ]);
+
+  let service=firstMatch(t,[
+    /(?:servicio|plataforma|producto)\s*[:=\-]\s*([^\n]+)/i
+  ]);
+
+  if(!service){
+    const known=[
+      'Netflix','Disney+','Disney Plus','Prime Video','Amazon Prime',
+      'Max','HBO Max','Paramount+','Spotify','YouTube Premium',
+      'Crunchyroll','Apple TV+','Vix','Alfa TV','Flujo TV'
+    ];
+    const lower=t.toLowerCase();
+    service=known.find(x=>lower.includes(x.toLowerCase()))||'';
+  }
+
+  const cost=firstMatch(t,[
+    /(?:costo|cost|precio proveedor|price)\s*[:=\-]?\s*(?:usd|usdt|\$)?\s*([\d.,]+)/i
+  ]);
+
+  let costCurrency='';
+  if(/\busdt\b/i.test(t)) costCurrency='USDT';
+  else if(/\busd\b/i.test(t)) costCurrency='USD';
+  else if(/\buyu\b/i.test(t)) costCurrency='UYU';
+  else if(/\bclp\b/i.test(t)) costCurrency='CLP';
+  else if(/\bars\b/i.test(t)) costCurrency='ARS';
+
+  return {client,phone,service,email,profile,password,devices,cost,costCurrency};
+}
+function fillSaleFromExtractor(){
+  const parsed=parseSaleText(document.getElementById('saleExtractorText').value);
+  if(parsed.client) saleClientName.value=parsed.client;
+  if(parsed.phone) saleClientPhone.value=parsed.phone;
+  syncSaleClient();
+
+  let row=document.querySelector('.saleRow');
+  if(!row){addSaleRow();row=document.querySelector('.saleRow')}
+  if(parsed.service) row.querySelector('.siServiceName').value=parsed.service;
+  if(parsed.email) row.querySelector('.siAccountEmail').value=parsed.email;
+  if(parsed.profile) row.querySelector('.siProfile').value=parsed.profile;
+  if(parsed.password){
+    row.querySelector('.siPassword').value=parsed.password;
+    row.querySelector('.siIncludePassword').checked=true;
+  }
+  if(parsed.devices) row.querySelector('.siDevices').value=parsed.devices;
+  if(parsed.cost){
+    const costTarget=row.querySelector('.siProviderCost')||row.querySelector('.siExistingCost');
+    if(costTarget) costTarget.value=String(parsed.cost).replace(',','.');
+  }
+  if(parsed.costCurrency){
+    const currTarget=row.querySelector('.siProviderCurrency')||row.querySelector('.siExistingCurrency');
+    if(currTarget) currTarget.value=parsed.costCurrency;
+  }
+  syncSaleRow(row.querySelector('.siServiceName'));
+  if(parsed.email) syncSaleRow(row.querySelector('.siAccountEmail'));
+}
+
+function inlineSupplierOptions(){
+  return '<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+}
+
+
+function openSaleModal(){
+  openModal(`<div class="row between"><div><div class="sectionTitle" style="margin-bottom:2px">Nueva venta</div><div class="tiny muted">Cargá la venta y MISAKROOS irá creando lo que falte.</div></div><button class="btn secondary small" onclick="closeModal()">✕</button></div>
+  <div class="extractor">
+    <div class="row between"><div><b>Extractor de texto</b><div class="tiny muted">Pegá exactamente el mensaje que te mandó el proveedor. MISAKROOS intenta encontrar servicio, correo, clave, perfil y otros datos.</div></div><span class="badge info">opcional</span></div>
+    <textarea id="saleExtractorText" placeholder="Ejemplo:
+Disney+ Premium
+Email: cuenta@gmail.com
+Pass: 123456
+Perfil 2
+1 dispositivo"></textarea>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="fillSaleFromExtractor()">Extraer y completar</button>
+  </div>
+  <hr>
+  <div class="sectionTitle">Cliente</div>
+  <div class="clientPicker">
+    <label>Nombre o teléfono del cliente</label>
+    <input id="saleClientName" placeholder="Escribí al menos 2 letras..." autocomplete="off" oninput="syncSaleClient()">
+    <input id="saleClientId" type="hidden">
+    <div id="saleClientMatches" class="clientMatches hidden"></div>
+    <div id="saleClientSelected" class="clientSelected hidden"></div>
+  </div>
+  <div id="saleClientHint" class="hint">Si hay varios clientes con el mismo nombre, elegí el correcto por su teléfono.</div>
+  <div id="saleNewClientFields">
+    <label>Teléfono</label><input id="saleClientPhone" placeholder="Pegá el número como lo tengas">
+  </div>
+
+  <hr>
+  <div class="grid2">
+    <div><label>Total cobrado</label><input id="saleTotal" type="number" step="0.01" oninput="updateSaleDistribution()"></div>
+    <div><label>Moneda</label><select id="saleCurr" onchange="updateSaleDistribution()"><option>ARS</option><option>UYU</option><option>CLP</option><option>USD</option><option>USDT</option></select></div>
+  </div>
+  <label>Fecha de venta / inicio</label><input id="saleDate" type="date" value="${today()}" onchange="syncSaleDatesFromSaleDate()">
+
+  <hr>
+  <div class="row between"><div class="sectionTitle" style="margin:0">Servicios de esta venta</div><span class="badge">varios permitidos</span></div>
+  <div id="saleBuilder"></div>
+  <button class="btn secondary" style="width:100%" onclick="addSaleRow()">+ Agregar otro perfil / servicio</button>
+  <div id="saleDist" class="hint">Total cobrado, inversión y ganancia se calculan automáticamente.</div>
+  <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSale()">Guardar venta</button>`);
+  addSaleRow();
+}
+
+function selectSaleClient(clientId){
+  const c=state.clients.find(x=>x.id===clientId);
+  if(!c)return;
+
+  saleClientId.value=c.id;
+  saleClientName.value=c.name;
+  saleClientPhone.value=c.phone_raw||c.phone_e164||'';
+
+  saleClientMatches.classList.add('hidden');
+  saleClientSelected.classList.remove('hidden');
+  saleClientSelected.innerHTML=`✓ Seleccionado: <b>${esc(c.name)}</b><br><span class="tiny">${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</span>`;
+  saleClientHint.innerHTML='Se usará este cliente existente.';
+  saleNewClientFields.classList.add('hidden');
+}
+
+function clearSaleClientSelection(){
+  saleClientId.value='';
+  saleClientSelected.classList.add('hidden');
+}
+
+function syncSaleClient(){
+  const text=saleClientName.value.trim();
+
+  // Si el usuario modifica el texto después de seleccionar alguien,
+  // anulamos la selección previa para evitar asignar al cliente incorrecto.
+  const selected=state.clients.find(x=>x.id===saleClientId.value);
+  if(selected && selected.name!==text){
+    clearSaleClientSelection();
+  }
+
+  if(saleClientId.value){
+    saleClientMatches.classList.add('hidden');
+    return;
+  }
+
+  if(text.length<2){
+    saleClientMatches.classList.add('hidden');
+    saleNewClientFields.classList.remove('hidden');
+    saleClientHint.innerHTML='Escribí al menos 2 letras para buscar clientes existentes.';
+    return;
+  }
+
+  const matches=clientMatchesByText(text);
+
+  if(matches.length){
+    saleClientMatches.innerHTML=matches.map(c=>`
+      <button type="button" class="clientMatch" onclick="selectSaleClient('${c.id}')">
+        <b>${esc(c.name)}</b>
+        <small>${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</small>
+      </button>
+    `).join('');
+    saleClientMatches.classList.remove('hidden');
+
+    const exact=clientsByExactName(text);
+    if(exact.length>1){
+      saleClientHint.innerHTML=`Hay <b>${exact.length} clientes llamados ${esc(text)}</b>. Elegí el correcto por su número.`;
+    }else{
+      saleClientHint.innerHTML='Elegí un cliente de la lista o completá teléfono si querés crear uno nuevo.';
+    }
+  }else{
+    saleClientMatches.classList.add('hidden');
+    saleClientHint.innerHTML=`Cliente nuevo: <b>${esc(text)}</b> se creará al guardar la venta.`;
+  }
+
+  saleNewClientFields.classList.remove('hidden');
+}
+function addSaleRow(){
+  const d=document.createElement('div');d.className='card saleRow';
+  d.innerHTML=`<button class="btn danger small removeRow" onclick="this.closest('.saleRow').remove();updateSaleDistribution()">Quitar</button>
+  <label>Servicio</label>
+  <input class="siServiceName" list="serviceNamesGlobal" placeholder="Ej: Disney+" oninput="syncSaleRow(this);refreshRowAccountSuggestionsFromService(this)">
+  <datalist id="serviceNamesGlobal">${serviceNameOptions()}</datalist>
+  <div class="siServiceHint hint">Si el servicio no existe, se creará automáticamente.</div>
+
+  <label>Correo / cuenta del servicio</label>
+  <div class="clientPicker">
+    <input class="siAccountEmail" autocomplete="off" placeholder="Escribí para buscar una cuenta..."
+      oninput="updateSaleAccountSuggestions(this);syncSaleRow(this)"
+      onfocus="updateSaleAccountSuggestions(this)">
+    <div class="siAccountMatches clientMatches hidden"></div>
+  </div>
+  <div class="siAccountHint hint">Elegí una cuenta ya usada para este servicio o escribí un correo nuevo.</div>
+
+  <div class="siNewAccount inlineNew">
+    <div class="tiny muted">Configuración del correo</div>
+    <label>¿Cómo administrás esta cuenta?</label>
+    <select class="siMode" onchange="syncAccountMode(this)">
+      <option value="provider_managed">El proveedor me vende este perfil</option>
+      <option value="full_account">Yo administro la cuenta completa</option>
+    </select>
+
+    <div class="siCapacityWrap hidden">
+      <label>¿Cuántos cupos totales tiene?</label>
+      <input class="siCapacity" type="number" min="1" value="5">
+    </div>
+
+    <div class="siProviderPurchase">
+      <label>Proveedor</label>
+      <select class="siSupplier">${inlineSupplierOptions()}</select>
+      <div class="grid2">
+        <div><label>Costo de este perfil</label><input class="siProviderCost" type="number" step="0.01"></div>
+        <div><label>Moneda</label><select class="siProviderCurrency"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select></div>
+      </div>
+      <div class="grid2">
+        <div><label>Fecha de compra</label><input class="siProviderPurchaseDate" type="date" value="${today()}"></div>
+        <div><label>Vence con proveedor</label><input class="siProviderExpiry" type="date" value="${addDays(today(),30)}"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="siExistingSlot hidden">
+    <label>Perfil/cupo disponible</label>
+    <select class="siSlot"></select>
+  </div>
+
+  <div class="siProviderExistingActions inlineNew hidden">
+    <div class="tiny muted">Esta cuenta ya existe y la administra el proveedor.</div>
+    <label>¿Qué querés hacer?</label>
+    <select class="siProviderAction" onchange="syncProviderExistingAction(this)">
+      <option value="use_free">Usar un perfil comprado que está libre</option>
+      <option value="buy_new">Compré otro perfil en este mismo correo</option>
+      <option value="convert_full">Ahora administro la cuenta completa</option>
+    </select>
+
+    <div class="siBuyNewProfile hidden">
+      <label>Proveedor</label>
+      <select class="siExistingSupplier">${inlineSupplierOptions()}</select>
+      <div class="grid2">
+        <div><label>Costo del nuevo perfil</label><input class="siExistingCost" type="number" step="0.01"></div>
+        <div><label>Moneda</label><select class="siExistingCurrency"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select></div>
+      </div>
+      <div class="grid2">
+        <div><label>Fecha compra</label><input class="siExistingPurchaseDate" type="date" value="${today()}"></div>
+        <div><label>Vence proveedor</label><input class="siExistingExpiry" type="date" value="${addDays(today(),30)}"></div>
+      </div>
+    </div>
+
+    <div class="siConvertFull hidden">
+      <label>Capacidad total de la cuenta completa</label>
+      <input class="siConvertCapacity" type="number" min="1" value="7">
+    </div>
+  </div>
+
+  <label>Nombre del perfil</label><input class="siProfile" placeholder="Ej: Pepito, Perfil 2, TV">
+  <label>Contraseña de la cuenta</label><input class="siPassword" placeholder="Dejala vacía si no corresponde">
+  <label class="checkrow"><input class="siIncludePassword" type="checkbox" checked> Incluir contraseña en el mensaje al cliente</label>
+  <label>Dispositivos/pantallas contratados</label><input class="siDevices" type="number" min="1" value="1">
+  <label>Nota de entrega opcional</label><input class="siDeliveryNotes" placeholder="Ej: No modificar perfiles">
+
+  <label>Costo / inversión de este servicio</label>
+  <input class="siCost" type="number" step="0.01" oninput="updateSaleDistribution()" placeholder="Lo que te costó">
+
+  <div class="grid2">
+    <div><label>Inicio</label><input class="siStart" type="date" value="${saleDate?.value||today()}" onchange="autoEndDate(this)"></div>
+    <div><label>Vence</label><input class="siEnd" type="date" value="${addDays(saleDate?.value||today(),30)}"></div>
+  </div>`;
+  saleBuilder.appendChild(d);
+  syncSaleRow(d.querySelector('.siServiceName'));
+  updateSaleDistribution();
+}
+
+
+function syncSaleDatesFromSaleDate(){
+  const base=saleDate?.value||today();
+  document.querySelectorAll('.saleRow').forEach(row=>{
+    const start=row.querySelector('.siStart');
+    const end=row.querySelector('.siEnd');
+    const sv=findServiceByName(row.querySelector('.siServiceName')?.value||'');
+    if(start)start.value=base;
+    if(end){
+      const calculated=calculateServiceEndDate(base,sv);
+      if(calculated)end.value=calculated;
+      else if(serviceRenewalType(sv)==='manual')end.value='';
+    }
+  });
+}
+
+function autoEndDate(el){
+  const row=el.closest('.saleRow');
+  const sv=findServiceByName(row.querySelector('.siServiceName').value);
+  const end=row.querySelector('.siEnd');
+  const calculated=calculateServiceEndDate(el.value,sv);
+  if(calculated)end.value=calculated;
+  else if(serviceRenewalType(sv)==='manual')end.value='';
+}
+function syncAccountMode(el){
+  const row=el.closest('.saleRow');
+  const cap=row.querySelector('.siCapacityWrap');
+  const provider=row.querySelector('.siProviderPurchase');
+  if(el.value==='full_account'){
+    cap.classList.remove('hidden');
+    provider.classList.add('hidden');
+  }else{
+    cap.classList.add('hidden');
+    provider.classList.remove('hidden');
+    row.querySelector('.siCapacity').value=1;
+  }
+}
+
+function syncProviderExistingAction(el){
+  const row=el.closest('.saleRow');
+  const buy=row.querySelector('.siBuyNewProfile');
+  const convert=row.querySelector('.siConvertFull');
+  const slotWrap=row.querySelector('.siExistingSlot');
+  buy.classList.add('hidden');
+  convert.classList.add('hidden');
+
+  if(el.value==='buy_new'){
+    buy.classList.remove('hidden');
+    slotWrap.classList.add('hidden');
+  }else if(el.value==='convert_full'){
+    convert.classList.remove('hidden');
+    slotWrap.classList.add('hidden');
+  }else{
+    slotWrap.classList.remove('hidden');
+  }
+}
+
+
+function accountsForServiceSuggestion(row,query=''){
+  const serviceName=row.querySelector('.siServiceName')?.value.trim()||'';
+  const service=findServiceByName(serviceName);
+  if(!service)return [];
+
+  const q=normalizeAccountEmail(query);
+  const grouped=new Map();
+
+  state.accounts
+    .filter(a=>!a.archived_at && a.status==='active' && a.service_id===service.id && a.login_email)
+    .filter(a=>!q || normalizeAccountEmail(a.login_email).includes(q))
+    .forEach(a=>{
+      const key=normalizeAccountEmail(a.login_email);
+      const free=state.slots.filter(s=>s.account_id===a.id&&s.active&&!activeAssignSlot(s.id)).length;
+      const total=state.slots.filter(s=>s.account_id===a.id&&s.active).length;
+      const current=grouped.get(key);
+      if(!current || free>current._free || (free===current._free && total>current._total)){
+        grouped.set(key,{...a,_free:free,_total:total});
+      }
+    });
+
+  return [...grouped.values()]
+    .sort((a,b)=>(a.login_email||'').localeCompare(b.login_email||'','es'))
+    .slice(0,12);
+}
+function accountFreeSlotsCount(accountId){
+  return state.slots.filter(s=>s.account_id===accountId&&s.active&&!activeAssignSlot(s.id)).length;
+}
+
+function updateSaleAccountSuggestions(input){
+  const row=input.closest('.saleRow');
+  if(!row)return;
+
+  const box=row.querySelector('.siAccountMatches');
+  if(!box)return;
+
+  const serviceName=row.querySelector('.siServiceName')?.value.trim()||'';
+  const service=findServiceByName(serviceName);
+
+  if(!service){
+    box.classList.add('hidden');
+    box.innerHTML='';
+    return;
+  }
+
+  const matches=accountsForServiceSuggestion(row,input.value);
+
+  if(!matches.length){
+    box.classList.add('hidden');
+    box.innerHTML='';
+    return;
+  }
+
+  box.innerHTML=matches.map(a=>{
+    const free=(a._free!==undefined?a._free:accountFreeSlotsCount(a.id));
+    const mode=a.account_mode==='provider_managed'?'Proveedor':'Cuenta completa';
+    return `<button type="button" class="clientMatch" onclick="chooseSaleAccount(this,'${a.id}')">
+      <b>${esc(a.login_email)}</b>
+      <small>${mode} · ${free} cupo(s) libre(s)</small>
+    </button>`;
+  }).join('');
+
+  box.classList.remove('hidden');
+}
+
+function chooseSaleAccount(button,accountId){
+  const row=button.closest('.saleRow');
+  const account=state.accounts.find(a=>a.id===accountId);
+  if(!row||!account)return;
+
+  const input=row.querySelector('.siAccountEmail');
+  input.value=account.login_email||'';
+
+  const pass=row.querySelector('.siPassword');
+  if(pass && account.login_password && !pass.value){
+    pass.value=account.login_password;
+  }
+
+  const box=row.querySelector('.siAccountMatches');
+  box.classList.add('hidden');
+  box.innerHTML='';
+
+  syncSaleRow(input);
+}
+
+function refreshRowAccountSuggestionsFromService(serviceInput){
+  const row=serviceInput.closest('.saleRow');
+  if(!row)return;
+
+  const email=row.querySelector('.siAccountEmail');
+  const box=row.querySelector('.siAccountMatches');
+
+  // Si cambia el servicio, no dejamos visible una lista del servicio anterior.
+  if(box){
+    box.classList.add('hidden');
+    box.innerHTML='';
+  }
+
+  if(email && email.value.trim()){
+    updateSaleAccountSuggestions(email);
+  }
+}
+
+function syncSaleRow(el){
+  const row=el.closest('.saleRow');if(!row)return;
+  const serviceName=row.querySelector('.siServiceName').value.trim();
+  const sv=findServiceByName(serviceName);
+  const serviceHint=row.querySelector('.siServiceHint');
+  const mode=row.querySelector('.siMode');
+  const cap=row.querySelector('.siCapacity');
+
+  if(sv){
+    serviceHint.innerHTML=`✓ Servicio existente: <b>${esc(sv.name)}</b>.`;
+    if(sv.default_account_mode)mode.value=sv.default_account_mode;
+    cap.value=sv.default_capacity||((mode.value==='full_account')?5:1);
+    {
+      const calculated=calculateServiceEndDate(row.querySelector('.siStart').value,sv);
+      row.querySelector('.siEnd').value=calculated||'';
+      serviceHint.innerHTML+=` <span class="tiny muted">Renovación: ${esc(renewalRuleLabel(sv))}.</span>`;
+    }
+  }else if(serviceName){
+    serviceHint.innerHTML=`Nuevo servicio: <b>${esc(serviceName)}</b> se guardará automáticamente.`;
+  }else{
+    serviceHint.textContent='Si el servicio no existe, se creará automáticamente.';
+  }
+
+  syncAccountMode(mode);
+
+  const email=row.querySelector('.siAccountEmail').value.trim();
+  const ac=email?findAccountByEmail(email,sv?.id):null;
+  const ah=row.querySelector('.siAccountHint');
+  const newBox=row.querySelector('.siNewAccount');
+  const slotWrap=row.querySelector('.siExistingSlot');
+  const slotSelect=row.querySelector('.siSlot');
+  const providerExisting=row.querySelector('.siProviderExistingActions');
+
+  providerExisting.classList.add('hidden');
+
+  if(ac){
+    const free=state.slots.filter(s=>s.account_id===ac.id&&s.active&&!activeAssignSlot(s.id));
+    newBox.classList.add('hidden');
+
+    if(ac.account_mode==='provider_managed'){
+      ah.innerHTML=`✓ Este correo ya existe como <b>cuenta administrada por proveedor</b>. Tenés ${state.slots.filter(s=>s.account_id===ac.id).length} perfil(es) comprado(s) y ${free.length} libre(s).`;
+      providerExisting.classList.remove('hidden');
+      slotSelect.innerHTML=freeSlotOptionsForAccount(ac.id)||'<option value="">No hay perfiles comprados libres</option>';
+      const action=row.querySelector('.siProviderAction');
+      action.value=free.length?'use_free':'buy_new';
+      syncProviderExistingAction(action);
+    }else{
+      ah.innerHTML=`✓ Cuenta completa existente: <b>${esc(ac.login_email||'')}</b> · ${free.length} cupo(s) libre(s).`;
+      slotWrap.classList.remove('hidden');
+      slotSelect.innerHTML=freeSlotOptionsForAccount(ac.id)||'<option value="">Sin cupos libres</option>';
+    }
+  }else{
+    slotWrap.classList.add('hidden');
+    newBox.classList.remove('hidden');
+    if(email) ah.innerHTML=`Correo nuevo: <b>${esc(email)}</b>. Indicá si lo administrás completo o si el proveedor sólo te vendió este perfil.`;
+    else ah.textContent=sv?`Escribí el correo: te voy a sugerir solamente cuentas de ${sv.name}.`:'Elegí primero el servicio y después escribí el correo.';
+  }
+}
+function updateSaleDistribution(){
+  if(!window.saleDist)return;
+  const total=Number(saleTotal?.value||0);
+  const invested=[...document.querySelectorAll('.siCost')].reduce((a,x)=>a+Number(x.value||0),0);
+  const profit=total-invested;
+  const margin=total>0?(profit/total*100):0;
+  saleDist.innerHTML=`Total cobrado: <b>${money(total,saleCurr?.value||'ARS')}</b><br>
+    Total invertido: <b>${money(invested,saleCurr?.value||'ARS')}</b><br>
+    Ganancia: <b>${money(profit,saleCurr?.value||'ARS')}</b> · Margen: <b>${margin.toFixed(1)}%</b>`;
+}
+async function resolveClientForSale(){
+  const selectedId=document.getElementById('saleClientId')?.value||'';
+
+  if(selectedId){
+    const selected=state.clients.find(c=>c.id===selectedId);
+    if(!selected)throw new Error('El cliente seleccionado ya no está disponible.');
+    return selected;
+  }
+
+  const name=saleClientName.value.trim();
+  if(!name)throw new Error('Ingresá el nombre del cliente.');
+
+  const exact=clientsByExactName(name);
+
+  if(exact.length>1){
+    throw new Error(`Hay varios clientes llamados "${name}". Elegí el correcto de la lista usando su teléfono.`);
+  }
+
+  if(exact.length===1){
+    throw new Error(`Ya existe un cliente llamado "${name}". Seleccionalo de la lista para confirmar que es la persona correcta.`);
+  }
+
+  const raw=saleClientPhone.value.trim();
+  if(!raw){
+    const ok=confirm(`Vas a crear un cliente nuevo llamado "${name}" sin número de teléfono. ¿Continuar?`);
+    if(!ok)throw new Error('Completá el número del cliente.');
+  }
+
+  const r=await sb.from('clients').insert({
+    name,
+    phone_raw:raw||null,
+    phone_e164:normalizePhone(raw)||null
+  }).select().single();
+
+  if(r.error)throw r.error;
+  state.clients.push(r.data);
+  return r.data;
+}
+async function resolveServiceForRow(row){
+  const name=row.querySelector('.siServiceName').value.trim();if(!name)throw new Error('Hay un ítem sin nombre de servicio.');
+  let sv=findServiceByName(name);if(sv)return sv;
+  const mode=row.querySelector('.siMode').value;
+  const capacity=mode==='full_account'?Number(row.querySelector('.siCapacity').value||1):1;
+  const r=await sb.from('services').insert({
+    name,
+    default_duration_days:30,
+    renewal_type:'days',
+    renewal_days:30,
+    default_account_mode:mode,
+    default_capacity:capacity,
+    active:true
+  }).select().single();
+  if(r.error)throw r.error;
+  state.services.push(r.data);return r.data;
+}
+async function createProviderProfilePurchase(row,service,existing=false){
+  const supplierSel=existing?row.querySelector('.siExistingSupplier'):row.querySelector('.siSupplier');
+  const costEl=existing?row.querySelector('.siExistingCost'):row.querySelector('.siProviderCost');
+  const currEl=existing?row.querySelector('.siExistingCurrency'):row.querySelector('.siProviderCurrency');
+  const dateEl=existing?row.querySelector('.siExistingPurchaseDate'):row.querySelector('.siProviderPurchaseDate');
+  const expEl=existing?row.querySelector('.siExistingExpiry'):row.querySelector('.siProviderExpiry');
+
+  const pr=await sb.from('purchases').insert({
+    supplier_id:supplierSel?.value||null,
+    service_id:service.id,
+    purchase_type:'provider_profile',
+    total_cost:Number(costEl?.value||0),
+    currency:currEl?.value||'USDT',
+    purchased_at:dateEl?.value||today(),
+    expires_at:expEl?.value||addDays(today(),30),
+    status:'active'
+  }).select().single();
+  if(pr.error)throw pr.error;
+  return pr.data;
+}
+
+async function resolveAccountAndSlot(row,service){
+  const email=row.querySelector('.siAccountEmail').value.trim();
+  if(!email)return {account:null,slotId:null,purchaseId:null};
+
+  let ac=findAccountByEmail(email,service.id);
+
+  // v15: si el correo ya existe para este servicio, se reutiliza y no se crea otra cuenta.
+  if(ac){
+    const typedPassword=row.querySelector('.siPassword')?.value.trim();
+    if(typedPassword && typedPassword!==ac.login_password){
+      const upr=await sb.from('accounts').update({login_password:typedPassword}).eq('id',ac.id);
+      if(upr.error)throw upr.error;
+      ac.login_password=typedPassword;
+    }
+    if(ac.account_mode==='full_account'){
+      const chosen=row.querySelector('.siSlot').value;
+      if(!chosen)throw new Error(`La cuenta completa ${email} no tiene un cupo libre seleccionado.`);
+      return {account:ac,slotId:chosen,purchaseId:null};
+    }
+
+    const action=row.querySelector('.siProviderAction').value;
+
+    if(action==='use_free'){
+      const chosen=row.querySelector('.siSlot').value;
+      if(!chosen)throw new Error(`No hay un perfil comprado libre en ${email}.`);
+      return {account:ac,slotId:chosen,purchaseId:null};
+    }
+
+    if(action==='buy_new'){
+      const purchase=await createProviderProfilePurchase(row,service,true);
+      const rr=await sb.rpc('add_provider_profile',{
+        p_account_id:ac.id,
+        p_purchase_id:purchase.id
+      });
+      if(rr.error)throw rr.error;
+      const sl=await sb.from('account_slots').select('*').eq('id',rr.data).single();
+      if(sl.error)throw sl.error;
+      state.slots.push(sl.data);
+      return {account:ac,slotId:sl.data.id,purchaseId:purchase.id};
+    }
+
+    if(action==='convert_full'){
+      const capacity=Number(row.querySelector('.siConvertCapacity').value||0);
+      if(capacity<1)throw new Error('Indicá la capacidad total de la cuenta.');
+      const rr=await sb.rpc('convert_provider_account_to_full',{
+        p_account_id:ac.id,
+        p_total_capacity:capacity,
+        p_purchase_id:null
+      });
+      if(rr.error)throw rr.error;
+      await refreshAll();
+      ac=findAccountByEmail(email,service.id);
+      const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
+      const free=state.slots.filter(s=>s.account_id===ac.id&&s.active&&!occ.has(s.id));
+      if(!free.length)throw new Error('La cuenta convertida no tiene cupos libres.');
+      return {account:ac,slotId:free[0].id,purchaseId:null};
+    }
+  }
+
+  const mode=row.querySelector('.siMode').value;
+
+  if(mode==='provider_managed'){
+    const purchase=await createProviderProfilePurchase(row,service,false);
+
+    const ar=await sb.from('accounts').insert({
+      service_id:service.id,
+      purchase_id:purchase.id,
+      supplier_id:purchase.supplier_id,
+      login_email:email,
+      account_mode:'provider_managed',
+      capacity:1,
+      status:'active',
+      provider_expires_at:purchase.expires_at,
+      login_password:row.querySelector('.siPassword')?.value.trim()||null
+    }).select().single();
+    if(ar.error)throw ar.error;
+    ac=ar.data;
+
+    const sl=await sb.from('account_slots').select('*').eq('account_id',ac.id).order('slot_number');
+    if(sl.error)throw sl.error;
+    state.accounts.push(ac);
+    state.slots.push(...(sl.data||[]));
+    const first=(sl.data||[])[0];
+    if(!first)throw new Error(`No se pudo crear el perfil comprado en ${email}.`);
+    return {account:ac,slotId:first.id,purchaseId:purchase.id};
+  }
+
+  const capacity=Number(row.querySelector('.siCapacity').value||1);
+  if(capacity<1)throw new Error(`La cuenta ${email} necesita al menos 1 cupo.`);
+
+  const ar=await sb.from('accounts').insert({
+    service_id:service.id,
+    login_email:email,
+    account_mode:'full_account',
+    capacity,
+    status:'active',
+    login_password:row.querySelector('.siPassword')?.value.trim()||null
+  }).select().single();
+  if(ar.error)throw ar.error;
+  ac=ar.data;
+
+  const sl=await sb.from('account_slots').select('*').eq('account_id',ac.id).order('slot_number');
+  if(sl.error)throw sl.error;
+  state.accounts.push(ac);
+  state.slots.push(...(sl.data||[]));
+  const first=(sl.data||[])[0];
+  if(!first)throw new Error(`No se pudo generar el primer cupo de ${email}.`);
+  return {account:ac,slotId:first.id,purchaseId:null};
+}
+async function saveSale(){
+  const rows=[...document.querySelectorAll('.saleRow')];if(!rows.length)return alert('Agregá al menos un servicio.');
+  const total=Number(saleTotal.value||0);
+
+  try{
+    const client=await resolveClientForSale();
+    const sr=await sb.from('sales').insert({
+      client_id:client.id,
+      sold_at:saleDate.value||today(),
+      total_amount:total,
+      currency:saleCurr.value
+    }).select().single();
+    if(sr.error)throw sr.error;
+
+    for(const row of rows){
+      const service=await resolveServiceForRow(row);
+      const resolved=await resolveAccountAndSlot(row,service);
+      const cost=row.querySelector('.siCost').value;
+
+      const ir=await sb.from('sale_items').insert({
+        sale_id:sr.data.id,
+        service_id:service.id,
+        allocated_revenue:rows.length?total/rows.length:total,
+        direct_cost:cost?Number(cost):null,
+        direct_cost_currency:saleCurr.value,
+        start_date:row.querySelector('.siStart').value||today(),
+        end_date:row.querySelector('.siEnd').value||calculateServiceEndDate(row.querySelector('.siStart').value||today(),service)||null,
+        include_password:row.querySelector('.siIncludePassword').checked,
+        contracted_devices:Number(row.querySelector('.siDevices').value||1),
+        delivery_notes:row.querySelector('.siDeliveryNotes').value.trim()||null,
+        provider_raw_text:document.getElementById('saleExtractorText')?.value.trim()||null,
+        purchase_id:resolved.purchaseId||null
+      }).select().single();
+      if(ir.error)throw ir.error;
+
+      if(resolved.slotId){
+        const ar=await sb.from('slot_assignments').insert({
+          account_slot_id:resolved.slotId,
+          sale_item_id:ir.data.id,
+          client_id:client.id,
+          profile_name:row.querySelector('.siProfile').value.trim()||null
+        });
+        if(ar.error)throw ar.error;
+      }
+    }
+
+    closeModal();
+    await refreshAll();
+    alert('Venta guardada. MISAKROOS creó automáticamente los datos nuevos que hacían falta.');
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
+function editSaleAccountOptions(item){
+  const currentAssign=activeAssignItem(item.id);
+  const currentSlot=currentAssign&&slotBy(currentAssign.account_slot_id);
+  const currentAccount=currentSlot&&accountBy(currentSlot.account_id);
+
+  const accounts=state.accounts.filter(a=>!a.archived_at&&a.service_id===item.service_id&&a.status==='active');
+  let opts='<option value="">Sin cuenta asignada</option>';
+  for(const a of accounts){
+    const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
+    const available=slots.filter(s=>{
+      const occ=activeAssignSlot(s.id);
+      return !occ || occ.sale_item_id===item.id;
+    });
+    if(available.length){
+      opts+=`<optgroup label="${esc(a.login_email||'Cuenta')}">`;
+      for(const sl of available){
+        opts+=`<option value="${sl.id}" ${currentSlot?.id===sl.id?'selected':''}>${esc(a.login_email||'Cuenta')} · Cupo ${sl.slot_number}</option>`;
+      }
+      opts+='</optgroup>';
+    }
+  }
+  return opts;
+}
+
+function openEditSaleItemModal(itemId){
+  const i=state.saleItems.find(x=>x.id===itemId);if(!i)return;
+  const sale=saleBy(i.sale_id),client=sale&&clientBy(sale.client_id);
+  const as=activeAssignItem(i.id);
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">Editar servicio de la venta</div>
+        <div class="tiny muted">${esc(client?.name||'')} · ${esc(serviceBy(i.service_id)?.name||'')}</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <label>Cliente</label>
+    <select id="editSaleClient">
+      ${state.clients.filter(c=>!c.archived_at).map(c=>`<option value="${c.id}" ${c.id===sale.client_id?'selected':''}>${esc(c.name)} · ${esc(c.phone_e164||c.phone_raw||'Sin teléfono')}</option>`).join('')}
+    </select>
+
+    <div class="grid2">
+      <div><label>Total cobrado de la venta</label><input id="editSaleTotal" type="number" step="0.01" value="${Number(sale.total_amount||0)}"></div>
+      <div><label>Moneda</label><select id="editSaleCurr">
+        ${['ARS','UYU','CLP','USD','USDT'].map(x=>`<option ${x===sale.currency?'selected':''}>${x}</option>`).join('')}
+      </select></div>
+    </div>
+
+    <label>Fecha de venta</label><input id="editSoldAt" type="date" value="${esc(sale.sold_at||i.start_date||today())}">
+
+    <label>Servicio</label>
+    <select id="editService" onchange="updateEditSaleRenewal()">
+      ${state.services.map(s=>`<option value="${s.id}" ${s.id===i.service_id?'selected':''}>${esc(s.name)}</option>`).join('')}
+    </select>
+
+    <label>Cuenta / cupo</label>
+    <select id="editSlot">${editSaleAccountOptions(i)}</select>
+    <div class="tiny muted">Si cambiás de cuenta, el cupo anterior se libera automáticamente.</div>
+
+    <label>Perfil</label><input id="editProfile" value="${esc(as?.profile_name||'')}">
+
+    <div class="grid2">
+      <div><label>Inicio</label><input id="editStart" type="date" value="${esc(i.start_date||sale.sold_at||today())}" onchange="updateEditSaleRenewal()"></div>
+      <div><label>Vence</label><input id="editEnd" type="date" value="${esc(i.end_date||calculateServiceEndDate(i.start_date||today(),serviceBy(i.service_id))||'')}"></div>
+    </div>
+    <div id="editRenewalHint" class="tiny muted"></div>
+
+    <label>Costo / inversión</label><input id="editCost" type="number" step="0.01" value="${i.direct_cost==null?'':Number(i.direct_cost)}">
+
+    <label>Dispositivos/pantallas</label><input id="editDevices" type="number" min="1" value="${Number(i.contracted_devices||1)}">
+    <label class="checkrow"><input id="editIncludePassword" type="checkbox" ${i.include_password!==false?'checked':''}> Incluir contraseña al enviar</label>
+    <label>Nota de entrega</label><textarea id="editDeliveryNotes">${esc(i.delivery_notes||'')}</textarea>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveEditedSaleItem('${itemId}')">Guardar cambios</button>
+  `);
+  updateEditSaleRenewal(false);
+}
+
+function updateEditSaleRenewal(changeDate=true){
+  const service=serviceBy(document.getElementById('editService')?.value);
+  const start=document.getElementById('editStart')?.value||today();
+  const end=document.getElementById('editEnd');
+  const hint=document.getElementById('editRenewalHint');
+  if(!service||!end)return;
+
+  const calculated=calculateServiceEndDate(start,service);
+  if(changeDate){
+    if(calculated)end.value=calculated;
+    else if(serviceRenewalType(service)==='manual')end.value='';
+  }
+  if(hint)hint.textContent=`Regla de ${service.name}: ${renewalRuleLabel(service)}.`;
+}
+
+async function saveEditedSaleItem(itemId){
+  const i=state.saleItems.find(x=>x.id===itemId);if(!i)return;
+  const sale=saleBy(i.sale_id);
+  try{
+    const saleUpdate=await sb.from('sales').update({
+      client_id:editSaleClient.value,
+      total_amount:Number(editSaleTotal.value||0),
+      currency:editSaleCurr.value,
+      sold_at:editSoldAt.value||today()
+    }).eq('id',sale.id);
+    if(saleUpdate.error)throw saleUpdate.error;
+
+    const itemUpdate=await sb.from('sale_items').update({
+      service_id:editService.value,
+      direct_cost:editCost.value===''?null:Number(editCost.value),
+      direct_cost_currency:editSaleCurr.value,
+      start_date:editStart.value||editSoldAt.value||today(),
+      end_date:editEnd.value||calculateServiceEndDate(editStart.value||editSoldAt.value||today(),serviceBy(editService.value))||null,
+      contracted_devices:Number(editDevices.value||1),
+      include_password:editIncludePassword.checked,
+      delivery_notes:editDeliveryNotes.value.trim()||null
+    }).eq('id',itemId);
+    if(itemUpdate.error)throw itemUpdate.error;
+
+    const oldAssign=activeAssignItem(itemId);
+    const newSlotId=editSlot.value||null;
+
+    if(oldAssign && oldAssign.account_slot_id!==newSlotId){
+      const rel=await sb.from('slot_assignments').update({
+        released_at:new Date().toISOString(),
+        release_reason:'Cambio de cuenta al editar venta'
+      }).eq('id',oldAssign.id);
+      if(rel.error)throw rel.error;
+    }
+
+    if(newSlotId){
+      const stillCurrent=oldAssign && oldAssign.account_slot_id===newSlotId;
+      if(stillCurrent){
+        const up=await sb.from('slot_assignments').update({
+          client_id:editSaleClient.value,
+          profile_name:editProfile.value.trim()||null
+        }).eq('id',oldAssign.id);
+        if(up.error)throw up.error;
+      }else{
+        const ins=await sb.from('slot_assignments').insert({
+          account_slot_id:newSlotId,
+          sale_item_id:itemId,
+          client_id:editSaleClient.value,
+          profile_name:editProfile.value.trim()||null
+        });
+        if(ins.error)throw ins.error;
+      }
+    }else if(oldAssign && oldAssign.account_slot_id===newSlotId){
+      const up=await sb.from('slot_assignments').update({
+        client_id:editSaleClient.value,
+        profile_name:editProfile.value.trim()||null
+      }).eq('id',oldAssign.id);
+      if(up.error)throw up.error;
+    }
+
+    closeModal();
+    await refreshAll();
+    alert('Venta actualizada ✅');
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
+async function markItem(id,status){const r=await sb.from('sale_items').update({workflow_status:status}).eq('id',id);if(r.error)return alert(r.error.message);refreshAll()}
+async function renewItem(id){
+  const i=state.saleItems.find(x=>x.id===id);
+  if(!i)return;
+  const service=serviceBy(i.service_id);
+  const ns=prompt('Nueva fecha de inicio',i.end_date||today());
+  if(!ns)return;
+
+  let suggested=calculateServiceEndDate(ns,service);
+  if(serviceRenewalType(service)==='manual'){
+    suggested='';
+  }
+
+  const ne=prompt(`Nuevo vencimiento · ${renewalRuleLabel(service)}`,suggested);
+  if(!ne)return;
+
+  const r=await sb.from('sale_items').update({
+    start_date:ns,
+    end_date:ne,
+    workflow_status:'active'
+  }).eq('id',id);
+
+  if(r.error)return alert(r.error.message);
+  refreshAll();
+}
+async function releaseItem(id){if(!confirm('¿Liberar este cupo?'))return;const a=activeAssignItem(id);if(a)await sb.from('slot_assignments').update({released_at:new Date().toISOString(),release_reason:'Liberación manual'}).eq('id',a.id);await sb.from('sale_items').update({workflow_status:'not_renewing'}).eq('id',id);refreshAll()}
+function openMigrateModal(oldId){const a=accountBy(oldId),targets=state.accounts.filter(x=>x.id!==oldId&&x.status==='active'&&x.service_id===a.service_id);openModal(`<div class="sectionTitle">Migrar cuenta</div><p class="muted">Los perfiles activos se moverán a la nueva cuenta conservando sus vencimientos.</p><label>Cuenta destino</label><select id="migTarget">${targets.map(x=>`<option value="${x.id}">${esc(x.login_email||x.id)}</option>`).join('')}</select><button class="btn warn" style="width:100%;margin-top:10px" onclick="runMigration('${oldId}')">Migrar todos</button>`)}
+async function runMigration(oldId){if(!migTarget.value)return alert('No hay destino');const r=await sb.rpc('migrate_account',{p_old_account_id:oldId,p_new_account_id:migTarget.value});if(r.error)return alert(r.error.message);alert('Migrados: '+r.data);closeModal();refreshAll()}
+
+const VAPID_PUBLIC_KEY = 'BBoknqI_2XgGgvOmnRV7Pv5r6-eG7hvjSh2mQxXJM_zilH4ElzNw8K1cfAI9J6YqYQovxxIONFVESr4Jt25Ygwk';
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const rawData=atob(base64);
+  return Uint8Array.from([...rawData].map(c=>c.charCodeAt(0)));
+}
+
+async function enablePushNotifications(){
+  try{
+    if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
+      return alert('Este navegador no admite notificaciones push web.');
+    }
+    if(VAPID_PUBLIC_KEY.startsWith('PEGAR_')){
+      return alert('Primero falta configurar la clave pública VAPID. Te indico cómo hacerlo en el paso siguiente.');
+    }
+
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted')return alert('No se concedió permiso para mostrar notificaciones.');
+
+    const reg=await navigator.serviceWorker.register('./sw.js');
+    await navigator.serviceWorker.ready;
+
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+
+    const j=sub.toJSON();
+    const payload={
+      endpoint:j.endpoint,
+      p256dh:j.keys.p256dh,
+      auth_key:j.keys.auth,
+      user_agent:navigator.userAgent,
+      device_name:navigator.platform||'Dispositivo',
+      active:true,
+      last_used_at:new Date().toISOString()
+    };
+
+    const r=await sb.from('push_subscriptions')
+      .upsert(payload,{onConflict:'user_id,endpoint'});
+    if(r.error)throw r.error;
+
+    await refreshAll();
+    alert('Notificaciones activadas en este dispositivo ✅');
+  }catch(e){
+    console.error(e);
+    alert(e.message||String(e));
+  }
+}
+
+async function markNotificationsRead(){
+  const ids=(state.notifications||[]).filter(n=>!n.read_at).map(n=>n.id);
+  if(!ids.length)return;
+  const r=await sb.from('notifications').update({read_at:new Date().toISOString()}).in('id',ids);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();
+}
+
+// Register worker even before enabling push, so notification clicks work later.
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(console.error));
+}
+
+
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('gesturechange', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('gestureend', function(e){ e.preventDefault(); }, {passive:false});
+
+(async()=>{const {data}=await sb.auth.getSession();if(data.session)await boot()})();
+
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gestureend',e=>e.preventDefault(),{passive:false});
+
+let lastTouchEnd=0;
+document.addEventListener('touchend',function(e){
+  const now=Date.now();
+  if(now-lastTouchEnd<=300)e.preventDefault();
+  lastTouchEnd=now;
+},{passive:false});
+
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.clientPicker')){
+    document.querySelectorAll('.siAccountMatches').forEach(box=>{
+      box.classList.add('hidden');
+    });
+  }
+});
+
+</script>
+</body></html>
