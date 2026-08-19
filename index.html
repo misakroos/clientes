@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v20">
+<meta name="misakroos-version" content="v22">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v20</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v22</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -772,6 +772,55 @@ async function saveSaleHeader(saleId){
   await refreshAll();openSaleDetail(saleId);
 }
 
+
+function sendItemRenewalWhatsApp(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId);
+  if(!item)return alert('No se encontró este servicio.');
+
+  const sale=saleBy(item.sale_id);
+  const client=sale&&clientBy(sale.client_id);
+  const service=serviceBy(item.service_id);
+  const assignment=activeAssignItem(item.id);
+  const slot=assignment&&slotBy(assignment.account_slot_id);
+  const account=slot&&accountBy(slot.account_id);
+
+  if(!client)return alert('No se encontró el cliente.');
+
+  const phone=requireClientWhatsapp(client);
+  if(!phone)return;
+
+  const lines=[
+    `Hola ${client.name||''}, ¿qué tal?`,
+    '',
+    `Te escribo de MISAKROOS para avisarte que tu servicio está próximo a vencer.`,
+    '',
+    `Servicio: ${service?.name||'Servicio'}`
+  ];
+
+  if(account?.login_email){
+    lines.push(`Cuenta: ${account.login_email}`);
+  }
+
+  if(assignment?.profile_name){
+    lines.push(`Perfil: ${assignment.profile_name}`);
+  }
+
+  if(item.contracted_devices){
+    lines.push(`Dispositivos/pantallas: ${Number(item.contracted_devices)}`);
+  }
+
+  if(item.end_date){
+    lines.push(`Vencimiento: ${item.end_date}`);
+  }
+
+  lines.push('');
+  lines.push('¿Querés renovarlo?');
+  lines.push('');
+  lines.push('Si querés continuar, respondeme por acá y coordinamos la renovación.');
+
+  openWhatsApp(phone,lines.join('\n'));
+}
+
 function buildSaleDeliveryMessage(saleId){
   const sale=saleBy(saleId);if(!sale)return '';
   const client=saleClient(sale),items=saleItemsFor(saleId);
@@ -1008,7 +1057,7 @@ function sendRenewalWhatsApp(itemId){
     '',
     `Te escribimos de MISAKROOS para recordarte que tu ${service} vence el ${expiry}.`,
     '',
-    '¿Querés renovarlo? Respondeme por acá y te paso los datos para continuar 💙'
+    '¿Querés renovarlo? Respondeme por acá y te paso los datos para continuar.'
   ].join('\n');
 
   openWhatsApp(phone,msg);
@@ -1039,7 +1088,10 @@ function openClientDetail(id){
       <div class="tiny muted">Cuenta: ${esc(account?.login_email||'Sin cuenta')}</div>
       <div class="tiny"><b>Inicio:</b> ${esc(i.start_date||'-')} · <b>Vence:</b> ${esc(i.end_date||'-')}</div>
       <div class="tiny">Total de la venta: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
-      <button class="btn secondary small" style="margin-top:7px" onclick="openEditSaleItemModal('${i.id}')">Editar esta venta</button>
+      <div class="row wrap" style="margin-top:7px">
+        <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">Editar esta venta</button>
+        <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Enviar renovación</button>
+      </div>
     </div>`;
   }).join(''):'<div class="muted">Este cliente no tiene servicios asociados.</div>';
 
@@ -1251,7 +1303,8 @@ function openAccountDetail(accountId){
         <div class="tiny muted">Venta: ${sale?money(sale.total_amount||0,sale.currency||'ARS'):'-'}</div>
 
         <div class="row wrap" style="margin-top:8px">
-          ${item?`<button class="btn secondary small" onclick="openEditSaleItemModal('${item.id}')">✏️ Editar servicio</button>`:''}
+          ${item?`<button class="btn secondary small" onclick="openEditSaleItemModal('${item.id}')">✏️ Editar servicio</button>
+          <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${item.id}')">💬 Renovación</button>`:''}
           ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
         </div>
       </div>
