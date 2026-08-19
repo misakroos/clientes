@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v28.1">
+<meta name="misakroos-version" content="v28.2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v28.1</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v28.2</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -890,6 +890,48 @@ function updatePushBadge(){
   }
 }
 
+
+function formatDateAR(d){
+  if(!d)return '';
+  const parts=String(d).slice(0,10).split('-');
+  if(parts.length!==3)return String(d);
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function formatActivityDetails(log){
+  let d=log?.details||{};
+  if(typeof d==='string'){
+    try{ d=JSON.parse(d); }catch{ return d; }
+  }
+
+  const parts=[];
+
+  if(log?.action==='Venta creada' || log?.action==='Venta editada' || log?.action==='Venta eliminada'){
+    if(d.total!=null)parts.push(`Total: ${money(d.total,d.currency||'ARS')}`);
+    if(d.sold_at)parts.push(`Fecha: ${formatDateAR(d.sold_at)}`);
+    return parts.join(' · ') || 'Venta';
+  }
+
+  if(['Servicio agregado','Servicio actualizado','Servicio eliminado'].includes(log?.action)){
+    const service=serviceBy(d.service_id);
+    if(service?.name)parts.push(service.name);
+    if(d.end_date)parts.push(`Vence: ${formatDateAR(d.end_date)}`);
+    if(d.status)parts.push(`Estado: ${d.status}`);
+    return parts.join(' · ') || 'Servicio';
+  }
+
+  if(d.client_name)parts.push(d.client_name);
+  if(d.service_name)parts.push(d.service_name);
+  if(d.end_date)parts.push(`Vence: ${formatDateAR(d.end_date)}`);
+  if(d.total!=null)parts.push(`Total: ${money(d.total,d.currency||'ARS')}`);
+  if(d.from_account||d.to_account){
+    if(d.from_account)parts.push(`De: ${d.from_account}`);
+    if(d.to_account)parts.push(`A: ${d.to_account}`);
+  }
+
+  return parts.length?parts.join(' · '):'';
+}
+
 function renderActivityLog(){
   const box=document.getElementById('activityLogList');
   if(!box)return;
@@ -906,7 +948,7 @@ function renderActivityLog(){
     <div class="item">
       <b>${esc(x.action||'Actividad')}</b>
       <div class="tiny muted">${esc(x.entity_type||'')} ${x.entity_id?`· ${esc(x.entity_id)}`:''}</div>
-      <div class="tiny">${esc(typeof x.details==='string'?x.details:JSON.stringify(x.details||{}))}</div>
+      <div class="tiny">${esc(formatActivityDetails(x))}</div>
       <div class="tiny muted">${esc((x.created_at||'').slice(0,16).replace('T',' '))}</div>
     </div>
   `).join(''):'<div class="muted">Sin actividad.</div>';
@@ -928,7 +970,7 @@ function renderClientLogHtml(clientId){
   return rows.length?rows.slice(0,80).map(x=>`
     <div class="item">
       <b>${esc(x.action||'Actividad')}</b>
-      <div class="tiny">${esc(typeof x.details==='string'?x.details:JSON.stringify(x.details||{}))}</div>
+      <div class="tiny">${esc(formatActivityDetails(x))}</div>
       <div class="tiny muted">${esc((x.created_at||'').slice(0,16).replace('T',' '))}</div>
     </div>
   `).join(''):'<div class="muted">Sin actividad registrada para este cliente.</div>';
@@ -1697,8 +1739,10 @@ function openClientDetail(id){
       <div class="tiny"><b>Inicio:</b> ${esc(i.start_date||'-')} · <b>Vence:</b> ${esc(i.end_date||'-')}</div>
       <div class="tiny">Total de la venta: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
       <div class="row wrap" style="margin-top:7px">
-        <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">Editar esta venta</button>
-        <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Enviar renovación</button>
+        <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar venta</button>
+        <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta</button>
+        <button class="btn warn small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Enviar renovación</button>
+        <button class="btn ok small" onclick="renewSingleService('${i.id}')">🔄 Renovar servicio</button>
       </div>
     </div>`;
   }).join(''):'<div class="muted">Este cliente no tiene servicios asociados.</div>';
