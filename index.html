@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v25">
+<meta name="misakroos-version" content="v26">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v25</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v26</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -342,10 +342,14 @@ function renewalRuleLabel(service){
 
 function rowRenewalType(row,service){
   const el=row?.querySelector('.siRenewalType');
-  return el?.value || serviceRenewalType(service);
+  const value=el?.value || serviceRenewalType(service);
+  return value==='custom_days'?'days':value;
 }
 
 function rowRenewalDays(row,service){
+  const typeEl=row?.querySelector('.siRenewalType');
+  const value=typeEl?.value||serviceRenewalType(service);
+  if(value==='days')return 30;
   const el=row?.querySelector('.siRenewalDays');
   return Number(el?.value || serviceRenewalDays(service) || 30);
 }
@@ -361,26 +365,38 @@ function calculateRowEndDate(startDate,row,service){
 function syncSaleRowRenewalFields(select){
   const row=select.closest('.saleRow');
   if(!row)return;
-  const type=select.value;
+
+  const rawType=select.value;
   const daysWrap=row.querySelector('.siRenewalDaysWrap');
   const hint=row.querySelector('.siRenewalHint');
   const service=findServiceByName(row.querySelector('.siServiceName')?.value||'');
 
-  if(daysWrap)daysWrap.classList.toggle('hidden',type!=='days');
+  if(daysWrap)daysWrap.classList.toggle('hidden',rawType!=='custom_days');
 
   if(hint){
-    if(type==='monthly_same_day')hint.textContent='Mismo día del mes siguiente.';
-    else if(type==='manual')hint.textContent='Vencimiento manual: elegís la fecha.';
-    else hint.textContent=`${rowRenewalDays(row,service)} días exactos.`;
+    if(rawType==='monthly_same_day'){
+      hint.textContent='Ejemplo: 18/08 → 18/09.';
+    }else if(rawType==='manual'){
+      hint.textContent='Elegís vos la fecha exacta de vencimiento.';
+    }else if(rawType==='custom_days'){
+      hint.textContent=`${rowRenewalDays(row,service)} días desde la fecha de inicio.`;
+    }else{
+      hint.textContent='30 días exactos desde la fecha de inicio.';
+    }
   }
 
   const start=row.querySelector('.siStart')?.value;
   const end=row.querySelector('.siEnd');
+
   if(start&&end){
-    if(type==='manual'){
-      // Dejamos la fecha que ya estuviera cargada.
+    if(rawType==='manual'){
+      return;
+    }else if(rawType==='monthly_same_day'){
+      end.value=addMonthsSameDay(start,1);
+    }else if(rawType==='custom_days'){
+      end.value=addDays(start,rowRenewalDays(row,service));
     }else{
-      end.value=calculateRowEndDate(start,row,service);
+      end.value=addDays(start,30);
     }
   }
 }
@@ -389,8 +405,14 @@ function applyServiceRenewalDefaultsToRow(row,service){
   if(!row)return;
   const typeEl=row.querySelector('.siRenewalType');
   const daysEl=row.querySelector('.siRenewalDays');
-  if(typeEl)typeEl.value=serviceRenewalType(service);
-  if(daysEl)daysEl.value=serviceRenewalDays(service);
+  const type=serviceRenewalType(service);
+  const days=serviceRenewalDays(service);
+
+  if(typeEl){
+    if(type==='days' && days!==30)typeEl.value='custom_days';
+    else typeEl.value=type;
+  }
+  if(daysEl)daysEl.value=days||30;
   if(typeEl)syncSaleRowRenewalFields(typeEl);
 }
 
@@ -1957,16 +1979,17 @@ function addSaleRow(){
   <div class="sectionTitle" style="margin-top:14px">Renovación de este servicio</div>
   <label>Tipo de renovación</label>
   <select class="siRenewalType" onchange="syncSaleRowRenewalFields(this)">
-    <option value="days">Días exactos</option>
-    <option value="monthly_same_day">Mismo día del mes siguiente</option>
-    <option value="manual">Manual</option>
+    <option value="days">30 días exactos</option>
+    <option value="monthly_same_day">Mismo día del próximo mes</option>
+    <option value="custom_days">Otra cantidad de días</option>
+    <option value="manual">Elegir vencimiento manualmente</option>
   </select>
 
-  <div class="siRenewalDaysWrap">
-    <label>Cantidad de días</label>
+  <div class="siRenewalDaysWrap hidden">
+    <label>Cantidad personalizada de días</label>
     <input class="siRenewalDays" type="number" min="1" value="30" oninput="syncSaleRowRenewalFields(this.closest('.saleRow').querySelector('.siRenewalType'))">
   </div>
-  <div class="siRenewalHint tiny muted">30 días exactos.</div>
+  <div class="siRenewalHint tiny muted">30 días exactos desde la fecha de inicio.</div>
 
   <div class="grid2">
     <div><label>Inicio</label><input class="siStart" type="date" value="${saleDate?.value||today()}" onchange="autoEndDate(this)"></div>
@@ -2419,8 +2442,8 @@ async function saveSale(){
         allocated_revenue:rows.length?total/rows.length:total,
         direct_cost:cost?Number(cost):null,
         direct_cost_currency:saleCurr.value,
-      renewal_type_override:row.querySelector('.siRenewalType')?.value||null,
-      renewal_days_override:row.querySelector('.siRenewalType')?.value==='days'?Number(row.querySelector('.siRenewalDays')?.value||30):null,
+      renewal_type_override:(row.querySelector('.siRenewalType')?.value==='custom_days'?'days':row.querySelector('.siRenewalType')?.value)||null,
+      renewal_days_override:(['days','custom_days'].includes(row.querySelector('.siRenewalType')?.value))?(row.querySelector('.siRenewalType')?.value==='days'?30:Number(row.querySelector('.siRenewalDays')?.value||30)):null,
         start_date:row.querySelector('.siStart').value||today(),
         end_date:row.querySelector('.siEnd').value||calculateRowEndDate(row.querySelector('.siStart').value||today(),row,service)||null,
         include_password:row.querySelector('.siIncludePassword').checked,
@@ -2517,13 +2540,19 @@ function openEditSaleItemModal(itemId){
 
     <div class="sectionTitle" style="margin-top:14px">Renovación de este servicio</div>
     <label>Tipo de renovación</label>
-    <select id="editRenewalType" onchange="syncEditRenewalType()">
-      <option value="days" ${(i.renewal_type_override||serviceRenewalType(serviceBy(i.service_id)))==='days'?'selected':''}>Días exactos</option>
-      <option value="monthly_same_day" ${(i.renewal_type_override||serviceRenewalType(serviceBy(i.service_id)))==='monthly_same_day'?'selected':''}>Mismo día del mes siguiente</option>
-      <option value="manual" ${(i.renewal_type_override||serviceRenewalType(serviceBy(i.service_id)))==='manual'?'selected':''}>Manual</option>
-    </select>
+    ${(()=>{
+      const baseType=i.renewal_type_override||serviceRenewalType(serviceBy(i.service_id));
+      const baseDays=Number(i.renewal_days_override||serviceRenewalDays(serviceBy(i.service_id))||30);
+      const uiType=(baseType==='days'&&baseDays!==30)?'custom_days':baseType;
+      return `<select id="editRenewalType" onchange="syncEditRenewalType()">
+        <option value="days" ${uiType==='days'?'selected':''}>30 días exactos</option>
+        <option value="monthly_same_day" ${uiType==='monthly_same_day'?'selected':''}>Mismo día del próximo mes</option>
+        <option value="custom_days" ${uiType==='custom_days'?'selected':''}>Otra cantidad de días</option>
+        <option value="manual" ${uiType==='manual'?'selected':''}>Elegir vencimiento manualmente</option>
+      </select>`;
+    })()}
     <div id="editRenewalDaysWrap">
-      <label>Cantidad de días</label>
+      <label>Cantidad personalizada de días</label>
       <input id="editRenewalDays" type="number" min="1" value="${Number(i.renewal_days_override||serviceRenewalDays(serviceBy(i.service_id))||30)}" oninput="updateEditSaleRenewal()">
     </div>
 
@@ -2547,7 +2576,7 @@ function openEditSaleItemModal(itemId){
 
 function syncEditRenewalType(){
   const type=document.getElementById('editRenewalType')?.value||'days';
-  document.getElementById('editRenewalDaysWrap')?.classList.toggle('hidden',type!=='days');
+  document.getElementById('editRenewalDaysWrap')?.classList.toggle('hidden',type!=='custom_days');
   updateEditSaleRenewal();
 }
 
@@ -2556,20 +2585,22 @@ function updateEditSaleRenewal(changeDate=true){
   const start=document.getElementById('editStart')?.value||today();
   const end=document.getElementById('editEnd');
   const hint=document.getElementById('editRenewalHint');
-  const type=document.getElementById('editRenewalType')?.value||serviceRenewalType(service);
-  const days=Number(document.getElementById('editRenewalDays')?.value||serviceRenewalDays(service)||30);
+  const rawType=document.getElementById('editRenewalType')?.value||'days';
+  const days=rawType==='days'?30:Number(document.getElementById('editRenewalDays')?.value||30);
 
   if(!service||!end)return;
 
   if(changeDate){
-    if(type==='monthly_same_day')end.value=addMonthsSameDay(start,1);
-    else if(type==='days')end.value=addDays(start,days);
+    if(rawType==='monthly_same_day')end.value=addMonthsSameDay(start,1);
+    else if(rawType==='custom_days')end.value=addDays(start,days);
+    else if(rawType==='days')end.value=addDays(start,30);
   }
 
   if(hint){
-    if(type==='manual')hint.textContent='Vencimiento manual.';
-    else if(type==='monthly_same_day')hint.textContent='Mismo día del mes siguiente.';
-    else hint.textContent=`${days} días exactos.`;
+    if(rawType==='manual')hint.textContent='Elegís vos la fecha exacta de vencimiento.';
+    else if(rawType==='monthly_same_day')hint.textContent='Ejemplo: 18/08 → 18/09.';
+    else if(rawType==='custom_days')hint.textContent=`${days} días desde la fecha de inicio.`;
+    else hint.textContent='30 días exactos desde la fecha de inicio.';
   }
 }
 
@@ -2594,8 +2625,8 @@ async function saveEditedSaleItem(itemId){
       contracted_devices:Number(editDevices.value||1),
       include_password:editIncludePassword.checked,
       delivery_notes:editDeliveryNotes.value.trim()||null,
-      renewal_type_override:editRenewalType.value||null,
-      renewal_days_override:editRenewalType.value==='days'?Number(editRenewalDays.value||30):null
+      renewal_type_override:(editRenewalType.value==='custom_days'?'days':editRenewalType.value)||null,
+      renewal_days_override:['days','custom_days'].includes(editRenewalType.value)?(editRenewalType.value==='days'?30:Number(editRenewalDays.value||30)):null
     }).eq('id',itemId);
     if(itemUpdate.error)throw itemUpdate.error;
 
