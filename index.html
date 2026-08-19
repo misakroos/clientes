@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v18">
+<meta name="misakroos-version" content="v19">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v18</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v19</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -95,7 +95,30 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </section>
 <section id="screen-accounts" class="hidden">
 <div class="row between"><div class="sectionTitle">Cuentas</div><button class="btn primary small" onclick="openAccountModal()">+ Cuenta</button></div>
-<div id="accountsFilterInfo" class="tiny muted hidden" style="margin-bottom:9px"></div>
+
+<div class="filterBar">
+  <input id="accountsSearch" placeholder="Buscar por correo..." oninput="renderAccounts()">
+  <div id="accountServiceChips" class="filterChips"></div>
+  <div class="filterChips">
+    <button class="btn secondary small" onclick="setAccountCapacityFilter('all')">Todas</button>
+    <button class="btn secondary small" onclick="setAccountCapacityFilter('free')">Con cupos libres</button>
+    <button class="btn secondary small" onclick="setAccountCapacityFilter('full')">Completas</button>
+    <button class="btn secondary small" onclick="setAccountCapacityFilter('mine')">Administradas por mí</button>
+    <button class="btn secondary small" onclick="setAccountCapacityFilter('provider')">Proveedor</button>
+  </div>
+  <select id="accountsSort" onchange="renderAccounts()">
+    <option value="free_desc">Más cupos libres primero</option>
+    <option value="free_asc">Menos cupos libres primero</option>
+    <option value="occupied_desc">Más ocupadas primero</option>
+    <option value="occupied_asc">Menos ocupadas primero</option>
+    <option value="expiry_asc">Vencen antes</option>
+    <option value="expiry_desc">Vencen más tarde</option>
+    <option value="email_az">Correo A-Z</option>
+    <option value="email_za">Correo Z-A</option>
+  </select>
+  <div id="accountsFilterInfo" class="tiny muted"></div>
+</div>
+
 <div id="accountsList"></div>
 </section>
 <section id="screen-finance" class="hidden">
@@ -174,7 +197,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     <div id="purchasesList"></div>
   </div>
 </section>
-</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
+</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;accountCapacityFilter='all';accountServiceFilter='';showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
 <div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()"><div id="sheet" class="sheet"></div></div>
 <script>
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
@@ -183,6 +206,19 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[]};
 let salesStatusFilter='all';
 let accountsOnlyFree=false;
+let accountServiceFilter='';
+let accountCapacityFilter='all';
+
+function setAccountServiceFilter(serviceId){
+  accountServiceFilter=serviceId||'';
+  renderAccounts();
+}
+function setAccountCapacityFilter(kind){
+  accountCapacityFilter=kind||'all';
+  accountsOnlyFree=(accountCapacityFilter==='free');
+  renderAccounts();
+}
+
 
 function goClients(){
   if(window.clientSearch)clientSearch.value='';
@@ -194,6 +230,7 @@ function goSalesPreset(filter){
   renderSales();
 }
 function goAccountsFree(){
+  accountCapacityFilter='free';
   accountsOnlyFree=true;
   showScreen('accounts');
   renderAccounts();
@@ -203,6 +240,7 @@ function setSalesStatus(filter){
   renderSales();
 }
 function showAllAccounts(){
+  accountCapacityFilter='all';
   accountsOnlyFree=false;
   renderAccounts();
 }
@@ -472,30 +510,61 @@ function renderSales(){
   }).join(''):'<div class="muted">No hay ventas que coincidan con este filtro.</div>';
 }
 function renderAccounts(){
-  let visible=state.accounts.filter(a=>!a.archived_at);
-  if(accountsOnlyFree){
-    visible=visible.filter(a=>{
+  const search=(document.getElementById('accountsSearch')?.value||'').trim().toLowerCase();
+  const sort=document.getElementById('accountsSort')?.value||'free_desc';
+
+  const chips=document.getElementById('accountServiceChips');
+  if(chips){
+    const dynamicServices=state.services
+      .filter(s=>state.accounts.some(a=>!a.archived_at&&a.service_id===s.id))
+      .sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+
+    chips.innerHTML=[
+      `<button class="btn ${accountServiceFilter===''?'primary':'secondary'} small" onclick="setAccountServiceFilter('')">Todos los servicios</button>`,
+      ...dynamicServices.map(s=>`<button class="btn ${accountServiceFilter===s.id?'primary':'secondary'} small" onclick="setAccountServiceFilter('${s.id}')">${esc(s.name)}</button>`)
+    ].join('');
+  }
+
+  let visible=state.accounts
+    .filter(a=>!a.archived_at)
+    .map(a=>{
       const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
-      return slots.some(s=>!activeAssignSlot(s.id));
+      const occupied=slots.filter(s=>activeAssignSlot(s.id)).length;
+      const free=Math.max(0,slots.length-occupied);
+      return {account:a,slots,occupied,free};
+    })
+    .filter(x=>{
+      const a=x.account;
+      if(accountServiceFilter&&a.service_id!==accountServiceFilter)return false;
+      if(accountCapacityFilter==='free'&&x.free<=0)return false;
+      if(accountCapacityFilter==='full'&&!(x.slots.length>0&&x.free===0))return false;
+      if(accountCapacityFilter==='mine'&&a.account_mode!=='full_account')return false;
+      if(accountCapacityFilter==='provider'&&a.account_mode!=='provider_managed')return false;
+      if(search&&!(a.login_email||'').toLowerCase().includes(search))return false;
+      return true;
     });
+
+  visible.sort((x,y)=>{
+    const a=x.account,b=y.account;
+    if(sort==='free_asc')return x.free-y.free;
+    if(sort==='occupied_desc')return y.occupied-x.occupied;
+    if(sort==='occupied_asc')return x.occupied-y.occupied;
+    if(sort==='expiry_asc')return String(a.provider_expires_at||'9999-12-31').localeCompare(String(b.provider_expires_at||'9999-12-31'));
+    if(sort==='expiry_desc')return String(b.provider_expires_at||'').localeCompare(String(a.provider_expires_at||''));
+    if(sort==='email_az')return String(a.login_email||'').localeCompare(String(b.login_email||''),'es');
+    if(sort==='email_za')return String(b.login_email||'').localeCompare(String(a.login_email||''),'es');
+    return y.free-x.free;
+  });
+
+  const filterLabel={all:'Todas',free:'Con cupos libres',full:'Completas',mine:'Administradas por mí',provider:'Proveedor'}[accountCapacityFilter]||'Todas';
+  if(window.accountsFilterInfo){
+    const serviceName=accountServiceFilter?serviceBy(accountServiceFilter)?.name:'Todos los servicios';
+    accountsFilterInfo.innerHTML=`Mostrando <b>${visible.length}</b> cuenta(s) · ${esc(serviceName||'Todos los servicios')} · ${filterLabel}`;
   }
 
-  const info=document.getElementById('accountsFilterInfo');
-  if(info){
-    if(accountsOnlyFree){
-      info.classList.remove('hidden');
-      info.innerHTML=`Mostrando cuentas con cupos libres · <button class="btn secondary small" onclick="showAllAccounts()">Ver todas</button>`;
-    }else{
-      info.classList.add('hidden');
-      info.innerHTML='';
-    }
-  }
-
-  accountsList.innerHTML=visible.length?visible.map(a=>{
-    const sl=state.slots.filter(s=>s.account_id===a.id&&s.active),
-          o=sl.filter(s=>activeAssignSlot(s.id)).length;
+  accountsList.innerHTML=visible.length?visible.map(x=>{
+    const a=x.account,sl=x.slots,o=x.occupied,free=x.free;
     const service=serviceBy(a.service_id);
-
     return `<div class="item">
       <button type="button" onclick="openAccountDetail('${a.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
         <div class="row between">
@@ -505,18 +574,18 @@ function renderAccounts(){
           </div>
           <span class="badge">${o}/${sl.length}</span>
         </div>
-        <div class="tiny" style="margin-top:4px">${a.account_mode==='provider_managed'?'Perfiles comprados: '+sl.length+' · libres: '+(sl.length-o):o+'/'+sl.length+' ocupados · '+(sl.length-o)+' libres'}</div>
+        <div class="tiny" style="margin-top:4px">${a.account_mode==='provider_managed'?`Perfiles comprados: ${sl.length} · libres: ${free}`:`${o}/${sl.length} ocupados · ${free} libres`}</div>
         <div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div>
+        ${a.provider_expires_at?`<div class="tiny muted" style="margin-top:3px">Vence con proveedor: ${esc(a.provider_expires_at)}</div>`:''}
         <div class="tiny muted" style="margin-top:5px">Tocá para ver clientes dentro de esta cuenta</div>
       </button>
-
       <div class="row wrap" style="margin-top:8px">
         <button class="btn secondary small" onclick="openAccountModal('${a.id}')">✏️ Editar</button>
         <button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button>
         <button class="btn danger small" onclick="deleteAccount('${a.id}')">Eliminar</button>
       </div>
     </div>`;
-  }).join(''):'<div class="muted">No hay cuentas que coincidan con este filtro.</div>';
+  }).join(''):'<div class="muted">No hay cuentas que coincidan con estos filtros.</div>';
 }
 function renderNotifications(){
   const el=document.getElementById('notificationsList');
