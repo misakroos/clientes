@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v26">
+<meta name="misakroos-version" content="v28">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,16 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v26</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v28</span><div class="row" style="gap:6px;align-items:center">
+  <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
+  <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
+  <button class="btn secondary small" onclick="logout()">Salir</button>
+</div></div><div class="main">
+
+<div class="card" style="margin:8px 0 12px">
+  <input id="globalSearch" placeholder="🔎 Buscar cliente, teléfono, correo, perfil, servicio..." oninput="renderGlobalSearch()">
+  <div id="globalSearchResults" class="hidden" style="margin-top:8px"></div>
+</div>
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -171,8 +180,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
       <div class="sectionTitle" style="margin:0">Notificaciones</div>
       <button class="btn small secondary" onclick="markNotificationsRead()">Marcar leídas</button>
     </div>
-    <div id="notificationsList" class="list" style="margin-top:10px"></div>
-  </div>
+    </div>
 
   <div class="grid2">
     <button class="btn primary" onclick="openFinanceScreen()">💰 Finanzas</button>
@@ -196,6 +204,33 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     <div class="sectionTitle">Compras</div>
     <div id="purchasesList"></div>
   </div>
+
+<div class="sectionTitle">Caja / Balance</div>
+<div class="card">
+  <div class="filterGrid">
+    <select id="cashPeriod" onchange="renderCash()">
+      <option value="today">Hoy</option>
+      <option value="week">Últimos 7 días</option>
+      <option value="month" selected>Este mes</option>
+      <option value="30">Últimos 30 días</option>
+      <option value="custom">Rango personalizado</option>
+      <option value="all">Todo</option>
+    </select>
+    <button class="btn primary small" onclick="openCashMovementModal()">+ Movimiento</button>
+  </div>
+  <div id="cashCustomDates" class="grid2 hidden" style="margin-top:8px">
+    <div><label>Desde</label><input id="cashFrom" type="date" onchange="renderCash()"></div>
+    <div><label>Hasta</label><input id="cashTo" type="date" onchange="renderCash()"></div>
+  </div>
+  <div id="cashSummary" style="margin-top:10px"></div>
+</div>
+<div id="cashList"></div>
+
+<div class="sectionTitle">Actividad / Log</div>
+<div class="card">
+  <input id="logSearch" placeholder="Buscar actividad..." oninput="renderActivityLog()">
+</div>
+<div id="activityLogList"></div>
 </section>
 </div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;accountCapacityFilter='all';accountServiceFilter='';showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
 <div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()"><div id="sheet" class="sheet"></div></div>
@@ -203,7 +238,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_tlT-G0ziq1E5Cwnp2AEx3w_Ip0Xzi-6';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[]};
+let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[],cashMovements:[],activityLog:[]};
 let salesStatusFilter='all';
 let accountsOnlyFree=false;
 let accountServiceFilter='';
@@ -421,10 +456,122 @@ const money=(n,c='ARS')=>new Intl.NumberFormat('es-AR',{style:'currency',currenc
 async function login(){loginMsg.textContent='Ingresando...';const {data,error}=await sb.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPassword.value});if(error){loginMsg.textContent=error.message;return}await boot()}
 async function logout(){await sb.auth.signOut();location.reload()}
 async function boot(){authView.classList.add('hidden');appView.classList.remove('hidden');await refreshAll()}
-async function refreshAll(){const qs=await Promise.all([sb.from('clients').select('*').order('name'),sb.from('services').select('*').order('name'),sb.from('suppliers').select('*').order('name'),sb.from('purchases').select('*').order('purchased_at',{ascending:false}),sb.from('accounts').select('*').order('created_at',{ascending:false}),sb.from('account_slots').select('*').order('slot_number'),sb.from('sales').select('*').order('sold_at',{ascending:false}),sb.from('sale_items').select('*').order('start_date',{ascending:false}),sb.from('slot_assignments').select('*').order('assigned_at',{ascending:false}),
-    sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(50),
-    sb.from('push_subscriptions').select('*').eq('active',true)]);['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions'].forEach((k,i)=>state[k]=qs[i].data||[]);renderAll()}
+async function refreshAll(){
+  const qs=await Promise.all([
+    sb.from('clients').select('*').order('name'),
+    sb.from('services').select('*').order('name'),
+    sb.from('suppliers').select('*').order('name'),
+    sb.from('purchases').select('*').order('purchased_at',{ascending:false}),
+    sb.from('accounts').select('*').order('created_at',{ascending:false}),
+    sb.from('account_slots').select('*').order('slot_number'),
+    sb.from('sales').select('*').order('sold_at',{ascending:false}),
+    sb.from('sale_items').select('*').order('start_date',{ascending:false}),
+    sb.from('slot_assignments').select('*').order('assigned_at',{ascending:false}),
+    sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100),
+    sb.from('push_subscriptions').select('*').eq('active',true),
+    sb.from('cash_movements').select('*').order('movement_date',{ascending:false}).limit(500),
+    sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(500)
+  ]);
+
+  const keys=['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions','cashMovements','activityLog'];
+  keys.forEach((k,i)=>state[k]=qs[i].data||[]);
+
+  renderAll();
+  updateNotificationBell();
+  renderCash();
+  renderActivityLog();
+}
+function manualRefresh(){
+  const btn=document.getElementById('refreshBtn');
+  const oldText=btn?.textContent||'↻ Actualizar';
+  try{
+    if(btn){
+      btn.disabled=true;
+      btn.textContent='Actualizando...';
+    }
+    await refreshAll();
+    if(btn){
+      btn.textContent='✓ Actualizado';
+      setTimeout(()=>{
+        btn.textContent=oldText;
+        btn.disabled=false;
+      },1200);
+    }
+  }catch(err){
+    console.error(err);
+    alert('No se pudieron actualizar los datos. Probá nuevamente.');
+    if(btn){
+      btn.textContent=oldText;
+      btn.disabled=false;
+    }
+  }
+}
+
 function showScreen(n,b){document.querySelectorAll('[id^=screen-]').forEach(x=>x.classList.add('hidden'));$('screen-'+n).classList.remove('hidden');document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));(b||document.querySelector(`[data-screen="${n}"]`))?.classList.add('active');renderAll()}
+
+function renderGlobalSearch(){
+  const q=(document.getElementById('globalSearch')?.value||'').trim().toLowerCase();
+  const box=document.getElementById('globalSearchResults');
+  if(!box)return;
+
+  if(q.length<2){
+    box.classList.add('hidden');
+    box.innerHTML='';
+    return;
+  }
+
+  const results=[];
+
+  state.clients.filter(c=>!c.archived_at&&[
+    c.name,c.phone_raw,c.phone_e164
+  ].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0,6).forEach(c=>{
+    results.push({
+      type:'Cliente',
+      title:c.name,
+      detail:c.phone_e164||c.phone_raw||'Sin teléfono',
+      action:`openClientDetail('${c.id}')`
+    });
+  });
+
+  state.accounts.filter(a=>!a.archived_at&&[
+    a.login_email,serviceBy(a.service_id)?.name
+  ].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0,6).forEach(a=>{
+    results.push({
+      type:'Cuenta',
+      title:a.login_email||'Sin correo',
+      detail:serviceBy(a.service_id)?.name||'',
+      action:`openAccountDetail('${a.id}')`
+    });
+  });
+
+  state.saleItems.forEach(i=>{
+    const a=activeAssignItem(i.id);
+    const sale=saleBy(i.sale_id);
+    const client=sale&&clientBy(sale.client_id);
+    const service=serviceBy(i.service_id);
+    const slot=a&&slotBy(a.account_slot_id);
+    const account=slot&&accountBy(slot.account_id);
+    const hay=[client?.name,service?.name,a?.profile_name,account?.login_email].filter(Boolean).join(' ').toLowerCase();
+    if(hay.includes(q)&&results.length<20){
+      results.push({
+        type:'Venta',
+        title:`${client?.name||'Cliente'} · ${service?.name||'Servicio'}`,
+        detail:`${a?.profile_name||'Sin perfil'} · ${i.end_date||'-'}`,
+        action:`openSaleDetail('${i.sale_id}')`
+      });
+    }
+  });
+
+  box.innerHTML=results.length?results.map(r=>`
+    <button class="clientMatch" type="button" onclick="${r.action};globalSearch.value='';globalSearchResults.classList.add('hidden')">
+      <b>${esc(r.title)}</b>
+      <small>${esc(r.type)} · ${esc(r.detail)}</small>
+    </button>
+  `).join(''):'<div class="muted tiny">Sin resultados.</div>';
+
+  box.classList.remove('hidden');
+}
+
 function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
 function renderAll(){
   mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
@@ -658,12 +805,68 @@ function renderAccounts(){
       </button>
       <div class="row wrap" style="margin-top:8px">
         <button class="btn secondary small" onclick="openAccountModal('${a.id}')">✏️ Editar</button>
+        <button class="btn secondary small" onclick="copyAccountData('${a.id}')">📋 Copiar</button>
+        <button class="btn warn small" onclick="sendProviderRenewal('${a.id}')">📤 Renovar proveedor</button>
         <button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button>
         <button class="btn danger small" onclick="deleteAccount('${a.id}')">Eliminar</button>
       </div>
     </div>`;
   }).join(''):'<div class="muted">No hay cuentas que coincidan con estos filtros.</div>';
 }
+
+function unreadNotifications(){
+  return state.notifications.filter(n=>!n.read_at);
+}
+
+function updateNotificationBell(){
+  const count=unreadNotifications().length;
+  const el=document.getElementById('notifCount');
+  if(el)el.textContent=String(count);
+}
+
+async function markNotificationRead(id){
+  const r=await sb.from('notifications').update({read_at:new Date().toISOString()}).eq('id',id);
+  if(!r.error){
+    const n=state.notifications.find(x=>x.id===id);
+    if(n)n.read_at=new Date().toISOString();
+    updateNotificationBell();
+  }
+}
+
+async function markAllNotificationsRead(){
+  const ids=unreadNotifications().map(n=>n.id);
+  if(!ids.length)return;
+  const r=await sb.from('notifications').update({read_at:new Date().toISOString()}).in('id',ids);
+  if(r.error)return alert(r.error.message);
+  state.notifications.forEach(n=>{ if(ids.includes(n.id))n.read_at=new Date().toISOString(); });
+  updateNotificationBell();
+  openNotificationCenter();
+}
+
+function openNotificationCenter(){
+  const rows=state.notifications.length?state.notifications.map(n=>`
+    <button type="button" class="item" style="width:100%;text-align:left;color:inherit" onclick="markNotificationRead('${n.id}')">
+      <div class="row between">
+        <b>${esc(n.title||'Notificación')}</b>
+        ${n.read_at?'<span class="badge">Leída</span>':'<span class="badge warn">Nueva</span>'}
+      </div>
+      <div class="tiny">${esc(n.body||'')}</div>
+      <div class="tiny muted">${esc((n.created_at||'').slice(0,16).replace('T',' '))}</div>
+    </button>
+  `).join(''):'<div class="muted">No hay notificaciones.</div>';
+
+  openModal(`
+    <div class="row between">
+      <div class="sectionTitle" style="margin:0">Notificaciones</div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+    <div class="row wrap" style="margin:8px 0">
+      <button class="btn secondary small" onclick="markAllNotificationsRead()">Marcar todas como leídas</button>
+    </div>
+    ${rows}
+  `);
+}
+
 function renderNotifications(){
   const el=document.getElementById('notificationsList');
   if(!el)return;
@@ -686,6 +889,149 @@ function updatePushBadge(){
     el.textContent='Desactivadas';el.className='badge warn';
   }
 }
+
+function renderActivityLog(){
+  const box=document.getElementById('activityLogList');
+  if(!box)return;
+  const q=(document.getElementById('logSearch')?.value||'').trim().toLowerCase();
+
+  let rows=state.activityLog.slice();
+  if(q){
+    rows=rows.filter(x=>[
+      x.action,x.entity_type,x.details,x.entity_id
+    ].filter(Boolean).join(' ').toLowerCase().includes(q));
+  }
+
+  box.innerHTML=rows.length?rows.slice(0,150).map(x=>`
+    <div class="item">
+      <b>${esc(x.action||'Actividad')}</b>
+      <div class="tiny muted">${esc(x.entity_type||'')} ${x.entity_id?`· ${esc(x.entity_id)}`:''}</div>
+      <div class="tiny">${esc(typeof x.details==='string'?x.details:JSON.stringify(x.details||{}))}</div>
+      <div class="tiny muted">${esc((x.created_at||'').slice(0,16).replace('T',' '))}</div>
+    </div>
+  `).join(''):'<div class="muted">Sin actividad.</div>';
+}
+
+function clientActivityRows(clientId){
+  const saleIds=new Set(state.sales.filter(s=>s.client_id===clientId).map(s=>s.id));
+  const itemIds=new Set(state.saleItems.filter(i=>saleIds.has(i.sale_id)).map(i=>i.id));
+
+  return state.activityLog.filter(x=>{
+    return x.entity_id===clientId ||
+      (x.entity_type==='sale'&&saleIds.has(x.entity_id)) ||
+      (x.entity_type==='sale_item'&&itemIds.has(x.entity_id));
+  });
+}
+
+function renderClientLogHtml(clientId){
+  const rows=clientActivityRows(clientId);
+  return rows.length?rows.slice(0,80).map(x=>`
+    <div class="item">
+      <b>${esc(x.action||'Actividad')}</b>
+      <div class="tiny">${esc(typeof x.details==='string'?x.details:JSON.stringify(x.details||{}))}</div>
+      <div class="tiny muted">${esc((x.created_at||'').slice(0,16).replace('T',' '))}</div>
+    </div>
+  `).join(''):'<div class="muted">Sin actividad registrada para este cliente.</div>';
+}
+
+function cashDateRange(){
+  const period=document.getElementById('cashPeriod')?.value||'month';
+  const todayStr=today();
+  const now=new Date();
+  let from=null,to=todayStr;
+
+  if(period==='today')from=todayStr;
+  else if(period==='week')from=addDays(todayStr,-6);
+  else if(period==='30')from=addDays(todayStr,-29);
+  else if(period==='month')from=`${now.getFullYear()}-${pad2(now.getMonth()+1)}-01`;
+  else if(period==='custom'){
+    from=document.getElementById('cashFrom')?.value||null;
+    to=document.getElementById('cashTo')?.value||todayStr;
+  }
+
+  return {period,from,to};
+}
+
+function renderCash(){
+  const summary=document.getElementById('cashSummary');
+  const list=document.getElementById('cashList');
+  const custom=document.getElementById('cashCustomDates');
+  if(!summary||!list)return;
+
+  const {period,from,to}=cashDateRange();
+  custom?.classList.toggle('hidden',period!=='custom');
+
+  const rows=state.cashMovements.filter(m=>{
+    const d=m.movement_date;
+    if(from&&d<from)return false;
+    if(to&&d>to)return false;
+    return true;
+  });
+
+  const byCurrency={};
+  rows.forEach(m=>{
+    const c=m.currency||'ARS';
+    byCurrency[c]??={income:0,expense:0};
+    if(m.type==='income')byCurrency[c].income+=Number(m.amount||0);
+    else byCurrency[c].expense+=Number(m.amount||0);
+  });
+
+  summary.innerHTML=Object.keys(byCurrency).length
+    ?Object.entries(byCurrency).map(([c,v])=>{
+      const net=v.income-v.expense;
+      return `<div class="item">
+        <b>${esc(c)}</b>
+        <div class="tiny">Ingresos: <b>${money(v.income,c)}</b></div>
+        <div class="tiny">Egresos: <b>${money(v.expense,c)}</b></div>
+        <div class="tiny">Balance: <b>${money(net,c)}</b></div>
+      </div>`;
+    }).join('')
+    :'<div class="muted">Sin movimientos en este período.</div>';
+
+  list.innerHTML=rows.length?rows.slice(0,150).map(m=>`
+    <div class="item">
+      <div class="row between">
+        <b>${m.type==='income'?'Ingreso':'Egreso'} · ${money(m.amount,m.currency||'ARS')}</b>
+        <span class="badge">${esc(m.movement_date||'')}</span>
+      </div>
+      <div class="tiny">${esc(m.concept||'')}</div>
+      ${m.notes?`<div class="tiny muted">${esc(m.notes)}</div>`:''}
+    </div>
+  `).join(''):'';
+}
+
+function openCashMovementModal(){
+  openModal(`
+    <div class="sectionTitle">Nuevo movimiento de caja</div>
+    <label>Tipo</label>
+    <select id="cashType"><option value="income">Ingreso</option><option value="expense">Egreso</option></select>
+    <label>Concepto</label><input id="cashConcept" placeholder="Ej: compra proveedor, devolución, gasto...">
+    <div class="grid2">
+      <div><label>Monto</label><input id="cashAmount" type="number" step="0.01"></div>
+      <div><label>Moneda</label><select id="cashCurrency"><option>ARS</option><option>UYU</option><option>CLP</option><option>USD</option><option>USDT</option></select></div>
+    </div>
+    <label>Fecha</label><input id="cashDate" type="date" value="${today()}">
+    <label>Nota</label><textarea id="cashNotes"></textarea>
+    <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveCashMovement()">Guardar movimiento</button>
+  `);
+}
+
+async function saveCashMovement(){
+  const payload={
+    type:cashType.value,
+    concept:cashConcept.value.trim()||'Movimiento',
+    amount:Number(cashAmount.value||0),
+    currency:cashCurrency.value,
+    movement_date:cashDate.value||today(),
+    notes:cashNotes.value.trim()||null
+  };
+  if(payload.amount<=0)return alert('Ingresá un monto válido.');
+  const r=await sb.from('cash_movements').insert(payload);
+  if(r.error)return alert(r.error.message);
+  closeModal();
+  await refreshAll();
+}
+
 function renderMore(){
   renderNotifications();
   updatePushBadge();
@@ -701,7 +1047,21 @@ function renderMore(){
     </button>
   `).join('')||'<div class="muted">Sin servicios.</div>';
 
-  suppliersList.innerHTML=state.suppliers.map(s=>`<div class="item"><b>${esc(s.name)}</b></div>`).join('')||'<div class="muted">Sin proveedores.</div>';
+  suppliersList.innerHTML=state.suppliers.map(s=>`
+    <div class="item">
+      <div class="row between">
+        <div>
+          <b>${esc(s.name)}</b>
+          <div class="tiny muted">${s.whatsapp?`WhatsApp: ${esc(s.whatsapp)}`:''}${s.whatsapp&&s.telegram?' · ':''}${s.telegram?`Telegram: ${esc(s.telegram)}`:''}</div>
+        </div>
+        <button class="btn secondary small" onclick="openSupplierModal('${s.id}')">Editar</button>
+      </div>
+      <div class="row wrap" style="margin-top:8px">
+        ${s.whatsapp?`<button class="btn ok small" onclick="contactSupplierWhatsApp('${s.id}')">📲 WhatsApp</button>`:''}
+        ${s.telegram?`<button class="btn secondary small" onclick="contactSupplierTelegram('${s.id}')">✈️ Telegram</button>`:''}
+      </div>
+    </div>
+  `).join('')||'<div class="muted">Sin proveedores.</div>';
   purchasesList.innerHTML=state.purchases.map(p=>`<div class="item"><b>${esc(serviceBy(p.service_id)?.name||'')}</b><div class="tiny muted">${esc(supplierBy(p.supplier_id)?.name||'Sin proveedor')} · ${money(p.total_cost,p.currency)} · vence ${esc(p.expires_at||'-')}</div></div>`).join('')||'<div class="muted">Sin compras.</div>';
 }
 function openModal(h){sheet.innerHTML=h;modal.classList.remove('hidden')}function closeModal(){modal.classList.add('hidden')}
@@ -1365,6 +1725,9 @@ function openClientDetail(id){
 
     <div class="sectionTitle">Servicios asociados</div>
     ${servicesHtml}
+
+    <div class="sectionTitle">Historial / Log del cliente</div>
+    ${renderClientLogHtml(c.id)}
   `);
 }
 
@@ -1497,11 +1860,125 @@ async function saveService(id=''){
   closeModal();
   await refreshAll();
 }
-function openSupplierModal(){openModal(`<div class="sectionTitle">Nuevo proveedor</div><label>Nombre</label><input id="fpName"><label>Contacto</label><input id="fpContact"><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveSupplier()">Guardar</button>`)}
-async function saveSupplier(){const r=await sb.from('suppliers').insert({name:fpName.value.trim(),contact:fpContact.value.trim()||null});if(r.error)return alert(r.error.message);closeModal();refreshAll()}
-const serviceOpts=()=>state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),supplierOpts=()=>'<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join(''),clientOpts=()=>state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+function openSupplierModal(id=''){
+  const s=id?supplierBy(id):null;
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nuevo'} proveedor</div>
+    <label>Nombre</label><input id="supName" value="${esc(s?.name||'')}">
+    <label>WhatsApp</label><input id="supWhatsApp" value="${esc(s?.whatsapp||'')}" placeholder="+54 9 ...">
+    <label>Telegram</label><input id="supTelegram" value="${esc(s?.telegram||'')}" placeholder="usuario o t.me/usuario">
+    <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveSupplier('${id}')">Guardar proveedor</button>
+  `);
+}
+
+async function saveSupplier(id=''){
+  const payload={
+    name:supName.value.trim(),
+    whatsapp:supWhatsApp.value.trim()||null,
+    telegram:supTelegram.value.trim()||null
+  };
+  if(!payload.name)return alert('Ingresá el nombre del proveedor.');
+
+  const r=id
+    ?await sb.from('suppliers').update(payload).eq('id',id)
+    :await sb.from('suppliers').insert(payload);
+
+  if(r.error)return alert(r.error.message);
+  closeModal();
+  await refreshAll();
+}
 function openPurchaseModal(){if(!state.services.length){return openServiceModal()} openModal(`<div class="sectionTitle">Nueva compra</div><label>Servicio</label><select id="purService">${serviceOpts()}</select><label>Proveedor</label><select id="purSupplier">${supplierOpts()}</select><label>¿Qué compraste?</label><select id="purType" onchange="purCap.closest('label')"><option value="full_account">Cuenta completa</option><option value="provider_managed">Un perfil dentro de una cuenta del proveedor</option></select><label>Costo</label><input id="purCost" type="number"><label>Moneda</label><select id="purCurr"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select><label>Vence</label><input id="purExp" type="date" value="${addDays(today(),30)}"><label>Correo</label><input id="purEmail"><label>Capacidad</label><input id="purCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="savePurchase()">Guardar compra y crear cuenta</button>`)}
 async function savePurchase(){const p={supplier_id:purSupplier.value||null,service_id:purService.value,purchase_type:(purType.value==='provider_managed'?'provider_profile':'full_account'),total_cost:Number(purCost.value||0),currency:purCurr.value,purchased_at:today(),expires_at:purExp.value};const pr=await sb.from('purchases').insert(p).select().single();if(pr.error)return alert(pr.error.message);const ar=await sb.from('accounts').insert({service_id:p.service_id,purchase_id:pr.data.id,supplier_id:p.supplier_id,login_email:purEmail.value.trim()||null,account_mode:p.purchase_type,capacity:Number(purCap.value||1),provider_expires_at:p.expires_at});if(ar.error)return alert(ar.error.message);closeModal();refreshAll()}
+
+
+function copyText(text){
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(text).then(()=>alert('Copiado ✅')).catch(()=>fallbackCopy(text));
+  }else fallbackCopy(text);
+}
+
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+  alert('Copiado ✅');
+}
+
+function buildAccountCopyText(accountId){
+  const a=accountBy(accountId);
+  if(!a)return '';
+  const lines=[];
+  const service=serviceBy(a.service_id);
+  if(service?.name)lines.push(`Servicio: ${service.name}`);
+  if(a.login_email)lines.push(`Cuenta: ${a.login_email}`);
+  if(a.login_password)lines.push(`Contraseña: ${a.login_password}`);
+
+  const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
+  slots.forEach(s=>{
+    const as=activeAssignSlot(s.id);
+    if(as?.profile_name)lines.push(`Perfil ${s.slot_number}: ${as.profile_name}`);
+  });
+
+  return lines.join('\n');
+}
+
+function copyAccountData(accountId){
+  const text=buildAccountCopyText(accountId);
+  if(!text)return alert('No hay datos para copiar.');
+  copyText(text);
+}
+
+function supplierForAccount(account){
+  if(account?.supplier_id)return supplierBy(account.supplier_id);
+  const purchase=state.purchases.find(p=>p.id===account?.purchase_id);
+  return purchase?.supplier_id?supplierBy(purchase.supplier_id):null;
+}
+
+function contactSupplierWhatsApp(supplierId,message=''){
+  const s=supplierBy(supplierId);
+  if(!s?.whatsapp)return alert('Este proveedor no tiene WhatsApp cargado.');
+  openWhatsApp(normalizePhone(s.whatsapp),message||`Hola ${s.name||''}, ¿qué tal?`);
+}
+
+function contactSupplierTelegram(supplierId){
+  const s=supplierBy(supplierId);
+  if(!s?.telegram)return alert('Este proveedor no tiene Telegram cargado.');
+  const user=String(s.telegram).replace(/^https?:\/\/t\.me\//i,'').replace(/^@/,'').trim();
+  window.open(`https://t.me/${encodeURIComponent(user)}`,'_blank');
+}
+
+function sendProviderRenewal(accountId){
+  const a=accountBy(accountId);
+  if(!a)return;
+  const s=supplierForAccount(a);
+  if(!s)return alert('Esta cuenta no tiene proveedor asociado.');
+
+  const service=serviceBy(a.service_id);
+  const msg=[
+    `Hola ${s.name||''}, ¿qué tal?`,
+    '',
+    'Quiero renovar la siguiente cuenta:',
+    `Servicio: ${service?.name||'Servicio'}`,
+    `Cuenta: ${a.login_email||'-'}`,
+    a.provider_expires_at?`Vencimiento: ${a.provider_expires_at}`:'',
+    '',
+    '¿Me confirmás disponibilidad y valor de renovación?'
+  ].filter(Boolean).join('\n');
+
+  if(s.whatsapp){
+    contactSupplierWhatsApp(s.id,msg);
+    return;
+  }
+  if(s.telegram){
+    const user=String(s.telegram).replace(/^https?:\/\/t\.me\//i,'').replace(/^@/,'').trim();
+    window.open(`https://t.me/${encodeURIComponent(user)}?text=${encodeURIComponent(msg)}`,'_blank');
+    return;
+  }
+  alert('Este proveedor no tiene WhatsApp ni Telegram cargado.');
+}
 
 function openAccountDetail(accountId){
   const account=accountBy(accountId);
@@ -1594,6 +2071,8 @@ function openAccountDetail(accountId){
 
       <div class="row wrap" style="margin-top:10px">
         <button class="btn secondary small" onclick="openAccountModal('${account.id}')">✏️ Editar cuenta</button>
+        <button class="btn secondary small" onclick="copyAccountData('${account.id}')">📋 Copiar datos</button>
+        <button class="btn warn small" onclick="sendProviderRenewal('${account.id}')">📤 Renovar con proveedor</button>
         <button class="btn warn small" onclick="openMigrateModal('${account.id}')">Migrar cuenta</button>
       </div>
     </div>
@@ -2808,6 +3287,15 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.siAccountMatches').forEach(box=>{
       box.classList.add('hidden');
     });
+  }
+});
+
+
+let lastAutoRefreshAt=Date.now();
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='visible' && Date.now()-lastAutoRefreshAt>60000){
+    lastAutoRefreshAt=Date.now();
+    try{ await refreshAll(); }catch(e){ console.warn(e); }
   }
 });
 
