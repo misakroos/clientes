@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v24">
+<meta name="misakroos-version" content="v25">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v24</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v25</span><button class="btn secondary small" onclick="logout()">Salir</button></div><div class="main">
 <section id="screen-home"><div class="grid2">
 <button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
@@ -706,6 +706,135 @@ function openWhatsApp(phone,message){
 }
 
 
+
+function sendWholeSaleRenewalWhatsApp(saleId){
+  const sale=saleBy(saleId);
+  if(!sale)return alert('No se encontró esta venta.');
+  const client=saleClient(sale);
+  if(!client)return alert('No se encontró el cliente.');
+  const phone=requireClientWhatsapp(client);
+  if(!phone)return;
+
+  const items=saleItemsFor(saleId);
+  if(!items.length)return alert('Esta venta no tiene servicios.');
+
+  const lines=[
+    `Hola ${client.name||''}, ¿qué tal?`,
+    '',
+    'Te escribo de MISAKROOS para avisarte que tenés servicios próximos a vencer.',
+    ''
+  ];
+
+  items.forEach((item,idx)=>{
+    const service=serviceBy(item.service_id);
+    const assignment=activeAssignItem(item.id);
+    const slot=assignment&&slotBy(assignment.account_slot_id);
+    const account=slot&&accountBy(slot.account_id);
+
+    lines.push(`${idx+1}. ${service?.name||'Servicio'}`);
+    if(account?.login_email)lines.push(`Cuenta: ${account.login_email}`);
+    if(assignment?.profile_name)lines.push(`Perfil: ${assignment.profile_name}`);
+    if(item.end_date)lines.push(`Vencimiento: ${item.end_date}`);
+    lines.push('');
+  });
+
+  lines.push('¿Querés renovar alguno o todos?');
+  lines.push('');
+  lines.push('Respondeme por acá y coordinamos la renovación.');
+
+  openWhatsApp(phone,lines.join('\n'));
+}
+
+async function renewWholeSale(saleId){
+  const sale=saleBy(saleId);
+  if(!sale)return alert('No se encontró esta venta.');
+
+  const items=saleItemsFor(saleId);
+  if(!items.length)return alert('Esta venta no tiene servicios.');
+
+  if(!confirm(`¿Renovar los ${items.length} servicio(s) de esta venta?`))return;
+
+  try{
+    for(const item of items){
+      const service=serviceBy(item.service_id);
+      const type=item.renewal_type_override||serviceRenewalType(service);
+      const days=Number(item.renewal_days_override||serviceRenewalDays(service)||30);
+
+      const newStart=item.end_date||today();
+      let newEnd='';
+
+      if(type==='monthly_same_day'){
+        newEnd=addMonthsSameDay(newStart,1);
+      }else if(type==='manual'){
+        const typed=prompt(`Nuevo vencimiento manual para ${service?.name||'servicio'}`,item.end_date||'');
+        if(!typed)continue;
+        newEnd=typed;
+      }else{
+        newEnd=addDays(newStart,days);
+      }
+
+      const r=await sb.from('sale_items').update({
+        start_date:newStart,
+        end_date:newEnd,
+        workflow_status:'active'
+      }).eq('id',item.id);
+
+      if(r.error)throw r.error;
+    }
+
+    await refreshAll();
+    openSaleDetail(saleId);
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
+async function deleteWholeSale(saleId){
+  const sale=saleBy(saleId);
+  if(!sale)return alert('No se encontró esta venta.');
+
+  const client=saleClient(sale);
+  const items=saleItemsFor(saleId);
+
+  const ok=confirm(
+    `¿Eliminar la venta completa de ${client?.name||'este cliente'}?\n\n`+
+    `Se eliminarán sus ${items.length} servicio(s) de esta venta y se liberarán los cupos ocupados.\n\n`+
+    `Las otras ventas del mismo cliente no se modifican.`
+  );
+  if(!ok)return;
+
+  try{
+    for(const item of items){
+      const assignment=activeAssignItem(item.id);
+      if(assignment){
+        const rel=await sb.from('slot_assignments').update({
+          released_at:new Date().toISOString(),
+          release_reason:'Venta completa eliminada'
+        }).eq('id',assignment.id);
+        if(rel.error)throw rel.error;
+      }
+    }
+
+    if(items.length){
+      const delItems=await sb.from('sale_items').delete().in('id',items.map(i=>i.id));
+      if(delItems.error)throw delItems.error;
+    }
+
+    const delSale=await sb.from('sales').delete().eq('id',saleId);
+    if(delSale.error)throw delSale.error;
+
+    await refreshAll();
+    closeModal();
+    renderSales();
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
 function openSaleDetail(saleId){
   const sale=saleBy(saleId);if(!sale)return;
   const client=saleClient(sale),items=saleItemsFor(saleId);
@@ -744,6 +873,9 @@ function openSaleDetail(saleId){
       <div class="row wrap" style="margin-top:10px">
         <button class="btn primary small" onclick="openEditSaleHeader('${sale.id}')">✏️ Editar datos de venta</button>
         <button class="btn ok small" onclick="openSaleDeliveryModal('${sale.id}')">📲 Enviar compra completa</button>
+        <button class="btn warn small" onclick="sendWholeSaleRenewalWhatsApp('${sale.id}')">💬 Mensaje renovación general</button>
+        <button class="btn ok small" onclick="renewWholeSale('${sale.id}')">🔄 Renovar toda la venta</button>
+        <button class="btn danger small" onclick="deleteWholeSale('${sale.id}')">🗑 Eliminar venta completa</button>
       </div>
     </div>
     <div class="sectionTitle">Servicios incluidos</div>
