@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v28.2">
+<meta name="misakroos-version" content="v28.3">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v28.2</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v28.3</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -1277,8 +1277,8 @@ function openSaleDetail(saleId){
       <div class="tiny">Costo: <b>${i.direct_cost==null?'Sin cargar':money(i.direct_cost,i.direct_cost_currency||sale.currency||'ARS')}</b></div>
       <div class="row wrap" style="margin-top:8px">
         <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar servicio</button>
-        <button class="btn secondary small" onclick="openDeliveryModal('${i.id}')">📲 Enviar solo este</button>
-        <button class="btn warn small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Mensaje renovación</button>
+        <button class="btn secondary small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
+        <button class="btn warn small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Renovación por WhatsApp</button>
         <button class="btn ok small" onclick="renewSingleService('${i.id}')">🔄 Renovar servicio</button>
         <button class="btn danger small" onclick="deleteSingleService('${i.id}')">🗑 Eliminar servicio</button>
       </div>
@@ -1740,8 +1740,8 @@ function openClientDetail(id){
       <div class="tiny">Total de la venta: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
       <div class="row wrap" style="margin-top:7px">
         <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar venta</button>
-        <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta</button>
-        <button class="btn warn small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Enviar renovación</button>
+        <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
+        <button class="btn warn small" onclick="sendItemRenewalWhatsApp('${i.id}')">💬 Enviar renovación por WhatsApp</button>
         <button class="btn ok small" onclick="renewSingleService('${i.id}')">🔄 Renovar servicio</button>
       </div>
     </div>`;
@@ -2073,7 +2073,7 @@ function openAccountDetail(accountId){
 
         <div class="row wrap" style="margin-top:8px">
           ${item?`<button class="btn secondary small" onclick="openEditSaleItemModal('${item.id}')">✏️ Editar servicio</button>
-          <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${item.id}')">💬 Mensaje renovación</button>
+          <button class="btn secondary small" onclick="sendItemRenewalWhatsApp('${item.id}')">💬 Renovación por WhatsApp</button>
           <button class="btn ok small" onclick="renewSingleService('${item.id}')">🔄 Renovar servicio</button>
           <button class="btn danger small" onclick="deleteSingleService('${item.id}')">🗑 Eliminar servicio</button>`:''}
           ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
