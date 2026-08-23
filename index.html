@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v28.4">
+<meta name="misakroos-version" content="v30">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v28.4</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v30</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -63,7 +63,23 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 <button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
 <button class="metric metricBtn" onclick="goAccountsFree()"><b id="mSlots">0</b><span class="muted tiny">Cupos libres</span></button>
 <button class="metric metricBtn" onclick="goSalesPreset('expiring7')"><b id="mExpiring">0</b><span class="muted tiny">Vencen ≤ 7 días</span></button>
-</div><div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div><div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
+</div>
+<div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div>
+
+<details class="card" open>
+  <summary class="sectionTitle" style="cursor:pointer">Capacidad por servicio</summary>
+  <div id="homeCapacity"></div>
+</details>
+
+<div class="card">
+  <div class="row between">
+    <div class="sectionTitle" style="margin:0">Actividad reciente</div>
+    <button class="btn secondary small" onclick="showScreen('more')">Ver log</button>
+  </div>
+  <div id="homeActivity" style="margin-top:8px"></div>
+</div>
+
+<div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
 <section id="screen-clients" class="hidden"><div class="row between"><div class="sectionTitle">Clientes</div><button class="btn primary small" onclick="openClientModal()">+ Agregar</button></div><input id="clientSearch" placeholder="Buscar..." oninput="renderClients()"><div id="clientsList" style="margin-top:10px"></div></section>
 <section id="screen-sales" class="hidden">
 <div class="row between"><div class="sectionTitle">Ventas</div><button class="btn primary small" onclick="openSaleModal()">+ Venta</button></div>
@@ -103,7 +119,14 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 <div id="salesList"></div>
 </section>
 <section id="screen-accounts" class="hidden">
-<div class="row between"><div class="sectionTitle">Cuentas</div><button class="btn primary small" onclick="openAccountModal()">+ Cuenta</button></div>
+<div class="row between">
+  <div class="sectionTitle">Cuentas</div>
+  <div class="row wrap" style="justify-content:flex-end">
+    <button class="btn secondary small" onclick="openServiceManager()">⚙️ Servicios</button>
+    <button class="btn warn small" onclick="openRotationTool()">🔄 Rotar clientes</button>
+    <button class="btn primary small" onclick="openAccountModal()">+ Cuenta</button>
+  </div>
+</div>
 
 <div class="filterBar">
   <input id="accountsSearch" placeholder="Buscar por correo..." oninput="renderAccounts()">
@@ -157,6 +180,13 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   </div>
 
   <div id="financeSummary"></div>
+
+  <div class="sectionTitle">Resumen comercial</div>
+  <div class="grid2">
+    <div class="card"><b>Servicios más vendidos</b><div id="financeTopServices" style="margin-top:8px"></div></div>
+    <div class="card"><b>Clientes con más ventas</b><div id="financeTopClients" style="margin-top:8px"></div></div>
+  </div>
+
   <div class="sectionTitle">Ventas del período</div>
   <div id="financeSalesList"></div>
 </section>
@@ -582,6 +612,24 @@ function renderAll(){
   mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing').length;
   renderClients();renderSales();renderAccounts();renderMore();renderHome();
 }
+function goAccountsService(serviceId){
+  accountServiceFilter=serviceId||'';
+  accountCapacityFilter='all';
+  accountsOnlyFree=false;
+  showScreen('accounts');
+  renderAccounts();
+}
+
+function activityOpenAction(log){
+  if(log.entity_type==='sale'&&saleBy(log.entity_id))return `openSaleDetail('${log.entity_id}')`;
+  if(log.entity_type==='sale_item'){
+    const item=state.saleItems.find(i=>i.id===log.entity_id);
+    if(item)return `openSaleDetail('${item.sale_id}')`;
+  }
+  if(log.entity_type==='client'&&clientBy(log.entity_id))return `openClientDetail('${log.entity_id}')`;
+  return '';
+}
+
 function renderHome(){
   const a=state.saleItems
     .filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing')
@@ -599,6 +647,47 @@ function renderHome(){
       <div class="tiny muted">Tocá para abrir la venta completa</div>
     </button>`;
   }).join(''):'<div class="muted">Nada próximo a vencer.</div>';
+
+  const cap=document.getElementById('homeCapacity');
+  if(cap){
+    const rows=state.services
+      .filter(s=>s.active!==false)
+      .map(service=>{
+        const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===service.id);
+        const accountIds=new Set(accounts.map(a=>a.id));
+        const slots=state.slots.filter(s=>s.active&&accountIds.has(s.account_id));
+        const occupied=slots.filter(s=>activeAssignSlot(s.id)).length;
+        const free=Math.max(0,slots.length-occupied);
+        return {service,accounts:accounts.length,total:slots.length,occupied,free};
+      })
+      .filter(x=>x.accounts||x.total)
+      .sort((a,b)=>b.occupied-a.occupied);
+
+    cap.innerHTML=rows.length?rows.map(x=>`
+      <button class="item itemClickable" type="button" style="width:100%;text-align:left;color:inherit" onclick="goAccountsService('${x.service.id}')">
+        <div class="row between">
+          <b>${esc(x.service.name)}</b>
+          <span class="badge">${x.occupied}/${x.total}</span>
+        </div>
+        <div class="tiny">${x.accounts} cuenta(s) · ${x.occupied} ocupados · ${x.free} libres</div>
+        <div class="tiny muted">Tocá para abrir las cuentas de ${esc(x.service.name)}</div>
+      </button>
+    `).join(''):'<div class="muted">Todavía no hay capacidad cargada.</div>';
+  }
+
+  const activity=document.getElementById('homeActivity');
+  if(activity){
+    const rows=state.activityLog.slice(0,8);
+    activity.innerHTML=rows.length?rows.map(x=>{
+      const action=activityOpenAction(x);
+      const tag=action?'button':'div';
+      return `<${tag} ${action?`onclick="${action}" type="button"`:''} class="item ${action?'itemClickable':''}" style="width:100%;text-align:left;color:inherit">
+        <b>${esc(x.action||'Actividad')}</b>
+        <div class="tiny">${esc(formatActivityDetails(x))}</div>
+        <div class="tiny muted">${esc((x.created_at||'').slice(0,16).replace('T',' '))}</div>
+      </${tag}>`;
+    }).join(''):'<div class="muted">Todavía no hay actividad reciente.</div>';
+  }
 }
 function renderClients(){
   const q=(clientSearch?.value||'').toLowerCase();
@@ -1089,14 +1178,17 @@ function renderMore(){
     </button>
   `).join('')||'<div class="muted">Sin servicios.</div>';
 
-  suppliersList.innerHTML=state.suppliers.map(s=>`
+  suppliersList.innerHTML=state.suppliers.filter(s=>!s.archived_at).map(s=>`
     <div class="item">
       <div class="row between">
         <div>
           <b>${esc(s.name)}</b>
           <div class="tiny muted">${s.whatsapp?`WhatsApp: ${esc(s.whatsapp)}`:''}${s.whatsapp&&s.telegram?' · ':''}${s.telegram?`Telegram: ${esc(s.telegram)}`:''}</div>
         </div>
-        <button class="btn secondary small" onclick="openSupplierModal('${s.id}')">Editar</button>
+        <div class="row wrap">
+          <button class="btn secondary small" onclick="openSupplierModal('${s.id}')">Editar</button>
+          <button class="btn danger small" onclick="archiveSupplier('${s.id}')">Eliminar</button>
+        </div>
       </div>
       <div class="row wrap" style="margin-top:8px">
         ${s.whatsapp?`<button class="btn ok small" onclick="contactSupplierWhatsApp('${s.id}')">📲 WhatsApp</button>`:''}
@@ -1131,7 +1223,7 @@ function openWhatsApp(phone,message){
 
 
 
-function sendWholeSaleRenewalWhatsApp(saleId){
+async function sendWholeSaleRenewalWhatsApp(saleId){
   const sale=saleBy(saleId);
   if(!sale)return alert('No se encontró esta venta.');
   const client=saleClient(sale);
@@ -1142,12 +1234,17 @@ function sendWholeSaleRenewalWhatsApp(saleId){
   const items=saleItemsFor(saleId);
   if(!items.length)return alert('Esta venta no tiene servicios.');
 
+  const second=items.every(i=>Number(i.renewal_notice_stage||0)>=1);
   const lines=[
     `Hola ${client.name||''}, ¿qué tal?`,
     '',
-    'Te escribo de MISAKROOS para avisarte que tenés servicios próximos a vencer.',
+    second
+      ?'Te vuelvo a escribir por la renovación de los servicios que tenés con MISAKROOS.'
+      :'Te escribo de MISAKROOS para avisarte que tenés servicios próximos a vencer.',
     ''
   ];
+
+  if(second)lines.push('Todavía no tuve respuesta del primer aviso.','');
 
   items.forEach((item,idx)=>{
     const service=serviceBy(item.service_id);
@@ -1158,13 +1255,23 @@ function sendWholeSaleRenewalWhatsApp(saleId){
     lines.push(`${idx+1}. ${service?.name||'Servicio'}`);
     if(account?.login_email)lines.push(`Cuenta: ${account.login_email}`);
     if(assignment?.profile_name)lines.push(`Perfil: ${assignment.profile_name}`);
-    if(item.end_date)lines.push(`Vencimiento: ${item.end_date}`);
+    if(item.end_date)lines.push(`Vencimiento: ${formatDateAR(item.end_date)}`);
     lines.push('');
   });
 
-  lines.push('¿Querés renovar alguno o todos?');
+  lines.push(second?'¿Me confirmás cuáles querés renovar?':'¿Querés renovar alguno o todos?');
   lines.push('');
   lines.push('Respondeme por acá y coordinamos la renovación.');
+
+  const nextStage=second?2:1;
+  const ids=items.map(i=>i.id);
+  const r=await sb.from('sale_items').update({
+    renewal_notice_stage:nextStage,
+    renewal_notice_last_at:new Date().toISOString()
+  }).in('id',ids);
+
+  if(r.error)return alert(r.error.message);
+  items.forEach(i=>i.renewal_notice_stage=nextStage);
 
   openWhatsApp(phone,lines.join('\n'));
 }
@@ -1200,7 +1307,9 @@ async function renewWholeSale(saleId){
       const r=await sb.from('sale_items').update({
         start_date:newStart,
         end_date:newEnd,
-        workflow_status:'active'
+        workflow_status:'active',
+        renewal_notice_stage:0,
+        renewal_notice_last_at:null
       }).eq('id',item.id);
 
       if(r.error)throw r.error;
@@ -1259,6 +1368,14 @@ async function deleteWholeSale(saleId){
   }
 }
 
+
+function renewalNoticeLabel(item){
+  const stage=Number(item?.renewal_notice_stage||0);
+  if(stage>=2)return '2º aviso enviado · sin respuesta';
+  if(stage===1)return '1º aviso enviado · sin respuesta';
+  return '';
+}
+
 function openSaleDetail(saleId){
   const sale=saleBy(saleId);if(!sale)return;
   const client=saleClient(sale),items=saleItemsFor(saleId);
@@ -1275,6 +1392,7 @@ function openSaleDetail(saleId){
       <div class="tiny muted">Perfil: ${esc(a?.profile_name||'Sin perfil')} · ${Number(i.contracted_devices||1)} dispositivo(s)</div>
       <div class="tiny">Inicio: <b>${esc(i.start_date||'-')}</b> · Vence: <b>${esc(i.end_date||'-')}</b></div>
       <div class="tiny">Costo: <b>${i.direct_cost==null?'Sin cargar':money(i.direct_cost,i.direct_cost_currency||sale.currency||'ARS')}</b></div>
+      ${renewalNoticeLabel(i)?`<div class="tiny" style="margin-top:4px"><span class="badge warn">${esc(renewalNoticeLabel(i))}</span></div>`:''}
       <div class="row wrap" style="margin-top:8px">
         <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar servicio</button>
         <button class="btn secondary small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
@@ -1364,7 +1482,9 @@ async function renewSingleService(itemId){
   const r=await sb.from('sale_items').update({
     start_date:newStart,
     end_date:newEnd,
-    workflow_status:'active'
+    workflow_status:'active',
+    renewal_notice_stage:0,
+    renewal_notice_last_at:null
   }).eq('id',itemId);
 
   if(r.error)return alert(r.error.message);
@@ -1423,7 +1543,7 @@ async function deleteSingleService(itemId){
   }
 }
 
-function sendItemRenewalWhatsApp(itemId){
+async function sendItemRenewalWhatsApp(itemId){
   const item=state.saleItems.find(i=>i.id===itemId);
   if(!item)return alert('No se encontró este servicio.');
 
@@ -1439,34 +1559,42 @@ function sendItemRenewalWhatsApp(itemId){
   const phone=requireClientWhatsapp(client);
   if(!phone)return;
 
+  const stage=Number(item.renewal_notice_stage||0);
+  const second=stage>=1;
+
   const lines=[
     `Hola ${client.name||''}, ¿qué tal?`,
-    '',
-    `Te escribo de MISAKROOS para avisarte que tu servicio está próximo a vencer.`,
-    '',
-    `Servicio: ${service?.name||'Servicio'}`
+    ''
   ];
 
-  if(account?.login_email){
-    lines.push(`Cuenta: ${account.login_email}`);
-  }
-
-  if(assignment?.profile_name){
-    lines.push(`Perfil: ${assignment.profile_name}`);
-  }
-
-  if(item.contracted_devices){
-    lines.push(`Dispositivos/pantallas: ${Number(item.contracted_devices)}`);
-  }
-
-  if(item.end_date){
-    lines.push(`Vencimiento: ${item.end_date}`);
+  if(second){
+    lines.push(`Te vuelvo a escribir por la renovación de ${service?.name||'tu servicio'}.`);
+    lines.push('Todavía no tuve respuesta del primer aviso.');
+  }else{
+    lines.push('Te escribo de MISAKROOS para avisarte que tu servicio está próximo a vencer.');
   }
 
   lines.push('');
-  lines.push('¿Querés renovarlo?');
+  lines.push(`Servicio: ${service?.name||'Servicio'}`);
+  if(account?.login_email)lines.push(`Cuenta: ${account.login_email}`);
+  if(assignment?.profile_name)lines.push(`Perfil: ${assignment.profile_name}`);
+  if(item.end_date)lines.push(`Vencimiento: ${formatDateAR(item.end_date)}`);
+
   lines.push('');
-  lines.push('Si querés continuar, respondeme por acá y coordinamos la renovación.');
+  lines.push(second?'¿Me confirmás por favor si querés continuar con el servicio?':'¿Querés renovarlo?');
+  lines.push('');
+  lines.push('Respondeme por acá y coordinamos la renovación.');
+
+  const nextStage=second?2:1;
+  const r=await sb.from('sale_items').update({
+    renewal_notice_stage:nextStage,
+    renewal_notice_last_at:new Date().toISOString()
+  }).eq('id',itemId);
+
+  if(r.error)return alert(r.error.message);
+
+  item.renewal_notice_stage=nextStage;
+  item.renewal_notice_last_at=new Date().toISOString();
 
   openWhatsApp(phone,lines.join('\n'));
 }
@@ -1537,12 +1665,14 @@ function renderFinance(){
   const ss=document.getElementById('finService');
   if(ss){
     const cur=ss.value;
-    ss.innerHTML=['<option value="">Todos los servicios</option>'].concat(state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)).join('');
+    ss.innerHTML=['<option value="">Todos los servicios</option>'].concat(state.services.filter(s=>s.active!==false).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)).join('');
     if([...ss.options].some(o=>o.value===cur))ss.value=cur;
   }
+
   const from=finFrom.value||'',to=finTo.value||'',service=finService.value||'',q=(finSearch.value||'').trim().toLowerCase();
   const sales=state.sales.filter(s=>{
-    if(from&&s.sold_at<from)return false;if(to&&s.sold_at>to)return false;
+    if(from&&s.sold_at<from)return false;
+    if(to&&s.sold_at>to)return false;
     const items=saleItemsFor(s.id),c=saleClient(s);
     if(service&&!items.some(i=>i.service_id===service))return false;
     if(q&&!String(c?.name||'').toLowerCase().includes(q))return false;
@@ -1550,28 +1680,71 @@ function renderFinance(){
   }).sort((a,b)=>String(b.sold_at||'').localeCompare(String(a.sold_at||'')));
 
   const sums={};
+  const serviceStats={};
+  const clientStats={};
+
   sales.forEach(s=>{
     const cur=s.currency||'ARS';
     sums[cur]??={sales:0,revenue:0,cost:0};
-    sums[cur].sales++;sums[cur].revenue+=Number(s.total_amount||0);
+    sums[cur].sales++;
+    sums[cur].revenue+=Number(s.total_amount||0);
+
+    const client=saleClient(s);
+    if(client){
+      clientStats[client.id]??={name:client.name,sales:0,amounts:{}};
+      clientStats[client.id].sales++;
+      clientStats[client.id].amounts[cur]=(clientStats[client.id].amounts[cur]||0)+Number(s.total_amount||0);
+    }
+
     saleItemsFor(s.id).forEach(i=>{
       const cc=i.direct_cost_currency||cur;
       sums[cc]??={sales:0,revenue:0,cost:0};
       sums[cc].cost+=Number(i.direct_cost||0);
+
+      const srv=serviceBy(i.service_id);
+      serviceStats[i.service_id]??={name:srv?.name||'Servicio',qty:0,amounts:{}};
+      serviceStats[i.service_id].qty++;
+      const allocated=Number(i.allocated_revenue||0);
+      serviceStats[i.service_id].amounts[cur]=(serviceStats[i.service_id].amounts[cur]||0)+allocated;
     });
   });
 
   const cards=Object.keys(sums).length?Object.entries(sums).map(([cur,x])=>{
     const profit=x.revenue-x.cost;
     const margin=x.revenue?profit/x.revenue*100:0;
+    const avg=x.sales?x.revenue/x.sales:0;
     return `<div class="card financeCurrency"><b>${esc(cur)}</b><div class="financeStats">
       <div class="financeStat"><span class="tiny muted">Ventas</span><b>${x.sales}</b></div>
       <div class="financeStat"><span class="tiny muted">Facturado</span><b>${money(x.revenue,cur)}</b></div>
       <div class="financeStat"><span class="tiny muted">Costos</span><b>${money(x.cost,cur)}</b></div>
       <div class="financeStat"><span class="tiny muted">Resultado*</span><b>${money(profit,cur)}</b><span class="tiny muted">Margen ${margin.toFixed(1)}%</span></div>
+      <div class="financeStat"><span class="tiny muted">Ticket promedio</span><b>${money(avg,cur)}</b></div>
     </div></div>`;
   }).join(''):'<div class="card muted">No hay ventas en este período.</div>';
+
   financeSummary.innerHTML=`<div class="tiny muted" style="margin-bottom:7px">${sales.length} venta(s) real(es) en el período. *El resultado se calcula por moneda; no mezcla ARS con USDT/USD sin conversión.</div>${cards}`;
+
+  const topServices=Object.values(serviceStats).sort((a,b)=>b.qty-a.qty).slice(0,8);
+  const topSrv=document.getElementById('financeTopServices');
+  if(topSrv){
+    topSrv.innerHTML=topServices.length?topServices.map((x,idx)=>`
+      <div class="item">
+        <div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.qty}</span></div>
+        <div class="tiny muted">${Object.entries(x.amounts).map(([c,n])=>money(n,c)).join(' + ')||'Sin importe atribuido'}</div>
+      </div>
+    `).join(''):'<div class="muted">Sin datos.</div>';
+  }
+
+  const topClients=Object.values(clientStats).sort((a,b)=>b.sales-a.sales).slice(0,8);
+  const topCli=document.getElementById('financeTopClients');
+  if(topCli){
+    topCli.innerHTML=topClients.length?topClients.map((x,idx)=>`
+      <div class="item">
+        <div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.sales} venta(s)</span></div>
+        <div class="tiny muted">${Object.entries(x.amounts).map(([c,n])=>money(n,c)).join(' + ')}</div>
+      </div>
+    `).join(''):'<div class="muted">Sin datos.</div>';
+  }
 
   financeSalesList.innerHTML=sales.length?sales.map(s=>{
     const c=saleClient(s),names=saleServiceNames(s.id);
@@ -1581,7 +1754,6 @@ function renderFinance(){
     </button>`;
   }).join(''):'<div class="muted">Sin ventas.</div>';
 }
-
 function getSaleItemContext(itemId){
   const item=state.saleItems.find(x=>x.id===itemId);
   if(!item)return null;
@@ -1738,6 +1910,7 @@ function openClientDetail(id){
       <div class="tiny muted">Cuenta: ${esc(account?.login_email||'Sin cuenta')}</div>
       <div class="tiny"><b>Inicio:</b> ${esc(i.start_date||'-')} · <b>Vence:</b> ${esc(i.end_date||'-')}</div>
       <div class="tiny">Total de la venta: ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
+      ${renewalNoticeLabel(i)?`<div class="tiny" style="margin-top:4px"><span class="badge warn">${esc(renewalNoticeLabel(i))}</span></div>`:''}
       <div class="row wrap" style="margin-top:7px">
         <button class="btn secondary small" onclick="openEditSaleItemModal('${i.id}')">✏️ Editar venta</button>
         <button class="btn ok small" onclick="openDeliveryModal('${i.id}')">📲 Enviar cuenta por WhatsApp</button>
@@ -1769,6 +1942,9 @@ function openClientDetail(id){
 
     <div class="sectionTitle">Servicios asociados</div>
     ${servicesHtml}
+
+    <div class="sectionTitle">Historial de cuentas</div>
+    ${renderClientAccountHistory(c.id)}
 
     <div class="sectionTitle">Historial / Log del cliente</div>
     ${renderClientLogHtml(c.id)}
@@ -1810,6 +1986,55 @@ async function deleteAccount(id){
 
 function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
 async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
+
+function openServiceManager(){
+  const services=state.services.filter(s=>s.active!==false).sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+
+  openModal(`
+    <div class="row between">
+      <div class="sectionTitle" style="margin:0">Administrar servicios</div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <button class="btn primary" style="width:100%;margin:10px 0" onclick="openServiceModal()">+ Agregar servicio</button>
+
+    ${services.map(s=>`
+      <div class="item">
+        <div class="row between">
+          <div>
+            <b>${esc(s.name)}</b>
+            <div class="tiny muted">${esc(renewalRuleLabel(s))}</div>
+          </div>
+          <div class="row wrap">
+            <button class="btn secondary small" onclick="openServiceModal('${s.id}')">✏️ Editar</button>
+            <button class="btn danger small" onclick="archiveService('${s.id}')">Eliminar</button>
+          </div>
+        </div>
+      </div>
+    `).join('')||'<div class="muted">Sin servicios.</div>'}
+  `);
+}
+
+async function archiveService(serviceId){
+  const s=serviceBy(serviceId);
+  if(!s)return;
+
+  const linkedAccounts=state.accounts.filter(a=>!a.archived_at&&a.service_id===serviceId).length;
+  const linkedItems=state.saleItems.filter(i=>i.service_id===serviceId).length;
+
+  const msg=(linkedAccounts||linkedItems)
+    ?`${s.name} tiene ${linkedAccounts} cuenta(s) y ${linkedItems} servicio(s) vendidos.\n\nSe ocultará para nuevas altas, pero el historial se conserva. ¿Continuar?`
+    :`¿Eliminar/archivar ${s.name}?`;
+
+  if(!confirm(msg))return;
+
+  const r=await sb.from('services').update({active:false}).eq('id',serviceId);
+  if(r.error)return alert(r.error.message);
+
+  await refreshAll();
+  openServiceManager();
+}
+
 function openServiceModal(id=''){
   const s=id?serviceBy(id):null;
   openModal(`
@@ -1911,10 +2136,13 @@ function openSupplierModal(id=''){
     <label>Nombre</label><input id="supName" value="${esc(s?.name||'')}">
     <label>WhatsApp</label><input id="supWhatsApp" value="${esc(s?.whatsapp||'')}" placeholder="+54 9 ...">
     <label>Telegram</label><input id="supTelegram" value="${esc(s?.telegram||'')}" placeholder="usuario o t.me/usuario">
-    <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveSupplier('${id}')">Guardar proveedor</button>
+
+    <div class="row wrap" style="margin-top:10px">
+      <button class="btn primary" style="flex:1" onclick="saveSupplier('${id}')">Guardar proveedor</button>
+      ${id?`<button class="btn danger" onclick="archiveSupplier('${id}')">Eliminar proveedor</button>`:''}
+    </div>
   `);
 }
-
 async function saveSupplier(id=''){
   const payload={
     name:supName.value.trim(),
@@ -1931,6 +2159,27 @@ async function saveSupplier(id=''){
   closeModal();
   await refreshAll();
 }
+async function archiveSupplier(id){
+  const s=supplierBy(id);
+  if(!s)return;
+
+  const accounts=state.accounts.filter(a=>!a.archived_at&&a.supplier_id===id).length;
+  const purchases=state.purchases.filter(p=>p.supplier_id===id).length;
+
+  const msg=(accounts||purchases)
+    ?`${s.name} tiene ${accounts} cuenta(s) y ${purchases} compra(s) asociadas.\n\nSe archivará para no perder el historial. ¿Continuar?`
+    :`¿Eliminar/archivar el proveedor ${s.name}?`;
+
+  if(!confirm(msg))return;
+
+  const r=await sb.from('suppliers').update({archived_at:new Date().toISOString()}).eq('id',id);
+  if(r.error)return alert(r.error.message);
+
+  closeModal();
+  await refreshAll();
+}
+
+
 function openPurchaseModal(){if(!state.services.length){return openServiceModal()} openModal(`<div class="sectionTitle">Nueva compra</div><label>Servicio</label><select id="purService">${serviceOpts()}</select><label>Proveedor</label><select id="purSupplier">${supplierOpts()}</select><label>¿Qué compraste?</label><select id="purType" onchange="purCap.closest('label')"><option value="full_account">Cuenta completa</option><option value="provider_managed">Un perfil dentro de una cuenta del proveedor</option></select><label>Costo</label><input id="purCost" type="number"><label>Moneda</label><select id="purCurr"><option>USDT</option><option>USD</option><option>ARS</option><option>UYU</option><option>CLP</option></select><label>Vence</label><input id="purExp" type="date" value="${addDays(today(),30)}"><label>Correo</label><input id="purEmail"><label>Capacidad</label><input id="purCap" type="number" value="5"><button class="btn primary" style="width:100%;margin-top:10px" onclick="savePurchase()">Guardar compra y crear cuenta</button>`)}
 async function savePurchase(){const p={supplier_id:purSupplier.value||null,service_id:purService.value,purchase_type:(purType.value==='provider_managed'?'provider_profile':'full_account'),total_cost:Number(purCost.value||0),currency:purCurr.value,purchased_at:today(),expires_at:purExp.value};const pr=await sb.from('purchases').insert(p).select().single();if(pr.error)return alert(pr.error.message);const ar=await sb.from('accounts').insert({service_id:p.service_id,purchase_id:pr.data.id,supplier_id:p.supplier_id,login_email:purEmail.value.trim()||null,account_mode:p.purchase_type,capacity:Number(purCap.value||1),provider_expires_at:p.expires_at});if(ar.error)return alert(ar.error.message);closeModal();refreshAll()}
 
@@ -2024,6 +2273,234 @@ function sendProviderRenewal(accountId){
   alert('Este proveedor no tiene WhatsApp ni Telegram cargado.');
 }
 
+
+let rotationServiceId='';
+let rotationMoves=[];
+
+function fullAccountsForRotation(serviceId){
+  return state.accounts
+    .filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===serviceId&&a.account_mode==='full_account')
+    .sort((a,b)=>(a.login_email||'').localeCompare(b.login_email||'','es'));
+}
+
+function rotationRows(serviceId){
+  const ids=new Set(fullAccountsForRotation(serviceId).map(a=>a.id));
+  return state.assignments.filter(a=>!a.released_at).map(a=>{
+    const slot=slotBy(a.account_slot_id);
+    if(!slot||!ids.has(slot.account_id))return null;
+    const item=state.saleItems.find(i=>i.id===a.sale_item_id);
+    if(!item)return null;
+    const sale=saleBy(item.sale_id);
+    return {
+      assignment:a,
+      slot,
+      account:accountBy(slot.account_id),
+      item,
+      sale,
+      client:sale&&clientBy(sale.client_id)
+    };
+  }).filter(Boolean);
+}
+
+function openRotationTool(serviceId=''){
+  const eligible=state.services.filter(s=>s.active!==false&&fullAccountsForRotation(s.id).length>=2);
+  rotationServiceId=serviceId||rotationServiceId||eligible[0]?.id||'';
+  rotationMoves=[];
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin:0">Rotar clientes entre cuentas</div>
+        <div class="tiny muted">Podés hacer A → B, B → C y C → A en una sola operación.</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <label>Servicio</label>
+    <select id="rotationService" onchange="rotationServiceId=this.value;rotationMoves=[];renderRotationBody()">
+      ${eligible.map(s=>`<option value="${s.id}" ${s.id===rotationServiceId?'selected':''}>${esc(s.name)}</option>`).join('')}
+    </select>
+
+    <div id="rotationBody"></div>
+  `);
+
+  renderRotationBody();
+}
+
+function setRotationMove(saleItemId,assignmentId,sourceSlotId,targetSlotId){
+  rotationMoves=rotationMoves.filter(m=>m.saleItemId!==saleItemId);
+  if(targetSlotId)rotationMoves.push({saleItemId,assignmentId,sourceSlotId,targetSlotId});
+  renderRotationBody();
+}
+
+function renderRotationBody(){
+  const box=document.getElementById('rotationBody');
+  if(!box)return;
+
+  const serviceId=document.getElementById('rotationService')?.value||rotationServiceId;
+  rotationServiceId=serviceId;
+
+  if(!serviceId){
+    box.innerHTML='<div class="muted">Necesitás al menos dos cuentas completas del mismo servicio.</div>';
+    return;
+  }
+
+  const accounts=fullAccountsForRotation(serviceId);
+  const rows=rotationRows(serviceId);
+
+  const allSlots=accounts.flatMap(a=>
+    state.slots.filter(s=>s.account_id===a.id&&s.active).map(s=>({slot:s,account:a}))
+  );
+
+  const sourceMoving=new Set(rotationMoves.map(m=>m.sourceSlotId));
+
+  const summary=accounts.map(a=>{
+    const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
+    const occupied=slots.filter(s=>activeAssignSlot(s.id)).length;
+    return `<div class="item">
+      <b>${esc(a.login_email||'Cuenta')}</b>
+      <div class="tiny">${occupied}/${slots.length} ocupados · ${slots.length-occupied} libres</div>
+    </div>`;
+  }).join('');
+
+  const clients=rows.map(r=>{
+    const move=rotationMoves.find(m=>m.saleItemId===r.item.id);
+
+    const options=allSlots
+      .filter(x=>x.slot.id!==r.slot.id)
+      .map(x=>{
+        const occ=activeAssignSlot(x.slot.id);
+        const occSale=occ&&state.saleItems.find(i=>i.id===occ.sale_item_id);
+        const occMain=occSale&&saleBy(occSale.sale_id);
+        const occClient=occMain&&clientBy(occMain.client_id);
+        const label=occ
+          ?`ocupado por ${occClient?.name||'otro cliente'}${sourceMoving.has(x.slot.id)?' (también se mueve)':''}`
+          :'libre';
+
+        return `<option value="${x.slot.id}" ${move?.targetSlotId===x.slot.id?'selected':''}>
+          ${esc(x.account.login_email||'Cuenta')} · cupo ${x.slot.slot_number} · ${esc(label)}
+        </option>`;
+      }).join('');
+
+    return `<div class="item">
+      <div class="row between">
+        <div>
+          <b>${esc(r.client?.name||'Cliente')}</b>
+          <div class="tiny muted">Perfil: ${esc(r.assignment.profile_name||'Sin perfil')}</div>
+        </div>
+        <span class="badge">${esc(r.account?.login_email||'')}</span>
+      </div>
+      <div class="tiny muted">Actual: ${esc(r.account?.login_email||'')} · cupo ${r.slot.slot_number}</div>
+
+      <label>Mover a</label>
+      <select onchange="setRotationMove('${r.item.id}','${r.assignment.id}','${r.slot.id}',this.value)">
+        <option value="">No mover</option>
+        ${options}
+      </select>
+    </div>`;
+  }).join('');
+
+  box.innerHTML=`
+    <div class="sectionTitle">Cuentas</div>
+    ${summary}
+
+    <div class="sectionTitle">Clientes / perfiles</div>
+    ${clients||'<div class="muted">No hay clientes activos.</div>'}
+
+    <div class="card">
+      <b>${rotationMoves.length} movimiento(s) preparado(s)</b>
+      <div class="tiny muted" style="margin-top:4px">Los movimientos se aplican en bloque y el historial anterior queda guardado.</div>
+      <button class="btn primary" style="width:100%;margin-top:10px" onclick="applyRotationMoves()">Confirmar rotación</button>
+    </div>
+  `;
+}
+
+function validateRotationMoves(){
+  if(!rotationMoves.length)throw new Error('No preparaste ningún movimiento.');
+
+  const targets=rotationMoves.map(m=>m.targetSlotId);
+  if(new Set(targets).size!==targets.length){
+    throw new Error('Dos clientes no pueden terminar en el mismo cupo.');
+  }
+
+  const movingSources=new Set(rotationMoves.map(m=>m.sourceSlotId));
+  for(const m of rotationMoves){
+    const occ=activeAssignSlot(m.targetSlotId);
+    if(occ&&!movingSources.has(m.targetSlotId)){
+      throw new Error('Un cupo destino está ocupado por un cliente que no forma parte de la rotación.');
+    }
+  }
+}
+
+async function applyRotationMoves(){
+  try{
+    validateRotationMoves();
+
+    // Liberamos primero todos los orígenes, así permitimos ciclos A→B→C→A.
+    for(const m of rotationMoves){
+      const r=await sb.from('slot_assignments').update({
+        released_at:new Date().toISOString(),
+        release_reason:'Rotación entre cuentas'
+      }).eq('id',m.assignmentId);
+      if(r.error)throw r.error;
+    }
+
+    for(const m of rotationMoves){
+      const old=state.assignments.find(a=>a.id===m.assignmentId);
+      if(!old)throw new Error('No se encontró una asignación anterior.');
+
+      const r=await sb.from('slot_assignments').insert({
+        account_slot_id:m.targetSlotId,
+        sale_item_id:old.sale_item_id,
+        client_id:old.client_id,
+        profile_name:old.profile_name
+      });
+      if(r.error)throw r.error;
+    }
+
+    const moved=rotationMoves.length;
+    rotationMoves=[];
+    await refreshAll();
+    alert(`Rotación completada: ${moved} cliente(s).`);
+    openRotationTool(rotationServiceId);
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
+}
+
+function clientAccountHistory(clientId,serviceId=''){
+  const sales=new Set(state.sales.filter(s=>s.client_id===clientId).map(s=>s.id));
+  const itemIds=new Set(state.saleItems.filter(i=>sales.has(i.sale_id)&&(!serviceId||i.service_id===serviceId)).map(i=>i.id));
+
+  return state.assignments
+    .filter(a=>itemIds.has(a.sale_item_id))
+    .sort((a,b)=>String(b.assigned_at||'').localeCompare(String(a.assigned_at||'')));
+}
+
+function renderClientAccountHistory(clientId){
+  const rows=clientAccountHistory(clientId);
+  if(!rows.length)return '<div class="muted">Sin historial de cuentas.</div>';
+
+  return rows.map(a=>{
+    const slot=slotBy(a.account_slot_id);
+    const account=slot&&accountBy(slot.account_id);
+    const item=state.saleItems.find(i=>i.id===a.sale_item_id);
+    const service=item&&serviceBy(item.service_id);
+
+    return `<div class="item">
+      <b>${esc(service?.name||'Servicio')} · ${esc(account?.login_email||'Cuenta eliminada')}</b>
+      <div class="tiny">Perfil: ${esc(a.profile_name||'Sin perfil')} · cupo ${slot?.slot_number||'-'}</div>
+      <div class="tiny muted">
+        Desde: ${esc((a.assigned_at||'').slice(0,10)||'-')}
+        ${a.released_at?` · Hasta: ${esc((a.released_at||'').slice(0,10))}`:' · Actual'}
+      </div>
+      ${a.release_reason?`<div class="tiny muted">${esc(a.release_reason)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
 function openAccountDetail(accountId){
   const account=accountBy(accountId);
   if(!account)return;
@@ -2083,6 +2560,7 @@ function openAccountDetail(accountId){
           <button class="btn ok small" onclick="renewSingleService('${item.id}')">🔄 Renovar servicio</button>
           <button class="btn danger small" onclick="deleteSingleService('${item.id}')">🗑 Eliminar servicio</button>`:''}
           ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
+          ${item?`<button class="btn warn small" onclick="openRotationTool('${item.service_id}')">🔄 Rotar / mover</button>`:''}
         </div>
       </div>
     `);
@@ -2139,36 +2617,140 @@ function openAccountDetail(accountId){
 
 
 function openAccountModal(id=''){
-  if(!state.services.length&&!id){return openServiceModal()}
-  const a=id?accountBy(id):{};
+  if(!state.services.filter(s=>s.active!==false).length&&!id)return openServiceModal();
+
+  const a=id?accountBy(id):null;
+  const activeSlots=id?state.slots.filter(s=>s.account_id===id&&s.active).length:Number(a?.capacity||5);
+
   openModal(`
     <div class="sectionTitle">${id?'Editar':'Nueva'} cuenta</div>
-    <label>Servicio</label><select id="accService">${serviceOpts()}</select>
-    <label>Correo / usuario</label><input id="accEmail" value="${esc(a?.login_email||'')}">
-    <label>Contraseña</label><input id="accPassword" value="${esc(a?.login_password||'')}" placeholder="Contraseña de acceso">
+
+    <label>Servicio</label>
+    <select id="accService">${state.services.filter(s=>s.active!==false).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
+
+    <label>Correo / usuario</label>
+    <input id="accEmail" value="${esc(a?.login_email||'')}">
+
+    <label>Contraseña</label>
+    <input id="accPassword" value="${esc(a?.login_password||'')}" placeholder="Contraseña de acceso">
+
     <label>Tipo</label>
-    <select id="accMode" ${id?'disabled':''}>
+    <select id="accMode">
       <option value="full_account">Cuenta completa administrada por mí</option>
-      <option value="provider_managed">Perfil comprado a proveedor</option>
+      <option value="provider_managed">Administrada por proveedor</option>
     </select>
-    <label>Capacidad</label><input id="accCap" type="number" value="${a?.capacity||5}" ${id?'disabled':''}>
-    <label>Vence con proveedor</label><input id="accExp" type="date" value="${esc(a?.provider_expires_at||addDays(today(),30))}">
-    <button class="btn primary" style="width:100%;margin-top:10px" onclick="saveAccount('${id}')">Guardar cambios</button>
+
+    <label>Capacidad / cupos activos</label>
+    <input id="accCap" type="number" min="1" value="${activeSlots||1}">
+    <div class="tiny muted">Al reducir capacidad solo se desactivan cupos libres; nunca se borra el historial.</div>
+
+    <label>Proveedor</label>
+    <select id="accSupplier">
+      <option value="">Sin proveedor</option>
+      ${state.suppliers.filter(s=>!s.archived_at).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}
+    </select>
+
+    <label>Vence con proveedor</label>
+    <input id="accExp" type="date" value="${esc(a?.provider_expires_at||'')}">
+
+    <div class="row wrap" style="margin-top:12px">
+      <button class="btn primary" style="flex:1" onclick="saveAccount('${id}')">Guardar cambios</button>
+      ${id?`<button class="btn danger" onclick="deleteAccount('${id}')">Eliminar cuenta</button>`:''}
+    </div>
   `);
-  if(id){accService.value=a.service_id;accMode.value=a.account_mode}
+
+  if(id){
+    accService.value=a.service_id||'';
+    accMode.value=a.account_mode||'full_account';
+    accSupplier.value=a.supplier_id||'';
+  }
 }
+async function syncAccountCapacity(accountId,target){
+  target=Math.max(1,Number(target||1));
+
+  let slots=state.slots
+    .filter(s=>s.account_id===accountId)
+    .sort((a,b)=>Number(a.slot_number||0)-Number(b.slot_number||0));
+
+  let active=slots.filter(s=>s.active);
+
+  if(active.length<target){
+    let need=target-active.length;
+
+    const inactiveFree=slots
+      .filter(s=>!s.active && !activeAssignSlot(s.id))
+      .sort((a,b)=>Number(a.slot_number||0)-Number(b.slot_number||0));
+
+    for(const slot of inactiveFree.slice(0,need)){
+      const r=await sb.from('account_slots').update({active:true}).eq('id',slot.id);
+      if(r.error)throw r.error;
+      need--;
+    }
+
+    if(need>0){
+      const maxNum=slots.reduce((m,x)=>Math.max(m,Number(x.slot_number||0)),0);
+      const rows=Array.from({length:need},(_,i)=>({
+        account_id:accountId,
+        slot_number:maxNum+i+1,
+        active:true
+      }));
+      const r=await sb.from('account_slots').insert(rows);
+      if(r.error)throw r.error;
+    }
+    return;
+  }
+
+  if(active.length>target){
+    const remove=active.length-target;
+    const freeActive=active
+      .filter(s=>!activeAssignSlot(s.id))
+      .sort((a,b)=>Number(b.slot_number||0)-Number(a.slot_number||0));
+
+    if(freeActive.length<remove){
+      throw new Error(`No se puede bajar a ${target} cupos: primero mové o liberá ${remove-freeActive.length} cliente(s).`);
+    }
+
+    for(const slot of freeActive.slice(0,remove)){
+      const r=await sb.from('account_slots').update({active:false}).eq('id',slot.id);
+      if(r.error)throw r.error;
+    }
+  }
+}
+
 async function saveAccount(id){
-  const p={
-    service_id:accService.value,
-    login_email:accEmail.value.trim()||null,
-    login_password:accPassword.value.trim()||null,
-    account_mode:accMode.value,
-    provider_expires_at:accExp.value||null
-  };
-  if(!id)p.capacity=Number(accCap.value||1);
-  const r=id?await sb.from('accounts').update(p).eq('id',id):await sb.from('accounts').insert(p);
-  if(r.error)return alert(r.error.message);
-  closeModal();refreshAll();
+  try{
+    const desiredCapacity=Math.max(1,Number(accCap.value||1));
+    const p={
+      service_id:accService.value,
+      login_email:accEmail.value.trim()||null,
+      login_password:accPassword.value.trim()||null,
+      account_mode:accMode.value,
+      supplier_id:accSupplier.value||null,
+      provider_expires_at:accExp.value||null,
+      capacity:desiredCapacity
+    };
+
+    let accountId=id;
+
+    if(id){
+      const r=await sb.from('accounts').update(p).eq('id',id);
+      if(r.error)throw r.error;
+    }else{
+      const r=await sb.from('accounts').insert(p).select().single();
+      if(r.error)throw r.error;
+      accountId=r.data.id;
+    }
+
+    await refreshAll();
+    await syncAccountCapacity(accountId,desiredCapacity);
+
+    closeModal();
+    await refreshAll();
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
 }
 function freeSlotOptionsForAccount(accountId){
   const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
@@ -2307,7 +2889,7 @@ function fillSaleFromExtractor(){
 }
 
 function inlineSupplierOptions(){
-  return '<option value="">Sin proveedor</option>'+state.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  return '<option value="">Sin proveedor</option>'+state.suppliers.filter(s=>!s.archived_at).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
 }
 
 
@@ -2349,7 +2931,7 @@ Perfil 2
   <div id="saleBuilder"></div>
   <button class="btn secondary" style="width:100%" onclick="addSaleRow()">+ Agregar otro perfil / servicio</button>
   <div id="saleDist" class="hint">Total cobrado, inversión y ganancia se calculan automáticamente.</div>
-  <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveSale()">Guardar venta</button>`);
+  <button class="btn primary" style="width:100%;margin-top:12px" onclick="reviewSaleBeforeSave()">Revisar y guardar venta</button>`);
   addSaleRow();
 }
 
@@ -2946,6 +3528,75 @@ async function resolveAccountAndSlot(row,service){
   if(!first)throw new Error(`No se pudo generar el primer cupo de ${email}.`);
   return {account:ac,slotId:first.id,purchaseId:null};
 }
+
+function duplicateSaleWarnings(){
+  const warnings=[];
+  const rows=[...document.querySelectorAll('.saleRow')];
+  const selectedClientId=document.getElementById('saleClientId')?.value||'';
+  const rawPhone=document.getElementById('saleClientPhone')?.value||'';
+  const phone=normalizePhone(rawPhone);
+
+  if(!selectedClientId&&phone){
+    const samePhone=state.clients.find(c=>!c.archived_at&&normalizePhone(c.phone_e164||c.phone_raw||'')===phone);
+    if(samePhone)warnings.push(`Ya existe un cliente con este teléfono: ${samePhone.name}.`);
+  }
+
+  const seen=new Set();
+  rows.forEach((row,idx)=>{
+    const serviceName=(row.querySelector('.siServiceName')?.value||'').trim();
+    const email=normalizeAccountEmail(row.querySelector('.siAccountEmail')?.value||'');
+    const profile=(row.querySelector('.siProfile')?.value||'').trim().toLowerCase();
+    const key=`${serviceName.toLowerCase()}|${email}|${profile}`;
+
+    if(serviceName&&email&&profile){
+      if(seen.has(key))warnings.push(`El servicio ${idx+1} repite exactamente servicio + correo + perfil dentro de esta misma venta.`);
+      seen.add(key);
+    }
+
+    const service=findServiceByName(serviceName);
+    const account=service&&email?findAccountByEmail(email,service.id):null;
+    if(account&&profile){
+      const slotIds=new Set(state.slots.filter(s=>s.account_id===account.id).map(s=>s.id));
+      const occupied=state.assignments.find(a=>!a.released_at&&slotIds.has(a.account_slot_id)&&String(a.profile_name||'').trim().toLowerCase()===profile);
+      if(occupied)warnings.push(`${serviceName}: el perfil "${row.querySelector('.siProfile')?.value||''}" ya figura ocupado en ${account.login_email}.`);
+    }
+  });
+
+  return [...new Set(warnings)];
+}
+
+function reviewSaleBeforeSave(){
+  const rows=[...document.querySelectorAll('.saleRow')];
+  if(!rows.length)return alert('Agregá al menos un servicio.');
+
+  const client=(saleClientName.value||'').trim();
+  if(!client)return alert('Ingresá el cliente.');
+
+  const total=Number(saleTotal.value||0);
+  const currency=saleCurr.value||'ARS';
+  const warnings=duplicateSaleWarnings();
+
+  const serviceLines=rows.map((row,idx)=>{
+    const service=(row.querySelector('.siServiceName')?.value||'Sin servicio').trim();
+    const email=(row.querySelector('.siAccountEmail')?.value||'Sin cuenta').trim();
+    const profile=(row.querySelector('.siProfile')?.value||'Sin perfil').trim();
+    const devices=Number(row.querySelector('.siDevices')?.value||1);
+    const start=row.querySelector('.siStart')?.value||'-';
+    const end=row.querySelector('.siEnd')?.value||'-';
+    const cost=Number(row.querySelector('.siCost')?.value||0);
+    const renewal=row.querySelector('.siRenewalType')?.selectedOptions?.[0]?.textContent||'';
+    return `${idx+1}. ${service}\n   Cuenta: ${email}\n   Perfil: ${profile} · ${devices} dispositivo(s)\n   ${start} → ${end}\n   Renovación: ${renewal}\n   Costo: ${cost} ${currency}`;
+  }).join('\n\n');
+
+  const warningText=warnings.length
+    ?`\n\n⚠️ REVISAR POSIBLES DUPLICADOS:\n- ${warnings.join('\n- ')}`
+    :'';
+
+  const text=`CONFIRMAR VENTA\n\nCliente: ${client}\nTeléfono: ${saleClientPhone.value||'Sin teléfono'}\nFecha: ${saleDate.value||today()}\nTotal cobrado: ${total} ${currency}\n\nSERVICIOS:\n${serviceLines}${warningText}\n\n¿Está todo correcto y querés guardar la venta?`;
+
+  if(confirm(text))saveSale();
+}
+
 async function saveSale(){
   const rows=[...document.querySelectorAll('.saleRow')];if(!rows.length)return alert('Agregá al menos un servicio.');
   const total=Number(saleTotal.value||0);
