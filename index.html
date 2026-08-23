@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v31">
+<meta name="misakroos-version" content="v33">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v31</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v33</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -2381,8 +2381,10 @@ function sendProviderRenewal(accountId){
 }
 
 
+
 let rotationServiceId='';
-let rotationMoves=[];
+let rotationFormRows=[];
+let rotationRowSeq=0;
 
 function fullAccountsForRotation(serviceId){
   return state.accounts
@@ -2390,185 +2392,419 @@ function fullAccountsForRotation(serviceId){
     .sort((a,b)=>(a.login_email||'').localeCompare(b.login_email||'','es'));
 }
 
-function rotationRows(serviceId){
-  const ids=new Set(fullAccountsForRotation(serviceId).map(a=>a.id));
-  return state.assignments.filter(a=>!a.released_at).map(a=>{
-    const slot=slotBy(a.account_slot_id);
-    if(!slot||!ids.has(slot.account_id))return null;
-    const item=state.saleItems.find(i=>i.id===a.sale_item_id);
+function rotationAccountOccupants(accountId){
+  const slots=state.slots
+    .filter(s=>s.account_id===accountId&&s.active)
+    .sort((a,b)=>Number(a.slot_number||0)-Number(b.slot_number||0));
+
+  return slots.map(slot=>{
+    const assignment=activeAssignSlot(slot.id);
+    if(!assignment)return null;
+    const item=state.saleItems.find(i=>i.id===assignment.sale_item_id);
     if(!item)return null;
     const sale=saleBy(item.sale_id);
-    return {
-      assignment:a,
-      slot,
-      account:accountBy(slot.account_id),
-      item,
-      sale,
-      client:sale&&clientBy(sale.client_id)
-    };
+    const client=sale&&clientBy(sale.client_id);
+    return {slot,assignment,item,sale,client};
   }).filter(Boolean);
 }
 
+function defaultRotationService(){
+  const netflix=state.services.find(s=>s.active!==false&&String(s.name||'').toLowerCase().includes('netflix')&&fullAccountsForRotation(s.id).length>=2);
+  if(netflix)return netflix.id;
+  return state.services.find(s=>s.active!==false&&fullAccountsForRotation(s.id).length>=2)?.id||'';
+}
+
 function openRotationTool(serviceId=''){
+  rotationServiceId=serviceId||rotationServiceId||defaultRotationService();
+  rotationFormRows=[];
+  rotationRowSeq=0;
+
+  addRotationAccountRow(false);
+  addRotationAccountRow(false);
+
   const eligible=state.services.filter(s=>s.active!==false&&fullAccountsForRotation(s.id).length>=2);
-  rotationServiceId=serviceId||rotationServiceId||eligible[0]?.id||'';
-  rotationMoves=[];
 
   openModal(`
     <div class="row between">
       <div>
-        <div class="sectionTitle" style="margin:0">Rotar clientes entre cuentas</div>
-        <div class="tiny muted">Podés hacer A → B, B → C y C → A en una sola operación.</div>
+        <div class="sectionTitle" style="margin:0">Rotar perfiles</div>
+        <div class="tiny muted">Elegí mínimo 2 cuentas y un perfil de cada una. Los clientes rotan en cadena.</div>
       </div>
       <button class="btn secondary small" onclick="closeModal()">✕</button>
     </div>
 
-    <label>Servicio</label>
-    <select id="rotationService" onchange="rotationServiceId=this.value;rotationMoves=[];renderRotationBody()">
+    <label>1. Servicio</label>
+    <select id="rotationService" onchange="changeRotationService(this.value)">
       ${eligible.map(s=>`<option value="${s.id}" ${s.id===rotationServiceId?'selected':''}>${esc(s.name)}</option>`).join('')}
     </select>
 
-    <div id="rotationBody"></div>
+    <div class="hint" style="margin-top:8px">
+      Ejemplo con 3 cuentas: el perfil elegido de A pasa a B, el de B pasa a C y el de C pasa a A.
+    </div>
+
+    <div class="row between" style="margin-top:14px">
+      <div class="sectionTitle" style="margin:0">2. Cuentas a rotar</div>
+      <button class="btn secondary small" onclick="addRotationAccountRow()">+ Agregar cuenta</button>
+    </div>
+
+    <datalist id="rotationAccountList"></datalist>
+    <div id="rotationFormRows"></div>
+
+    <div id="rotationPreview"></div>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="confirmSimpleRotation()">Confirmar rotación</button>
   `);
 
-  renderRotationBody();
+  renderSimpleRotationForm();
 }
 
-function setRotationMove(saleItemId,assignmentId,sourceSlotId,targetSlotId){
-  rotationMoves=rotationMoves.filter(m=>m.saleItemId!==saleItemId);
-  if(targetSlotId)rotationMoves.push({saleItemId,assignmentId,sourceSlotId,targetSlotId});
-  renderRotationBody();
+function changeRotationService(serviceId){
+  rotationServiceId=serviceId;
+  rotationFormRows=[];
+  rotationRowSeq=0;
+  addRotationAccountRow(false);
+  addRotationAccountRow(false);
+  renderSimpleRotationForm();
 }
 
-function renderRotationBody(){
-  const box=document.getElementById('rotationBody');
+function addRotationAccountRow(render=true){
+  rotationFormRows.push({
+    key:`rot_${++rotationRowSeq}`,
+    accountId:'',
+    accountText:'',
+    assignmentId:''
+  });
+  if(render)renderSimpleRotationForm();
+}
+
+function removeRotationAccountRow(key){
+  if(rotationFormRows.length<=2)return alert('La rotación necesita como mínimo 2 cuentas.');
+  rotationFormRows=rotationFormRows.filter(r=>r.key!==key);
+  renderSimpleRotationForm();
+}
+
+function resolveRotationAccount(text){
+  const q=String(text||'').trim().toLowerCase();
+  if(!q)return null;
+  const accounts=fullAccountsForRotation(rotationServiceId);
+
+  const exact=accounts.filter(a=>String(a.login_email||'').trim().toLowerCase()===q);
+  if(exact.length===1)return exact[0];
+
+  const partial=accounts.filter(a=>String(a.login_email||'').toLowerCase().includes(q));
+  return partial.length===1?partial[0]:null;
+}
+
+function setRotationAccountText(key,text){
+  const row=rotationFormRows.find(r=>r.key===key);
+  if(!row)return;
+  row.accountText=text;
+  const account=resolveRotationAccount(text);
+  row.accountId=account?.id||'';
+  row.assignmentId='';
+  renderSimpleRotationForm();
+}
+
+function setRotationProfile(key,assignmentId){
+  const row=rotationFormRows.find(r=>r.key===key);
+  if(!row)return;
+  row.assignmentId=assignmentId||'';
+  renderRotationPreview();
+}
+
+function rotationRowData(row){
+  const account=accountBy(row.accountId);
+  if(!account||!row.assignmentId)return {account};
+  const occ=rotationAccountOccupants(account.id).find(x=>x.assignment.id===row.assignmentId);
+  return {account,...(occ||{})};
+}
+
+function renderSimpleRotationForm(){
+  const box=document.getElementById('rotationFormRows');
+  const list=document.getElementById('rotationAccountList');
+  if(!box||!list)return;
+
+  const accounts=fullAccountsForRotation(rotationServiceId);
+  list.innerHTML=accounts.map(a=>`<option value="${esc(a.login_email||'')}"></option>`).join('');
+
+  box.innerHTML=rotationFormRows.map((row,index)=>{
+    const account=accountBy(row.accountId);
+    const occupants=account?rotationAccountOccupants(account.id):[];
+
+    return `<div class="card" style="margin-top:10px">
+      <div class="row between">
+        <b>Cuenta ${index+1}</b>
+        ${rotationFormRows.length>2?`<button class="btn danger small" onclick="removeRotationAccountRow('${row.key}')">Quitar</button>`:''}
+      </div>
+
+      <label>Buscar o seleccionar cuenta</label>
+      <input
+        list="rotationAccountList"
+        value="${esc(row.accountText||account?.login_email||'')}"
+        placeholder="Escribí el correo de la cuenta..."
+        onchange="setRotationAccountText('${row.key}',this.value)"
+        onblur="setRotationAccountText('${row.key}',this.value)"
+      >
+
+      ${account?`
+        <div class="tiny muted" style="margin-top:4px">
+          ${esc(account.login_email||'')} · ${rotationAccountOccupants(account.id).length} perfil(es) ocupado(s)
+        </div>
+
+        <label>Perfil que querés rotar</label>
+        <select onchange="setRotationProfile('${row.key}',this.value)">
+          <option value="">Seleccionar perfil...</option>
+          ${occupants.map(x=>`
+            <option value="${x.assignment.id}" ${row.assignmentId===x.assignment.id?'selected':''}>
+              ${esc(x.assignment.profile_name||`Cupo ${x.slot.slot_number}`)} · ${esc(x.client?.name||'Cliente')} · vence ${esc(x.item?.end_date||'-')}
+            </option>
+          `).join('')}
+        </select>
+      `:`
+        <div class="hint tiny">Escribí o elegí una cuenta válida de ${esc(serviceBy(rotationServiceId)?.name||'este servicio')}.</div>
+      `}
+    </div>`;
+  }).join('');
+
+  renderRotationPreview();
+}
+
+
+function clientHistoricalAccountIds(clientId,serviceId=''){
+  const sales=new Set(state.sales.filter(s=>s.client_id===clientId).map(s=>s.id));
+  const itemIds=new Set(
+    state.saleItems
+      .filter(i=>sales.has(i.sale_id)&&(!serviceId||i.service_id===serviceId))
+      .map(i=>i.id)
+  );
+
+  const ids=new Set();
+  state.assignments
+    .filter(a=>itemIds.has(a.sale_item_id))
+    .forEach(a=>{
+      const slot=slotBy(a.account_slot_id);
+      if(slot?.account_id)ids.add(slot.account_id);
+    });
+
+  return ids;
+}
+
+function rotationSelectedRows(){
+  return rotationFormRows.map(rotationRowData);
+}
+
+function solveHistoryAwareRotation(selected){
+  if(selected.length<2)return null;
+
+  const destinations=selected.map((x,index)=>({
+    index,
+    account:x.account,
+    targetSlot:x.slot
+  }));
+
+  // Coste de cada destino:
+  // 0 = cuenta nueva para ese cliente
+  // 100 = ya estuvo en esa cuenta
+  // 10000 = misma cuenta actual (solo último recurso)
+  function costFor(source,dest){
+    if(source.account.id===dest.account.id)return 10000;
+    const history=clientHistoricalAccountIds(source.client?.id,rotationServiceId);
+    return history.has(dest.account.id)?100:0;
+  }
+
+  let best=null;
+
+  function search(i,used,totalCost,assignment){
+    if(best&&totalCost>=best.cost)return;
+
+    if(i===selected.length){
+      best={cost:totalCost,assignment:[...assignment]};
+      return;
+    }
+
+    const source=selected[i];
+    const ranked=destinations
+      .filter(d=>!used.has(d.index))
+      .map(d=>({d,cost:costFor(source,d)}))
+      .sort((a,b)=>a.cost-b.cost);
+
+    for(const choice of ranked){
+      used.add(choice.d.index);
+      assignment.push(choice.d);
+      search(i+1,used,totalCost+choice.cost,assignment);
+      assignment.pop();
+      used.delete(choice.d.index);
+    }
+  }
+
+  search(0,new Set(),0,[]);
+  if(!best)return null;
+
+  return selected.map((source,i)=>{
+    const dest=best.assignment[i];
+    const history=clientHistoricalAccountIds(source.client?.id,rotationServiceId);
+    const alreadyVisited=history.has(dest.account.id);
+    const sameAccount=source.account.id===dest.account.id;
+
+    return {
+      source,
+      destination:dest,
+      alreadyVisited,
+      sameAccount,
+      ideal:!alreadyVisited&&!sameAccount
+    };
+  });
+}
+
+function renderRotationPreview(){
+  const box=document.getElementById('rotationPreview');
   if(!box)return;
 
-  const serviceId=document.getElementById('rotationService')?.value||rotationServiceId;
-  rotationServiceId=serviceId;
+  const selected=rotationSelectedRows();
+  const ready=selected.length>=2&&selected.every(x=>x.account&&x.assignment);
 
-  if(!serviceId){
-    box.innerHTML='<div class="muted">Necesitás al menos dos cuentas completas del mismo servicio.</div>';
+  if(!ready){
+    box.innerHTML=`<div class="hint" style="margin-top:12px">Elegí una cuenta y un perfil en cada casillero para ver cómo quedará la rotación.</div>`;
     return;
   }
 
-  const accounts=fullAccountsForRotation(serviceId);
-  const rows=rotationRows(serviceId);
+  const accountIds=selected.map(x=>x.account.id);
+  if(new Set(accountIds).size!==accountIds.length){
+    box.innerHTML=`<div class="hint" style="margin-top:12px">⚠️ No podés seleccionar la misma cuenta dos veces.</div>`;
+    return;
+  }
 
-  const allSlots=accounts.flatMap(a=>
-    state.slots.filter(s=>s.account_id===a.id&&s.active).map(s=>({slot:s,account:a}))
-  );
+  const plan=solveHistoryAwareRotation(selected);
+  if(!plan){
+    box.innerHTML=`<div class="hint" style="margin-top:12px">No se pudo calcular una rotación válida.</div>`;
+    return;
+  }
 
-  const sourceMoving=new Set(rotationMoves.map(m=>m.sourceSlotId));
-
-  const summary=accounts.map(a=>{
-    const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
-    const occupied=slots.filter(s=>activeAssignSlot(s.id)).length;
-    return `<div class="item">
-      <b>${esc(a.login_email||'Cuenta')}</b>
-      <div class="tiny">${occupied}/${slots.length} ocupados · ${slots.length-occupied} libres</div>
-    </div>`;
-  }).join('');
-
-  const clients=rows.map(r=>{
-    const move=rotationMoves.find(m=>m.saleItemId===r.item.id);
-
-    const options=allSlots
-      .filter(x=>x.slot.id!==r.slot.id)
-      .map(x=>{
-        const occ=activeAssignSlot(x.slot.id);
-        const occSale=occ&&state.saleItems.find(i=>i.id===occ.sale_item_id);
-        const occMain=occSale&&saleBy(occSale.sale_id);
-        const occClient=occMain&&clientBy(occMain.client_id);
-        const label=occ
-          ?`ocupado por ${occClient?.name||'otro cliente'}${sourceMoving.has(x.slot.id)?' (también se mueve)':''}`
-          :'libre';
-
-        return `<option value="${x.slot.id}" ${move?.targetSlotId===x.slot.id?'selected':''}>
-          ${esc(x.account.login_email||'Cuenta')} · cupo ${x.slot.slot_number} · ${esc(label)}
-        </option>`;
-      }).join('');
-
-    return `<div class="item">
-      <div class="row between">
-        <div>
-          <b>${esc(r.client?.name||'Cliente')}</b>
-          <div class="tiny muted">Perfil: ${esc(r.assignment.profile_name||'Sin perfil')}</div>
-        </div>
-        <span class="badge">${esc(r.account?.login_email||'')}</span>
-      </div>
-      <div class="tiny muted">Actual: ${esc(r.account?.login_email||'')} · cupo ${r.slot.slot_number}</div>
-
-      <label>Mover a</label>
-      <select onchange="setRotationMove('${r.item.id}','${r.assignment.id}','${r.slot.id}',this.value)">
-        <option value="">No mover</option>
-        ${options}
-      </select>
-    </div>`;
-  }).join('');
+  const repeated=plan.filter(x=>x.alreadyVisited&&!x.sameAccount);
+  const unchanged=plan.filter(x=>x.sameAccount);
 
   box.innerHTML=`
-    <div class="sectionTitle">Cuentas</div>
-    ${summary}
+    <div class="sectionTitle" style="margin-top:16px">3. Rotación sugerida</div>
 
-    <div class="sectionTitle">Clientes / perfiles</div>
-    ${clients||'<div class="muted">No hay clientes activos.</div>'}
+    ${plan.map(x=>{
+      const from=x.source;
+      const to=x.destination;
+      const warning=x.alreadyVisited&&!x.sameAccount
+        ?`<div class="tiny" style="margin-top:4px"><span class="badge warn">⚠️ Ya estuvo antes en esta cuenta</span></div>`
+        :'';
+      const same=x.sameAccount
+        ?`<div class="tiny" style="margin-top:4px"><span class="badge danger">⚠️ No se pudo encontrar otra cuenta disponible sin repetir</span></div>`
+        :'';
 
-    <div class="card">
-      <b>${rotationMoves.length} movimiento(s) preparado(s)</b>
-      <div class="tiny muted" style="margin-top:4px">Los movimientos se aplican en bloque y el historial anterior queda guardado.</div>
-      <button class="btn primary" style="width:100%;margin-top:10px" onclick="applyRotationMoves()">Confirmar rotación</button>
+      return `<div class="item">
+        <div class="row between">
+          <b>${esc(from.client?.name||'Cliente')}</b>
+          ${x.ideal?'<span class="badge">Cuenta nueva para este cliente</span>':''}
+        </div>
+        <div class="tiny">${esc(from.account.login_email||'')} → <b>${esc(to.account.login_email||'')}</b></div>
+        <div class="tiny muted">Perfil: ${esc(from.assignment.profile_name||'Sin perfil')}</div>
+        ${warning}${same}
+      </div>`;
+    }).join('')}
+
+    ${repeated.length?`
+      <div class="hint" style="margin-top:10px">
+        ⚠️ ${repeated.length} cliente(s) no tienen una combinación totalmente nueva con las cuentas elegidas. El sistema eligió la alternativa con menos repeticiones posibles.
+      </div>
+    `:''}
+
+    ${unchanged.length?`
+      <div class="hint" style="margin-top:10px">
+        ⚠️ Para evitar dejar clientes sin destino, ${unchanged.length} cliente(s) quedarían en su misma cuenta. Agregá otra cuenta a la rotación para mejorar la distribución.
+      </div>
+    `:''}
+
+    <div class="tiny muted" style="margin-top:8px">
+      El CRM revisa todo el historial del cliente y prioriza cuentas en las que nunca estuvo.
     </div>
   `;
 }
 
-function validateRotationMoves(){
-  if(!rotationMoves.length)throw new Error('No preparaste ningún movimiento.');
+function buildSimpleRotationMoves(){
+  if(rotationFormRows.length<2)throw new Error('Necesitás al menos 2 cuentas.');
 
-  const targets=rotationMoves.map(m=>m.targetSlotId);
-  if(new Set(targets).size!==targets.length){
-    throw new Error('Dos clientes no pueden terminar en el mismo cupo.');
+  const selected=rotationSelectedRows();
+  if(selected.some(x=>!x.account))throw new Error('Hay una cuenta sin seleccionar correctamente.');
+  if(selected.some(x=>!x.assignment))throw new Error('Elegí un perfil de cada cuenta.');
+
+  const accountIds=selected.map(x=>x.account.id);
+  if(new Set(accountIds).size!==accountIds.length)throw new Error('No podés repetir la misma cuenta.');
+
+  const assignmentIds=selected.map(x=>x.assignment.id);
+  if(new Set(assignmentIds).size!==assignmentIds.length)throw new Error('No podés repetir el mismo perfil.');
+
+  const plan=solveHistoryAwareRotation(selected);
+  if(!plan)throw new Error('No se pudo calcular una rotación válida.');
+
+  const same=plan.filter(x=>x.sameAccount);
+  if(same.length){
+    throw new Error(
+      `Hay ${same.length} cliente(s) que no pueden moverse a otra cuenta con esta selección. `+
+      `Agregá otra cuenta a la rotación.`
+    );
   }
 
-  const movingSources=new Set(rotationMoves.map(m=>m.sourceSlotId));
-  for(const m of rotationMoves){
-    const occ=activeAssignSlot(m.targetSlotId);
-    if(occ&&!movingSources.has(m.targetSlotId)){
-      throw new Error('Un cupo destino está ocupado por un cliente que no forma parte de la rotación.');
-    }
-  }
+  return plan.map(x=>({
+    assignmentId:x.source.assignment.id,
+    saleItemId:x.source.item.id,
+    sourceSlotId:x.source.slot.id,
+    targetSlotId:x.destination.targetSlot.id,
+    fromAccount:x.source.account,
+    toAccount:x.destination.account,
+    client:x.source.client,
+    profileName:x.source.assignment.profile_name,
+    destinationWasUsedBefore:x.alreadyVisited
+  }));
 }
 
-async function applyRotationMoves(){
+async function confirmSimpleRotation(){
   try{
-    validateRotationMoves();
+    const moves=buildSimpleRotationMoves();
 
-    // Liberamos primero todos los orígenes, así permitimos ciclos A→B→C→A.
-    for(const m of rotationMoves){
+    const repeated=moves.filter(m=>m.destinationWasUsedBefore);
+
+    const summary=moves.map((m,i)=>
+      `${i+1}. ${m.client?.name||'Cliente'}\n`+
+      `${m.fromAccount.login_email||'Cuenta'} → ${m.toAccount.login_email||'Cuenta'}`+
+      `${m.destinationWasUsedBefore?'\n⚠️ Ya estuvo anteriormente en la cuenta destino':''}`
+    ).join('\n\n');
+
+    const extra=repeated.length
+      ?`\n\nATENCIÓN: ${repeated.length} cliente(s) no tienen una cuenta totalmente nueva dentro de las seleccionadas. `+
+       `El sistema eligió la combinación que menos repite historial.`
+      :'';
+
+    if(!confirm(`CONFIRMAR ROTACIÓN\n\n${summary}${extra}\n\n¿Está todo correcto?`))return;
+
+    // Liberar todos los orígenes primero permite cualquier permutación A↔B↔C.
+    for(const m of moves){
       const r=await sb.from('slot_assignments').update({
         released_at:new Date().toISOString(),
-        release_reason:'Rotación entre cuentas'
+        release_reason:
+          `Rotación: ${m.fromAccount.login_email||'cuenta origen'} → ${m.toAccount.login_email||'cuenta destino'}`+
+          (m.destinationWasUsedBefore?' · destino usado anteriormente por el cliente':'')
       }).eq('id',m.assignmentId);
       if(r.error)throw r.error;
     }
 
-    for(const m of rotationMoves){
-      const old=state.assignments.find(a=>a.id===m.assignmentId);
-      if(!old)throw new Error('No se encontró una asignación anterior.');
-
+    for(const m of moves){
       const r=await sb.from('slot_assignments').insert({
         account_slot_id:m.targetSlotId,
-        sale_item_id:old.sale_item_id,
-        client_id:old.client_id,
-        profile_name:old.profile_name
+        sale_item_id:m.saleItemId,
+        client_id:m.client?.id||null,
+        profile_name:m.profileName||null
       });
       if(r.error)throw r.error;
     }
 
-    const moved=rotationMoves.length;
-    rotationMoves=[];
+    const qty=moves.length;
     await refreshAll();
-    alert(`Rotación completada: ${moved} cliente(s).`);
+    alert(`Rotación completada correctamente: ${qty} perfil(es). El historial quedó conservado.`);
     openRotationTool(rotationServiceId);
   }catch(err){
     console.error(err);
@@ -2667,7 +2903,7 @@ function openAccountDetail(accountId){
           <button class="btn ok small" onclick="renewSingleService('${item.id}')">🔄 Renovar servicio</button>
           <button class="btn danger small" onclick="deleteSingleService('${item.id}')">🗑 Eliminar servicio</button>`:''}
           ${client?`<button class="btn secondary small" onclick="openClientDetail('${client.id}')">👤 Ver cliente</button>`:''}
-          ${item?`<button class="btn warn small" onclick="openRotationTool('${item.service_id}')">🔄 Rotar / mover</button>`:''}
+          ${item?`<button class="btn warn small" onclick="openRotationTool('${item.service_id}')">🔄 Rotar perfil</button>`:''}
         </div>
       </div>
     `);
