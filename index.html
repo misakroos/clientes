@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v30">
+<meta name="misakroos-version" content="v31">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v30</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v31</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -160,6 +160,30 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
       <div class="tiny muted">Balance calculado por ventas reales.</div>
     </div>
     <button class="btn secondary small" onclick="showScreen('more')">← Volver</button>
+  </div>
+
+  <div class="card">
+    <div class="row between">
+      <div>
+        <b>Conversión automática</b>
+        <div id="fxStatus" class="tiny muted">Cargando cotizaciones...</div>
+      </div>
+      <button class="btn secondary small" onclick="refreshFxRates(true)">↻ Cotizaciones</button>
+    </div>
+    <div class="filterGrid" style="margin-top:8px">
+      <div>
+        <label>Dólar para convertir a ARS</label>
+        <select id="arsFxSource" onchange="setArsFxSource(this.value)">
+          <option value="cripto">Dólar cripto / USDT</option>
+          <option value="blue">Dólar blue</option>
+          <option value="oficial">Dólar oficial</option>
+        </select>
+      </div>
+      <div>
+        <label>Moneda del balance</label>
+        <select disabled><option>ARS</option></select>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -482,10 +506,88 @@ function applyServiceRenewalDefaultsToRow(row,service){
 }
 
 
+
+let fxRatesToARS={ARS:1,USD:null,USDT:null,UYU:null,CLP:null};
+let fxUpdatedAt=null;
+let fxLoading=false;
+
+function getArsFxSource(){
+  return localStorage.getItem('misakroos_ars_fx_source')||'cripto';
+}
+function setArsFxSource(source){
+  localStorage.setItem('misakroos_ars_fx_source',source||'cripto');
+  refreshFxRates(true);
+}
+function fxRateToARS(currency){
+  const c=(currency||'ARS').toUpperCase();
+  if(c==='ARS')return 1;
+  if(c==='USDT')return fxRatesToARS.USDT||fxRatesToARS.USD||null;
+  return fxRatesToARS[c]||null;
+}
+function convertToARS(amount,currency){
+  const rate=fxRateToARS(currency);
+  return rate==null?null:Number(amount||0)*rate;
+}
+function fxLabel(currency){
+  const rate=fxRateToARS(currency);
+  return rate==null?'Sin cotización':`1 ${currency} = ${money(rate,'ARS')}`;
+}
+async function fetchJsonOrThrow(url){
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok)throw new Error(`Error de cotización (${r.status})`);
+  return await r.json();
+}
+async function refreshFxRates(force=false){
+  if(fxLoading)return;
+  if(!force&&fxUpdatedAt&&Date.now()-fxUpdatedAt<10*60*1000){
+    renderFxStatus();
+    return;
+  }
+  fxLoading=true;
+  renderFxStatus('Actualizando cotizaciones...');
+  try{
+    const source=getArsFxSource();
+    const [arsData,uyuData,clpData]=await Promise.all([
+      fetchJsonOrThrow(`https://dolarapi.com/v1/dolares/${source}`),
+      fetchJsonOrThrow('https://api.frankfurter.dev/v2/rate/USD/UYU'),
+      fetchJsonOrThrow('https://api.frankfurter.dev/v2/rate/USD/CLP')
+    ]);
+    const usdArs=Number(arsData.venta||arsData.compra||0);
+    const usdUyu=Number(uyuData.rate||0);
+    const usdClp=Number(clpData.rate||0);
+    if(!usdArs||!usdUyu||!usdClp)throw new Error('Una cotización llegó vacía.');
+    fxRatesToARS={ARS:1,USD:usdArs,USDT:usdArs,UYU:usdArs/usdUyu,CLP:usdArs/usdClp};
+    fxUpdatedAt=Date.now();
+    renderFxStatus();
+    updateSaleDistribution();
+    renderFinance();
+    renderCash();
+  }catch(err){
+    console.error('FX error',err);
+    renderFxStatus(`No se pudieron actualizar las cotizaciones. ${err.message||''}`);
+  }finally{
+    fxLoading=false;
+  }
+}
+function renderFxStatus(custom=''){
+  const el=document.getElementById('fxStatus');
+  const sourceEl=document.getElementById('arsFxSource');
+  if(sourceEl)sourceEl.value=getArsFxSource();
+  if(!el)return;
+  if(custom){el.textContent=custom;return;}
+  if(!fxUpdatedAt){el.textContent='Cotizaciones todavía no cargadas.';return;}
+  const t=new Date(fxUpdatedAt).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML=`Actualizado ${t} · USD/USDT ${money(fxRatesToARS.USD,'ARS')} · UYU ${money(fxRatesToARS.UYU,'ARS')} · CLP ${money(fxRatesToARS.CLP,'ARS')}`;
+}
+function snapshotFxToARS(amount,currency){
+  const rate=fxRateToARS(currency);
+  return {rate,amountArs:rate==null?null:Number(amount||0)*rate,source:getArsFxSource()};
+}
+
 const money=(n,c='ARS')=>new Intl.NumberFormat('es-AR',{style:'currency',currency:c==='USDT'?'USD':c,maximumFractionDigits:2}).format(Number(n||0)).replace('US$','USDT ');
 async function login(){loginMsg.textContent='Ingresando...';const {data,error}=await sb.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPassword.value});if(error){loginMsg.textContent=error.message;return}await boot()}
 async function logout(){await sb.auth.signOut();location.reload()}
-async function boot(){authView.classList.add('hidden');appView.classList.remove('hidden');await refreshAll()}
+async function boot(){authView.classList.add('hidden');appView.classList.remove('hidden');await refreshFxRates(true);await refreshAll()}
 async function refreshAll(){
   const qs=await Promise.all([
     sb.from('clients').select('*').order('name'),
@@ -519,6 +621,7 @@ async function manualRefresh(){
       btn.disabled=true;
       btn.textContent='Actualizando...';
     }
+    await refreshFxRates(true);
     await refreshAll();
     if(btn){
       btn.textContent='✓ Actualizado';
@@ -1099,38 +1202,30 @@ function renderCash(){
     return true;
   });
 
-  const byCurrency={};
+  let incomeArs=0,expenseArs=0,live=0;
   rows.forEach(m=>{
-    const c=m.currency||'ARS';
-    byCurrency[c]??={income:0,expense:0};
-    if(m.type==='income')byCurrency[c].income+=Number(m.amount||0);
-    else byCurrency[c].expense+=Number(m.amount||0);
+    let ars=m.amount_ars==null?null:Number(m.amount_ars);
+    if(ars==null){ars=convertToARS(m.amount,m.currency||'ARS');live++;}
+    if(m.type==='income')incomeArs+=Number(ars||0); else expenseArs+=Number(ars||0);
   });
 
-  summary.innerHTML=Object.keys(byCurrency).length
-    ?Object.entries(byCurrency).map(([c,v])=>{
-      const net=v.income-v.expense;
-      return `<div class="item">
-        <b>${esc(c)}</b>
-        <div class="tiny">Ingresos: <b>${money(v.income,c)}</b></div>
-        <div class="tiny">Egresos: <b>${money(v.expense,c)}</b></div>
-        <div class="tiny">Balance: <b>${money(net,c)}</b></div>
-      </div>`;
-    }).join('')
-    :'<div class="muted">Sin movimientos en este período.</div>';
+  summary.innerHTML=`<div class="item">
+    <b>Balance unificado en ARS</b>
+    <div class="tiny">Ingresos: <b>${money(incomeArs,'ARS')}</b></div>
+    <div class="tiny">Egresos: <b>${money(expenseArs,'ARS')}</b></div>
+    <div class="tiny">Balance: <b>${money(incomeArs-expenseArs,'ARS')}</b></div>
+    ${live?`<div class="tiny muted">${live} movimiento(s) antiguo(s) convertidos con cotización actual.</div>`:''}
+  </div>`;
 
-  list.innerHTML=rows.length?rows.slice(0,150).map(m=>`
-    <div class="item">
-      <div class="row between">
-        <b>${m.type==='income'?'Ingreso':'Egreso'} · ${money(m.amount,m.currency||'ARS')}</b>
-        <span class="badge">${esc(m.movement_date||'')}</span>
-      </div>
-      <div class="tiny">${esc(m.concept||'')}</div>
-      ${m.notes?`<div class="tiny muted">${esc(m.notes)}</div>`:''}
-    </div>
-  `).join(''):'';
+  list.innerHTML=rows.length?rows.slice(0,150).map(m=>{
+    const ars=m.amount_ars==null?convertToARS(m.amount,m.currency||'ARS'):Number(m.amount_ars);
+    return `<div class="item">
+      <div class="row between"><b>${m.type==='income'?'Ingreso':'Egreso'} · ${money(m.amount,m.currency||'ARS')}</b><span class="badge">${esc(m.movement_date||'')}</span></div>
+      ${m.currency!=='ARS'&&ars!=null?`<div class="tiny">≈ ${money(ars,'ARS')}</div>`:''}
+      <div class="tiny">${esc(m.concept||'')}</div>${m.notes?`<div class="tiny muted">${esc(m.notes)}</div>`:''}
+    </div>`;
+  }).join(''):'';
 }
-
 function openCashMovementModal(){
   openModal(`
     <div class="sectionTitle">Nuevo movimiento de caja</div>
@@ -1148,13 +1243,18 @@ function openCashMovementModal(){
 }
 
 async function saveCashMovement(){
+  if(!fxUpdatedAt)await refreshFxRates(true);
+  const rawAmount=Number(cashAmount.value||0);
+  const fx=snapshotFxToARS(rawAmount,cashCurrency.value);
   const payload={
     type:cashType.value,
     concept:cashConcept.value.trim()||'Movimiento',
-    amount:Number(cashAmount.value||0),
+    amount:rawAmount,
     currency:cashCurrency.value,
     movement_date:cashDate.value||today(),
-    notes:cashNotes.value.trim()||null
+    notes:cashNotes.value.trim()||null,
+    fx_rate_to_ars:fx.rate,
+    amount_ars:fx.amountArs
   };
   if(payload.amount<=0)return alert('Ingresá un monto válido.');
   const r=await sb.from('cash_movements').insert(payload);
@@ -1443,7 +1543,18 @@ function openEditSaleHeader(saleId){
 }
 
 async function saveSaleHeader(saleId){
-  const r=await sb.from('sales').update({client_id:saleHdrClient.value,total_amount:Number(saleHdrTotal.value||0),currency:saleHdrCurr.value,sold_at:saleHdrDate.value||today()}).eq('id',saleId);
+  if(!fxUpdatedAt)await refreshFxRates(true);
+  const total=Number(saleHdrTotal.value||0);
+  const fx=snapshotFxToARS(total,saleHdrCurr.value);
+  const r=await sb.from('sales').update({
+    client_id:saleHdrClient.value,
+    total_amount:total,
+    currency:saleHdrCurr.value,
+    sold_at:saleHdrDate.value||today(),
+    fx_rate_to_ars:fx.rate,
+    total_amount_ars:fx.amountArs,
+    fx_rate_source:fx.source
+  }).eq('id',saleId);
   if(r.error)return alert(r.error.message);
   await refreshAll();openSaleDetail(saleId);
 }
@@ -1662,6 +1773,7 @@ function financeAll(){finFrom.value='';finTo.value='';renderFinance()}
 
 function renderFinance(){
   if(!document.getElementById('financeSummary'))return;
+  renderFxStatus();
   const ss=document.getElementById('finService');
   if(ss){
     const cur=ss.value;
@@ -1679,78 +1791,73 @@ function renderFinance(){
     return items.length>0;
   }).sort((a,b)=>String(b.sold_at||'').localeCompare(String(a.sold_at||'')));
 
-  const sums={};
-  const serviceStats={};
-  const clientStats={};
+  let revenueArs=0,costArs=0,snapshotSales=0,liveFallbacks=0;
+  const serviceStats={},clientStats={};
 
   sales.forEach(s=>{
-    const cur=s.currency||'ARS';
-    sums[cur]??={sales:0,revenue:0,cost:0};
-    sums[cur].sales++;
-    sums[cur].revenue+=Number(s.total_amount||0);
+    let saleArs=s.total_amount_ars==null?null:Number(s.total_amount_ars);
+    if(saleArs==null){saleArs=convertToARS(Number(s.total_amount||0),s.currency||'ARS');liveFallbacks++;}
+    else snapshotSales++;
+    revenueArs+=Number(saleArs||0);
 
     const client=saleClient(s);
     if(client){
-      clientStats[client.id]??={name:client.name,sales:0,amounts:{}};
+      clientStats[client.id]??={name:client.name,sales:0,revenueArs:0};
       clientStats[client.id].sales++;
-      clientStats[client.id].amounts[cur]=(clientStats[client.id].amounts[cur]||0)+Number(s.total_amount||0);
+      clientStats[client.id].revenueArs+=Number(saleArs||0);
     }
 
-    saleItemsFor(s.id).forEach(i=>{
-      const cc=i.direct_cost_currency||cur;
-      sums[cc]??={sales:0,revenue:0,cost:0};
-      sums[cc].cost+=Number(i.direct_cost||0);
+    const saleItems=saleItemsFor(s.id);
+    saleItems.forEach(i=>{
+      let itemCostArs=i.direct_cost_ars==null?null:Number(i.direct_cost_ars);
+      if(i.direct_cost!=null&&itemCostArs==null)itemCostArs=convertToARS(Number(i.direct_cost||0),i.direct_cost_currency||s.currency||'ARS');
+      costArs+=Number(itemCostArs||0);
 
       const srv=serviceBy(i.service_id);
-      serviceStats[i.service_id]??={name:srv?.name||'Servicio',qty:0,amounts:{}};
+      serviceStats[i.service_id]??={name:srv?.name||'Servicio',qty:0,revenueArs:0,costArs:0};
       serviceStats[i.service_id].qty++;
-      const allocated=Number(i.allocated_revenue||0);
-      serviceStats[i.service_id].amounts[cur]=(serviceStats[i.service_id].amounts[cur]||0)+allocated;
+      serviceStats[i.service_id].revenueArs+=saleItems.length?Number(saleArs||0)/saleItems.length:0;
+      serviceStats[i.service_id].costArs+=Number(itemCostArs||0);
     });
   });
 
-  const cards=Object.keys(sums).length?Object.entries(sums).map(([cur,x])=>{
-    const profit=x.revenue-x.cost;
-    const margin=x.revenue?profit/x.revenue*100:0;
-    const avg=x.sales?x.revenue/x.sales:0;
-    return `<div class="card financeCurrency"><b>${esc(cur)}</b><div class="financeStats">
-      <div class="financeStat"><span class="tiny muted">Ventas</span><b>${x.sales}</b></div>
-      <div class="financeStat"><span class="tiny muted">Facturado</span><b>${money(x.revenue,cur)}</b></div>
-      <div class="financeStat"><span class="tiny muted">Costos</span><b>${money(x.cost,cur)}</b></div>
-      <div class="financeStat"><span class="tiny muted">Resultado*</span><b>${money(profit,cur)}</b><span class="tiny muted">Margen ${margin.toFixed(1)}%</span></div>
-      <div class="financeStat"><span class="tiny muted">Ticket promedio</span><b>${money(avg,cur)}</b></div>
-    </div></div>`;
-  }).join(''):'<div class="card muted">No hay ventas en este período.</div>';
+  const profit=revenueArs-costArs;
+  const margin=revenueArs?profit/revenueArs*100:0;
+  const avg=sales.length?revenueArs/sales.length:0;
 
-  financeSummary.innerHTML=`<div class="tiny muted" style="margin-bottom:7px">${sales.length} venta(s) real(es) en el período. *El resultado se calcula por moneda; no mezcla ARS con USDT/USD sin conversión.</div>${cards}`;
+  financeSummary.innerHTML=`
+    <div class="card financeCurrency">
+      <div class="row between"><b>Balance unificado en ARS</b><span class="badge">${sales.length} venta(s)</span></div>
+      <div class="financeStats">
+        <div class="financeStat"><span class="tiny muted">Facturado</span><b>${money(revenueArs,'ARS')}</b></div>
+        <div class="financeStat"><span class="tiny muted">Invertido</span><b>${money(costArs,'ARS')}</b></div>
+        <div class="financeStat"><span class="tiny muted">Ganancia</span><b>${money(profit,'ARS')}</b><span class="tiny muted">Margen ${margin.toFixed(1)}%</span></div>
+        <div class="financeStat"><span class="tiny muted">Ticket promedio</span><b>${money(avg,'ARS')}</b></div>
+      </div>
+      <div class="tiny muted" style="margin-top:8px">${snapshotSales} venta(s) con cotización histórica guardada${liveFallbacks?` · ${liveFallbacks} registro(s) viejo(s) convertidos con cotización actual`:''}.</div>
+    </div>`;
 
   const topServices=Object.values(serviceStats).sort((a,b)=>b.qty-a.qty).slice(0,8);
   const topSrv=document.getElementById('financeTopServices');
-  if(topSrv){
-    topSrv.innerHTML=topServices.length?topServices.map((x,idx)=>`
-      <div class="item">
-        <div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.qty}</span></div>
-        <div class="tiny muted">${Object.entries(x.amounts).map(([c,n])=>money(n,c)).join(' + ')||'Sin importe atribuido'}</div>
-      </div>
-    `).join(''):'<div class="muted">Sin datos.</div>';
-  }
+  if(topSrv)topSrv.innerHTML=topServices.length?topServices.map((x,idx)=>`
+    <div class="item"><div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.qty}</span></div>
+    <div class="tiny">Ventas ≈ ${money(x.revenueArs,'ARS')}</div><div class="tiny muted">Costo ≈ ${money(x.costArs,'ARS')}</div></div>
+  `).join(''):'<div class="muted">Sin datos.</div>';
 
   const topClients=Object.values(clientStats).sort((a,b)=>b.sales-a.sales).slice(0,8);
   const topCli=document.getElementById('financeTopClients');
-  if(topCli){
-    topCli.innerHTML=topClients.length?topClients.map((x,idx)=>`
-      <div class="item">
-        <div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.sales} venta(s)</span></div>
-        <div class="tiny muted">${Object.entries(x.amounts).map(([c,n])=>money(n,c)).join(' + ')}</div>
-      </div>
-    `).join(''):'<div class="muted">Sin datos.</div>';
-  }
+  if(topCli)topCli.innerHTML=topClients.length?topClients.map((x,idx)=>`
+    <div class="item"><div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.sales} venta(s)</span></div>
+    <div class="tiny muted">${money(x.revenueArs,'ARS')}</div></div>
+  `).join(''):'<div class="muted">Sin datos.</div>';
 
   financeSalesList.innerHTML=sales.length?sales.map(s=>{
     const c=saleClient(s),names=saleServiceNames(s.id);
+    const ars=s.total_amount_ars==null?convertToARS(s.total_amount,s.currency||'ARS'):Number(s.total_amount_ars);
     return `<button class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${s.id}')">
       <div class="row between"><b>${esc(c?.name||'Cliente')}</b><b>${money(s.total_amount,s.currency||'ARS')}</b></div>
       <div class="tiny muted">${esc(s.sold_at||'-')} · ${esc(names.join(' / '))}</div>
+      ${s.currency!=='ARS'&&ars!=null?`<div class="tiny">≈ ${money(ars,'ARS')}</div>`:''}
     </button>`;
   }).join(''):'<div class="muted">Sin ventas.</div>';
 }
@@ -3085,7 +3192,17 @@ function addSaleRow(){
   <label>Nota de entrega opcional</label><input class="siDeliveryNotes" placeholder="Ej: No modificar perfiles">
 
   <label>Costo / inversión de este servicio</label>
-  <input class="siCost" type="number" step="0.01" oninput="updateSaleDistribution()" placeholder="Lo que te costó">
+  <div class="grid2">
+    <input class="siCost" type="number" step="0.01" oninput="updateSaleDistribution()" placeholder="Lo que te costó">
+    <select class="siCostCurrency" onchange="updateSaleDistribution()">
+      <option>ARS</option>
+      <option>UYU</option>
+      <option>CLP</option>
+      <option>USD</option>
+      <option selected>USDT</option>
+    </select>
+  </div>
+  <div class="siCostConverted tiny muted"></div>
 
   <div class="sectionTitle" style="margin-top:14px">Renovación de este servicio</div>
   <label>Tipo de renovación</label>
@@ -3336,12 +3453,37 @@ function syncSaleRow(el){
 function updateSaleDistribution(){
   if(!window.saleDist)return;
   const total=Number(saleTotal?.value||0);
-  const invested=[...document.querySelectorAll('.siCost')].reduce((a,x)=>a+Number(x.value||0),0);
-  const profit=total-invested;
-  const margin=total>0?(profit/total*100):0;
-  saleDist.innerHTML=`Total cobrado: <b>${money(total,saleCurr?.value||'ARS')}</b><br>
-    Total invertido: <b>${money(invested,saleCurr?.value||'ARS')}</b><br>
-    Ganancia: <b>${money(profit,saleCurr?.value||'ARS')}</b> · Margen: <b>${margin.toFixed(1)}%</b>`;
+  const saleCurrency=saleCurr?.value||'ARS';
+  const revenueArs=convertToARS(total,saleCurrency);
+  let investedArs=0,missingFx=false;
+  const originalCosts=[];
+
+  document.querySelectorAll('.saleRow').forEach(row=>{
+    const amount=Number(row.querySelector('.siCost')?.value||0);
+    const currency=row.querySelector('.siCostCurrency')?.value||saleCurrency;
+    const converted=convertToARS(amount,currency);
+    const label=row.querySelector('.siCostConverted');
+    if(amount){
+      originalCosts.push(money(amount,currency));
+      if(converted==null){
+        missingFx=true;
+        if(label)label.textContent='Sin cotización disponible';
+      }else{
+        investedArs+=converted;
+        if(label)label.textContent=`≈ ${money(converted,'ARS')} · ${fxLabel(currency)}`;
+      }
+    }else if(label)label.textContent='';
+  });
+
+  const profitArs=(revenueArs==null||missingFx)?null:revenueArs-investedArs;
+  const margin=(profitArs!=null&&revenueArs>0)?profitArs/revenueArs*100:null;
+
+  saleDist.innerHTML=`
+    Total cobrado: <b>${money(total,saleCurrency)}</b>${revenueArs!=null&&saleCurrency!=='ARS'?` ≈ <b>${money(revenueArs,'ARS')}</b>`:''}<br>
+    Costos originales: <b>${originalCosts.join(' + ')||money(0,'ARS')}</b><br>
+    Total invertido convertido: <b>${missingFx?'Falta cotización':money(investedArs,'ARS')}</b><br>
+    Ganancia estimada en ARS: <b>${profitArs==null?'—':money(profitArs,'ARS')}</b>${margin==null?'':` · Margen: <b>${margin.toFixed(1)}%</b>`}
+  `;
 }
 async function resolveClientForSale(){
   const selectedId=document.getElementById('saleClientId')?.value||'';
@@ -3603,11 +3745,16 @@ async function saveSale(){
 
   try{
     const client=await resolveClientForSale();
+    if(!fxUpdatedAt)await refreshFxRates(true);
+    const saleFx=snapshotFxToARS(total,saleCurr.value);
     const sr=await sb.from('sales').insert({
       client_id:client.id,
       sold_at:saleDate.value||today(),
       total_amount:total,
-      currency:saleCurr.value
+      currency:saleCurr.value,
+      fx_rate_to_ars:saleFx.rate,
+      total_amount_ars:saleFx.amountArs,
+      fx_rate_source:saleFx.source
     }).select().single();
     if(sr.error)throw sr.error;
 
@@ -3615,13 +3762,17 @@ async function saveSale(){
       const service=await resolveServiceForRow(row);
       const resolved=await resolveAccountAndSlot(row,service);
       const cost=row.querySelector('.siCost').value;
+      const costCurrency=row.querySelector('.siCostCurrency')?.value||saleCurr.value;
+      const costFx=snapshotFxToARS(cost?Number(cost):0,costCurrency);
 
       const ir=await sb.from('sale_items').insert({
         sale_id:sr.data.id,
         service_id:service.id,
         allocated_revenue:rows.length?total/rows.length:total,
         direct_cost:cost?Number(cost):null,
-        direct_cost_currency:saleCurr.value,
+        direct_cost_currency:costCurrency,
+        direct_cost_fx_rate_to_ars:cost?costFx.rate:null,
+        direct_cost_ars:cost?costFx.amountArs:null,
       renewal_type_override:(row.querySelector('.siRenewalType')?.value==='custom_days'?'days':row.querySelector('.siRenewalType')?.value)||null,
       renewal_days_override:(['days','custom_days'].includes(row.querySelector('.siRenewalType')?.value))?(row.querySelector('.siRenewalType')?.value==='days'?30:Number(row.querySelector('.siRenewalDays')?.value||30)):null,
         start_date:row.querySelector('.siStart').value||today(),
@@ -3742,7 +3893,13 @@ function openEditSaleItemModal(itemId){
     </div>
     <div id="editRenewalHint" class="tiny muted"></div>
 
-    <label>Costo / inversión</label><input id="editCost" type="number" step="0.01" value="${i.direct_cost==null?'':Number(i.direct_cost)}">
+    <label>Costo / inversión</label>
+    <div class="grid2">
+      <input id="editCost" type="number" step="0.01" value="${i.direct_cost==null?'':Number(i.direct_cost)}">
+      <select id="editCostCurrency">
+        ${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(i.direct_cost_currency||sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
 
     <label>Dispositivos/pantallas</label><input id="editDevices" type="number" min="1" value="${Number(i.contracted_devices||1)}">
     <label class="checkrow"><input id="editIncludePassword" type="checkbox" ${i.include_password!==false?'checked':''}> Incluir contraseña al enviar</label>
@@ -3788,6 +3945,9 @@ async function saveEditedSaleItem(itemId){
   const i=state.saleItems.find(x=>x.id===itemId);if(!i)return;
   const sale=saleBy(i.sale_id);
   try{
+    if(!fxUpdatedAt)await refreshFxRates(true);
+    const editCostValue=editCost.value===''?null:Number(editCost.value);
+    const editCostFx=snapshotFxToARS(editCostValue||0,editCostCurrency.value);
     const saleUpdate=await sb.from('sales').update({
       client_id:editSaleClient.value,
       total_amount:Number(editSaleTotal.value||0),
@@ -3798,8 +3958,10 @@ async function saveEditedSaleItem(itemId){
 
     const itemUpdate=await sb.from('sale_items').update({
       service_id:editService.value,
-      direct_cost:editCost.value===''?null:Number(editCost.value),
-      direct_cost_currency:editSaleCurr.value,
+      direct_cost:editCostValue,
+      direct_cost_currency:editCostCurrency.value,
+      direct_cost_fx_rate_to_ars:editCostValue==null?null:editCostFx.rate,
+      direct_cost_ars:editCostValue==null?null:editCostFx.amountArs,
       start_date:editStart.value||editSoldAt.value||today(),
       end_date:editEnd.value||calculateServiceEndDate(editStart.value||editSoldAt.value||today(),serviceBy(editService.value))||null,
       contracted_devices:Number(editDevices.value||1),
