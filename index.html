@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v34">
+<meta name="misakroos-version" content="v36">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v34</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v36</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -262,8 +262,11 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="sectionTitle">Servicios</div>
-    <div id="servicesList"></div>
+    <div class="row between">
+      <div class="sectionTitle" style="margin:0">Servicios</div>
+      <button class="btn warn small" onclick="openMergeServices()">🔗 Unificar</button>
+    </div>
+    <div id="servicesList" style="margin-top:8px"></div>
   </div>
 
   <div class="card">
@@ -1284,7 +1287,7 @@ function renderMore(){
   renderNotifications();
   updatePushBadge();
 
-  servicesList.innerHTML=state.services.map(s=>`
+  servicesList.innerHTML=state.services.filter(s=>s.active!==false).map(s=>`
     <button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openServiceModal('${s.id}')">
       <div class="row between">
         <b>${esc(s.name)}</b>
@@ -2177,52 +2180,355 @@ async function deleteAccount(id){
 function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
 async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
 
+function serviceUsageInfo(serviceId){
+  const accounts=state.accounts.filter(a=>a.service_id===serviceId&&!a.archived_at);
+  const saleItems=state.saleItems.filter(i=>i.service_id===serviceId);
+  const purchases=state.purchases.filter(p=>p.service_id===serviceId);
+  return {
+    accounts:accounts.length,
+    saleItems:saleItems.length,
+    purchases:purchases.length,
+    hasUsage:accounts.length>0||saleItems.length>0||purchases.length>0
+  };
+}
+
 function openServiceManager(){
-  const services=state.services.filter(s=>s.active!==false).sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+  const services=state.services
+    .filter(s=>s.active!==false)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
 
   openModal(`
     <div class="row between">
-      <div class="sectionTitle" style="margin:0">Administrar servicios</div>
+      <div>
+        <div class="sectionTitle" style="margin:0">Administrar servicios</div>
+        <div class="tiny muted">Editá, archivá o eliminá servicios cargados por error.</div>
+      </div>
       <button class="btn secondary small" onclick="closeModal()">✕</button>
     </div>
 
-    <button class="btn primary" style="width:100%;margin:10px 0" onclick="openServiceModal()">+ Agregar servicio</button>
+    <div class="grid2" style="margin:10px 0">
+      <button class="btn primary" onclick="openServiceModal()">+ Agregar servicio</button>
+      <button class="btn warn" onclick="openMergeServices()">🔗 Agrupar / unificar</button>
+    </div>
 
-    ${services.map(s=>`
+    ${services.map(s=>{
+      const u=serviceUsageInfo(s.id);
+      return `
       <div class="item">
         <div class="row between">
           <div>
             <b>${esc(s.name)}</b>
             <div class="tiny muted">${esc(renewalRuleLabel(s))}</div>
-          </div>
-          <div class="row wrap">
-            <button class="btn secondary small" onclick="openServiceModal('${s.id}')">✏️ Editar</button>
-            <button class="btn danger small" onclick="archiveService('${s.id}')">Eliminar</button>
+            <div class="tiny muted">
+              ${u.saleItems} venta(s) · ${u.accounts} cuenta(s) · ${u.purchases} compra(s)
+            </div>
           </div>
         </div>
-      </div>
-    `).join('')||'<div class="muted">Sin servicios.</div>'}
+
+        <div class="row wrap" style="margin-top:8px">
+          <button class="btn secondary small" onclick="openServiceModal('${s.id}')">✏️ Editar</button>
+          ${u.hasUsage
+            ? `<button class="btn warn small" onclick="archiveService('${s.id}')">Archivar</button>`
+            : `<button class="btn danger small" onclick="deleteServicePermanent('${s.id}')">🗑 Eliminar definitivamente</button>`
+          }
+        </div>
+      </div>`;
+    }).join('')||'<div class="muted">Sin servicios.</div>'}
   `);
 }
+
 
 async function archiveService(serviceId){
   const s=serviceBy(serviceId);
   if(!s)return;
 
-  const linkedAccounts=state.accounts.filter(a=>!a.archived_at&&a.service_id===serviceId).length;
-  const linkedItems=state.saleItems.filter(i=>i.service_id===serviceId).length;
+  const u=serviceUsageInfo(serviceId);
 
-  const msg=(linkedAccounts||linkedItems)
-    ?`${s.name} tiene ${linkedAccounts} cuenta(s) y ${linkedItems} servicio(s) vendidos.\n\nSe ocultará para nuevas altas, pero el historial se conserva. ¿Continuar?`
-    :`¿Eliminar/archivar ${s.name}?`;
+  if(!u.hasUsage){
+    return deleteServicePermanent(serviceId);
+  }
 
-  if(!confirm(msg))return;
+  const ok=confirm(
+    `${s.name} tiene datos asociados:\n\n`+
+    `• ${u.saleItems} venta(s)\n`+
+    `• ${u.accounts} cuenta(s)\n`+
+    `• ${u.purchases} compra(s)\n\n`+
+    `No se puede borrar sin destruir historial.\n\n`+
+    `¿Querés ARCHIVARLO? Dejará de aparecer para nuevas ventas, pero conservará todo el historial.`
+  );
+  if(!ok)return;
 
   const r=await sb.from('services').update({active:false}).eq('id',serviceId);
   if(r.error)return alert(r.error.message);
 
   await refreshAll();
   openServiceManager();
+}
+
+async function deleteServicePermanent(serviceId){
+  const s=serviceBy(serviceId);
+  if(!s)return;
+
+  const u=serviceUsageInfo(serviceId);
+
+  if(u.hasUsage){
+    return alert(
+      `No se puede eliminar definitivamente ${s.name} porque tiene datos asociados.\n\n`+
+      `Ventas: ${u.saleItems}\nCuentas: ${u.accounts}\nCompras: ${u.purchases}\n\n`+
+      `Usá "Archivar" para ocultarlo sin perder historial.`
+    );
+  }
+
+  const ok=confirm(
+    `¿Eliminar definitivamente el servicio "${s.name}"?\n\n`+
+    `No tiene ventas, cuentas ni compras asociadas, así que se puede borrar de forma segura.\n\n`+
+    `Esta acción no se puede deshacer.`
+  );
+  if(!ok)return;
+
+  const r=await sb.from('services').delete().eq('id',serviceId);
+  if(r.error)return alert(r.error.message);
+
+  await refreshAll();
+  openServiceManager();
+}
+
+
+
+let mergeServiceSources=[];
+
+function serviceAllUsageInfo(serviceId){
+  const accounts=state.accounts.filter(a=>a.service_id===serviceId);
+  const saleItems=state.saleItems.filter(i=>i.service_id===serviceId);
+  const purchases=state.purchases.filter(p=>p.service_id===serviceId);
+  return {
+    accounts:accounts.length,
+    saleItems:saleItems.length,
+    purchases:purchases.length,
+    total:accounts.length+saleItems.length+purchases.length
+  };
+}
+
+function openMergeServices(){
+  mergeServiceSources=[];
+
+  const services=state.services
+    .filter(s=>s.active!==false)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+
+  if(services.length<2){
+    return alert('Necesitás al menos 2 servicios para poder unificarlos.');
+  }
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin:0">Agrupar / unificar servicios</div>
+        <div class="tiny muted">Reclasifica cuentas, ventas y compras sin eliminarlas ni modificarlas.</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="hint" style="margin-top:10px">
+      Ejemplo: <b>Netflix Premium</b> + <b>netflix</b> → <b>Netflix</b>.
+      Solo cambia la categoría del servicio.
+    </div>
+
+    <label>1. Servicio definitivo</label>
+    <select id="mergeTargetService" onchange="renderMergeServicesBody()">
+      <option value="">Seleccionar...</option>
+      ${services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}
+    </select>
+
+    <div class="sectionTitle" style="margin-top:16px">2. Servicios que querés unificar</div>
+    <div class="tiny muted">Marcá todos los servicios que deben pasar al servicio definitivo.</div>
+
+    <div id="mergeServicesBody"></div>
+  `);
+
+  renderMergeServicesBody();
+}
+
+function toggleMergeSource(serviceId,checked){
+  if(checked){
+    if(!mergeServiceSources.includes(serviceId))mergeServiceSources.push(serviceId);
+  }else{
+    mergeServiceSources=mergeServiceSources.filter(id=>id!==serviceId);
+  }
+  renderMergeServicesBody();
+}
+
+function detectMergeAccountDuplicates(targetId,sourceIds){
+  const relevant=new Set([targetId,...sourceIds]);
+  const accounts=state.accounts.filter(a=>relevant.has(a.service_id)&&!a.archived_at);
+  const byEmail={};
+
+  accounts.forEach(a=>{
+    const email=normalizeAccountEmail(a.login_email);
+    if(!email)return;
+    byEmail[email]??=[];
+    byEmail[email].push(a);
+  });
+
+  return Object.entries(byEmail)
+    .filter(([email,rows])=>rows.length>1)
+    .map(([email,rows])=>({email,rows}));
+}
+
+function renderMergeServicesBody(){
+  const box=document.getElementById('mergeServicesBody');
+  const targetId=document.getElementById('mergeTargetService')?.value||'';
+  if(!box)return;
+
+  mergeServiceSources=mergeServiceSources.filter(id=>id!==targetId);
+
+  const services=state.services
+    .filter(s=>s.active!==false&&s.id!==targetId)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+
+  const selected=mergeServiceSources
+    .map(id=>serviceBy(id))
+    .filter(Boolean);
+
+  let accounts=0,saleItems=0,purchases=0;
+  selected.forEach(s=>{
+    const u=serviceAllUsageInfo(s.id);
+    accounts+=u.accounts;
+    saleItems+=u.saleItems;
+    purchases+=u.purchases;
+  });
+
+  const duplicates=targetId?detectMergeAccountDuplicates(targetId,mergeServiceSources):[];
+
+  box.innerHTML=`
+    ${services.map(s=>{
+      const u=serviceAllUsageInfo(s.id);
+      return `<label class="item checkrow" style="display:block">
+        <div class="row between">
+          <div>
+            <b>${esc(s.name)}</b>
+            <div class="tiny muted">${u.accounts} cuenta(s) · ${u.saleItems} venta(s) · ${u.purchases} compra(s)</div>
+          </div>
+          <input type="checkbox"
+            ${mergeServiceSources.includes(s.id)?'checked':''}
+            onchange="toggleMergeSource('${s.id}',this.checked)">
+        </div>
+      </label>`;
+    }).join('')}
+
+    ${mergeServiceSources.length?`
+      <div class="card" style="margin-top:12px">
+        <b>Vista previa</b>
+        <div class="tiny" style="margin-top:6px">
+          Se reclasificarán:
+          <br>• <b>${accounts}</b> cuenta(s)
+          <br>• <b>${saleItems}</b> servicio(s) vendido(s)
+          <br>• <b>${purchases}</b> compra(s)
+        </div>
+
+        ${duplicates.length?`
+          <div class="hint" style="margin-top:10px">
+            ⚠️ Se detectaron ${duplicates.length} correo(s) que quedarían repetidos dentro del mismo servicio.
+            No se van a fusionar ni eliminar cuentas automáticamente; solo se cambia la categoría.
+          </div>
+          ${duplicates.slice(0,8).map(d=>`
+            <div class="tiny muted">• ${esc(d.email)} · ${d.rows.length} cuentas</div>
+          `).join('')}
+        `:''}
+
+        <div class="tiny muted" style="margin-top:10px">
+          Las cuentas conservan correo, contraseña, cupos, proveedor, clientes e historial.
+          Las ventas conservan cliente, fechas, precio y vencimiento.
+        </div>
+
+        <button class="btn primary" style="width:100%;margin-top:12px" onclick="confirmMergeServices()">
+          Unificar servicios
+        </button>
+      </div>
+    `:`<div class="hint" style="margin-top:10px">Elegí uno o más servicios para unificar.</div>`}
+  `;
+}
+
+async function confirmMergeServices(){
+  const targetId=document.getElementById('mergeTargetService')?.value||'';
+  const target=serviceBy(targetId);
+
+  if(!targetId||!target)return alert('Elegí el servicio definitivo.');
+  if(!mergeServiceSources.length)return alert('Elegí al menos un servicio para unificar.');
+
+  const sources=mergeServiceSources.map(id=>serviceBy(id)).filter(Boolean);
+
+  let accounts=0,saleItems=0,purchases=0;
+  sources.forEach(s=>{
+    const u=serviceAllUsageInfo(s.id);
+    accounts+=u.accounts;
+    saleItems+=u.saleItems;
+    purchases+=u.purchases;
+  });
+
+  const text=
+    `UNIFICAR SERVICIOS\n\n`+
+    `Servicio definitivo: ${target.name}\n\n`+
+    `Se unificarán:\n${sources.map(s=>`• ${s.name}`).join('\n')}\n\n`+
+    `Cambios:\n`+
+    `• ${accounts} cuenta(s)\n`+
+    `• ${saleItems} servicio(s) vendido(s)\n`+
+    `• ${purchases} compra(s)\n\n`+
+    `NO se borrarán cuentas, clientes, ventas, perfiles ni historial.\n`+
+    `Solo se cambiará la categoría de servicio.\n\n`+
+    `¿Confirmar?`;
+
+  if(!confirm(text))return;
+
+  try{
+    for(const sourceId of mergeServiceSources){
+      const a=await sb.from('accounts').update({service_id:targetId}).eq('service_id',sourceId);
+      if(a.error)throw a.error;
+
+      const i=await sb.from('sale_items').update({service_id:targetId}).eq('service_id',sourceId);
+      if(i.error)throw i.error;
+
+      const p=await sb.from('purchases').update({service_id:targetId}).eq('service_id',sourceId);
+      if(p.error)throw p.error;
+    }
+
+    // Refresh before attempting to remove now-empty source services.
+    await refreshAll();
+
+    const deleteErrors=[];
+    for(const sourceId of mergeServiceSources){
+      const usage=serviceAllUsageInfo(sourceId);
+      if(usage.total===0){
+        const r=await sb.from('services').delete().eq('id',sourceId);
+        if(r.error){
+          // If another historical FK not represented in the UI still references it,
+          // archive it instead of damaging history.
+          const ar=await sb.from('services').update({active:false}).eq('id',sourceId);
+          if(ar.error)deleteErrors.push(serviceBy(sourceId)?.name||sourceId);
+        }
+      }else{
+        const ar=await sb.from('services').update({active:false}).eq('id',sourceId);
+        if(ar.error)deleteErrors.push(serviceBy(sourceId)?.name||sourceId);
+      }
+    }
+
+    await refreshAll();
+
+    alert(
+      `Servicios unificados correctamente en "${target.name}".\n\n`+
+      `${accounts} cuenta(s), ${saleItems} venta(s) y ${purchases} compra(s) fueron reclasificadas.`+
+      (deleteErrors.length?`\n\nNo se pudieron limpiar automáticamente: ${deleteErrors.join(', ')}`:'')
+    );
+
+    openServiceManager();
+  }catch(err){
+    console.error(err);
+    alert(
+      `No se pudo completar la unificación.\n\n${err.message||String(err)}\n\n`+
+      `Los datos ya modificados no se eliminan. Revisá antes de volver a intentar.`
+    );
+    await refreshAll();
+  }
 }
 
 function openServiceModal(id=''){
