@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v38">
+<meta name="misakroos-version" content="v39">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -44,11 +44,22 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 .servicePill{font-size:.72rem;padding:4px 7px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
 
 
+
+.assistantBuilder{margin:12px 0 14px;padding:14px;border:1px solid var(--line);border-radius:18px;background:rgba(16,39,65,.58)}
+.assistantBuilderTitle{font-weight:900;font-size:16px;margin-bottom:4px}
+.assistantBuilderHint{font-size:12px;color:var(--muted);margin-bottom:10px}
+.assistantBuilderRow{display:flex;gap:7px;overflow-x:auto;padding:2px 0 7px;scrollbar-width:thin}
+.assistantBuilderRow button{white-space:nowrap;flex:0 0 auto}
+.assistantBuilderLabel{font-size:12px;color:var(--muted);font-weight:800;margin:8px 0 5px}
+.assistantBuilderPath{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.assistantBuilderPath .crumb{background:#0b2239;border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:12px}
+.assistantBuilderActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v38</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v39</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -251,7 +262,18 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 
   <div id="assistantChat" style="min-height:260px"></div>
 
-  <div class="card" style="position:sticky;bottom:72px;z-index:5">
+  
+<div class="assistantBuilder" id="assistantBuilder">
+  <div class="assistantBuilderTitle">✨ Armá tu consulta</div>
+  <div class="assistantBuilderHint">Tocá opciones y voy escribiendo el mensaje por vos. También podés editarlo antes de enviarlo.</div>
+  <div id="assistantBuilderPath" class="assistantBuilderPath"></div>
+  <div id="assistantBuilderSteps"></div>
+  <div class="assistantBuilderActions">
+    <button class="btn secondary small" type="button" onclick="assistantBuilderReset()">↺ Empezar de nuevo</button>
+    <button class="btn primary small" type="button" onclick="assistantBuilderSend()">Enviar consulta armada</button>
+  </div>
+</div>
+<div class="card" style="position:sticky;bottom:72px;z-index:5">
     <textarea id="assistantInput" rows="3" placeholder="Ej.: Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com"></textarea>
     <div class="row wrap" style="margin-top:8px">
       <button class="btn primary" style="flex:1" onclick="assistantSend()">Enviar</button>
@@ -842,6 +864,8 @@ function renderAssistant(){
     }];
   }
   renderAssistantChat();
+
+  setTimeout(assistantBuilderRender,0);
 }
 
 function renderAssistantChat(){
@@ -909,6 +933,150 @@ function assistantAnomalySummary(){
     if(issues.length)bad.push({sale:s,issues});
   });
   return bad;
+}
+
+
+const assistantBuilderState={action:'',subject:'',serviceId:'',clientId:'',accountId:'',targetAccountId:'',extra:''};
+
+function assistantBuilderReset(){
+  Object.keys(assistantBuilderState).forEach(k=>assistantBuilderState[k]='');
+  assistantBuilderRender();
+  const el=document.getElementById('assistantInput');
+  if(el)el.value='';
+}
+
+function assistantBuilderSet(key,value){
+  assistantBuilderState[key]=value;
+  if(key==='action'){
+    assistantBuilderState.subject='';
+    assistantBuilderState.serviceId='';
+    assistantBuilderState.clientId='';
+    assistantBuilderState.accountId='';
+    assistantBuilderState.targetAccountId='';
+    assistantBuilderState.extra='';
+  }
+  if(key==='subject') assistantBuilderState.extra='';
+  if(key==='serviceId'){
+    assistantBuilderState.accountId='';
+    assistantBuilderState.targetAccountId='';
+  }
+  assistantBuilderRender();
+  assistantBuilderCompose();
+}
+
+function assistantBuilderButton(label,key,value,active=false){
+  return `<button type="button" class="btn ${active?'primary':'secondary'} small" onclick="assistantBuilderSet('${key}','${assistantEscapeJsString(String(value))}')">${esc(label)}</button>`;
+}
+
+function assistantBuilderCompose(){
+  const s=assistantBuilderState;
+  const service=serviceBy(s.serviceId);
+  const client=clientBy(s.clientId);
+  const acc=accountBy(s.accountId);
+  const target=accountBy(s.targetAccountId);
+  let text='';
+
+  if(s.action==='consultar'){
+    if(s.subject==='cupos') text=`Mostrame las cuentas${service?' de '+service.name:''} con cupos libres`;
+    if(s.subject==='cuentas') text=`Mostrame las cuentas${service?' de '+service.name:''}`;
+    if(s.subject==='vencimientos') text=`Mostrame los servicios${service?' de '+service.name:''} que vencen esta semana`;
+    if(s.subject==='cliente') text=client?`Mostrame los servicios de ${client.name}`:'Mostrame los datos de un cliente';
+    if(s.subject==='inversion') text=`Mostrame las cuentas${service?' de '+service.name:''}${s.extra?' con inversión de '+s.extra:''}`;
+    if(s.subject==='rarezas') text=`Buscá costos o monedas raras${service?' en '+service.name:''}`;
+    if(s.subject==='renovaciones') text=`Mostrame renovaciones pendientes${service?' de '+service.name:''}`;
+  }
+
+  if(s.action==='mover'){
+    text=`Mové${client?' a '+client.name:' al cliente'}${service?' en '+service.name:''}${acc?' de '+acc.login_email:''}${target?' a '+target.login_email:''}`;
+  }
+
+  if(s.action==='crear'){
+    if(s.subject==='venta') text=`Prepará una venta${client?' para '+client.name:''}${service?' de '+service.name:''}${s.extra?' a $'+String(s.extra).replace(/^\$/,''):''}`;
+  }
+
+  if(s.action==='renovar'){
+    text=`Prepará renovación${client?' para '+client.name:''}${service?' de '+service.name:''}`;
+  }
+
+  if(s.action==='buscar'){
+    if(s.subject==='cliente') text=client?`Mostrame los servicios de ${client.name}`:'Buscá un cliente';
+    if(s.subject==='cuenta') text=`Mostrame las cuentas${service?' de '+service.name:''}`;
+  }
+
+  const input=document.getElementById('assistantInput');
+  if(input && text) input.value=text;
+}
+
+function assistantBuilderRender(){
+  const box=document.getElementById('assistantBuilderSteps');
+  const path=document.getElementById('assistantBuilderPath');
+  if(!box||!path)return;
+  const s=assistantBuilderState;
+  let h='';
+
+  h+=`<div class="assistantBuilderLabel">¿Qué querés hacer?</div><div class="assistantBuilderRow">`;
+  [['consultar','Consultar'],['mover','Mover cliente'],['crear','Crear'],['renovar','Renovar'],['buscar','Buscar']].forEach(([v,l])=>h+=assistantBuilderButton(l,'action',v,s.action===v));
+  h+='</div>';
+
+  if(s.action==='consultar'){
+    h+=`<div class="assistantBuilderLabel">¿Qué querés consultar?</div><div class="assistantBuilderRow">`;
+    [['cupos','Cupos libres'],['cuentas','Cuentas'],['vencimientos','Vencimientos'],['cliente','Cliente'],['inversion','Inversión'],['renovaciones','Renovaciones'],['rarezas','Datos raros']].forEach(([v,l])=>h+=assistantBuilderButton(l,'subject',v,s.subject===v));
+    h+='</div>';
+  } else if(s.action==='crear'){
+    h+=`<div class="assistantBuilderLabel">¿Qué querés crear?</div><div class="assistantBuilderRow">${assistantBuilderButton('Venta','subject','venta',s.subject==='venta')}</div>`;
+  } else if(s.action==='buscar'){
+    h+=`<div class="assistantBuilderLabel">¿Qué querés buscar?</div><div class="assistantBuilderRow">${assistantBuilderButton('Cliente','subject','cliente',s.subject==='cliente')}${assistantBuilderButton('Cuenta','subject','cuenta',s.subject==='cuenta')}</div>`;
+  }
+
+  const needsService = s.action && !(s.action==='buscar'&&s.subject==='cliente') && !(s.action==='consultar'&&s.subject==='cliente');
+  if(needsService){
+    h+=`<div class="assistantBuilderLabel">¿En qué servicio?</div><div class="assistantBuilderRow">`;
+    state.services.filter(x=>!x.archived_at).sort((a,b)=>a.name.localeCompare(b.name)).forEach(x=>h+=assistantBuilderButton(x.name,'serviceId',x.id,s.serviceId===x.id));
+    h+='</div>';
+  }
+
+  const needsClient = s.action==='mover'||s.action==='renovar'||(s.action==='crear'&&s.subject==='venta')||(s.action==='consultar'&&s.subject==='cliente')||(s.action==='buscar'&&s.subject==='cliente');
+  if(needsClient){
+    h+=`<div class="assistantBuilderLabel">¿Qué cliente?</div><div class="assistantBuilderRow">`;
+    state.clients.filter(x=>!x.archived_at).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,80).forEach(x=>h+=assistantBuilderButton(x.name,'clientId',x.id,s.clientId===x.id));
+    h+='</div>';
+  }
+
+  if(s.action==='mover'&&s.serviceId){
+    const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===s.serviceId);
+    h+=`<div class="assistantBuilderLabel">¿De qué cuenta?</div><div class="assistantBuilderRow">`;
+    accounts.forEach(a=>h+=assistantBuilderButton(a.login_email||'Cuenta','accountId',a.id,s.accountId===a.id));
+    h+='</div>';
+    h+=`<div class="assistantBuilderLabel">¿A qué cuenta?</div><div class="assistantBuilderRow">`;
+    accounts.filter(a=>a.id!==s.accountId).forEach(a=>h+=assistantBuilderButton(a.login_email||'Cuenta','targetAccountId',a.id,s.targetAccountId===a.id));
+    h+='</div>';
+  }
+
+  if((s.action==='consultar'&&s.subject==='inversion')||(s.action==='crear'&&s.subject==='venta')){
+    const label=s.subject==='inversion'?'¿Qué inversión?':'¿Qué precio?';
+    h+=`<div class="assistantBuilderLabel">${label}</div><input class="input" inputmode="decimal" placeholder="Ej: 2500" value="${esc(s.extra)}" oninput="assistantBuilderState.extra=this.value;assistantBuilderCompose()">`;
+  }
+
+  box.innerHTML=h;
+
+  const crumbs=[];
+  if(s.action)crumbs.push(({consultar:'Consultar',mover:'Mover cliente',crear:'Crear',renovar:'Renovar',buscar:'Buscar'})[s.action]);
+  if(s.subject)crumbs.push(({cupos:'Cupos libres',cuentas:'Cuentas',vencimientos:'Vencimientos',cliente:'Cliente',inversion:'Inversión',renovaciones:'Renovaciones',rarezas:'Datos raros',venta:'Venta',cuenta:'Cuenta'})[s.subject]||s.subject);
+  if(s.serviceId)crumbs.push(serviceBy(s.serviceId)?.name||'Servicio');
+  if(s.clientId)crumbs.push(clientBy(s.clientId)?.name||'Cliente');
+  if(s.accountId)crumbs.push(accountBy(s.accountId)?.login_email||'Cuenta origen');
+  if(s.targetAccountId)crumbs.push(accountBy(s.targetAccountId)?.login_email||'Cuenta destino');
+  path.innerHTML=crumbs.map(x=>`<span class="crumb">${esc(x)}</span>`).join('');
+}
+
+function assistantBuilderSend(){
+  assistantBuilderCompose();
+  const input=document.getElementById('assistantInput');
+  if(!input?.value.trim()){
+    alert('Elegí algunas opciones para armar la consulta.');
+    return;
+  }
+  assistantSend();
 }
 
 function assistantTokens(text){
@@ -982,6 +1150,18 @@ function assistantHandleQuery(text){
 
   if(intent==='capacity'){
     return {handled:true,html:assistantCapacityResponse(text)};
+  }
+
+  if((q.includes('inversion')||q.includes('invertid')||q.includes('costo')) && (q.includes('cuenta')||service)){
+    const amountMatch=q.match(/(?:inversion|invertido|costo)(?:\s+de)?\s*\$?\s*([\d.,]+)/);
+    const amount=amountMatch?Number(amountMatch[1].replace(/\./g,'').replace(',','.')):null;
+    let accounts=state.accounts.filter(a=>!a.archived_at&&(!service||a.service_id===service.id));
+    if(amount!==null&&!Number.isNaN(amount)){
+      accounts=accounts.filter(a=>Math.abs(Number(a.cost_amount||a.cost||0)-amount)<0.01);
+    }
+    return {handled:true,html:accounts.length
+      ? `<b>${service?esc(service.name):'Cuentas'} — inversión${amount!==null?' '+moneyARS(amount):''}</b><br><br>${accounts.slice(0,30).map(a=>`• ${esc(a.login_email||'Cuenta')} — ${moneyARS(Number(a.cost_amount||a.cost||0))}`).join('<br>')}`
+      : `No encontré cuentas${service?' de <b>'+esc(service.name)+'</b>':''}${amount!==null?' con inversión de <b>'+moneyARS(amount)+'</b>':''}.`};
   }
 
   if(intent==='expiry'){
