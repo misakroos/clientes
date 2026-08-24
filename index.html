@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v33">
+<meta name="misakroos-version" content="v34">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v33</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v34</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -195,6 +195,23 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
       <select id="finService" onchange="renderFinance()"><option value="">Todos los servicios</option></select>
       <input id="finSearch" placeholder="Cliente..." oninput="renderFinance()">
     </div>
+    <div class="filterGrid">
+      <div>
+        <label>Moneda cobrada</label>
+        <select id="finSaleCurrency" onchange="renderFinance()">
+          <option value="">Todas</option><option>ARS</option><option>UYU</option><option>CLP</option><option>USD</option><option>USDT</option>
+        </select>
+      </div>
+      <div>
+        <label>Moneda de inversión</label>
+        <select id="finCostCurrency" onchange="renderFinance()">
+          <option value="">Todas</option><option>ARS</option><option>UYU</option><option>CLP</option><option>USD</option><option>USDT</option>
+        </select>
+      </div>
+    </div>
+    <label class="checkrow" style="margin-top:8px">
+      <input id="finOnlyAnomalies" type="checkbox" onchange="renderFinance()"> Mostrar solo posibles incongruencias
+    </label>
     <div class="filterChips" style="margin-top:8px">
       <button class="btn secondary small" onclick="financeToday()">Hoy</button>
       <button class="btn secondary small" onclick="financeThisMonth()">Este mes</button>
@@ -1771,6 +1788,37 @@ function financeThisMonth(){const n=new Date();finFrom.value=isoLocal(new Date(n
 function financeLast30(){const n=new Date(),f=new Date(n);f.setDate(f.getDate()-29);finFrom.value=isoLocal(f);finTo.value=isoLocal(n);renderFinance()}
 function financeAll(){finFrom.value='';finTo.value='';renderFinance()}
 
+function financeAnomaliesForSale(s){
+  const issues=[];
+  const items=saleItemsFor(s.id);
+  const saleCurrency=(s.currency||'ARS').toUpperCase();
+  const total=Number(s.total_amount||0);
+  const saleArs=s.total_amount_ars==null?convertToARS(total,saleCurrency):Number(s.total_amount_ars);
+
+  if(!['ARS','UYU','CLP','USD','USDT'].includes(saleCurrency))issues.push(`Moneda de cobro desconocida: ${saleCurrency}`);
+  if(saleCurrency!=='ARS'&&s.total_amount_ars==null)issues.push('Venta extranjera sin cotización histórica guardada');
+
+  items.forEach(i=>{
+    if(i.direct_cost==null)return;
+    const cur=(i.direct_cost_currency||saleCurrency||'ARS').toUpperCase();
+    const raw=Number(i.direct_cost||0);
+    const ars=i.direct_cost_ars==null?convertToARS(raw,cur):Number(i.direct_cost_ars);
+    const srv=serviceBy(i.service_id)?.name||'Servicio';
+
+    if(!['ARS','UYU','CLP','USD','USDT'].includes(cur))issues.push(`${srv}: moneda de inversión desconocida (${cur})`);
+    if(cur!=='ARS'&&i.direct_cost_ars==null)issues.push(`${srv}: costo en ${cur} sin cotización histórica`);
+
+    // Detector práctico: importes de cientos/miles cargados como USD/USDT suelen ser ARS mal etiquetados.
+    if(['USD','USDT'].includes(cur)&&raw>=100)issues.push(`${srv}: inversión ${money(raw,cur)} inusualmente alta; revisar si debía ser ARS`);
+    if(cur==='UYU'&&raw>=10000)issues.push(`${srv}: inversión ${money(raw,cur)} inusualmente alta; revisar moneda`);
+    if(cur==='CLP'&&raw>0&&raw<100)issues.push(`${srv}: inversión ${money(raw,cur)} inusualmente baja; revisar moneda`);
+
+    if(ars!=null&&saleArs>0&&ars>saleArs*3)issues.push(`${srv}: costo convertido supera 3× el total cobrado de la venta`);
+  });
+
+  return [...new Set(issues)];
+}
+
 function renderFinance(){
   if(!document.getElementById('financeSummary'))return;
   renderFxStatus();
@@ -1782,23 +1830,37 @@ function renderFinance(){
   }
 
   const from=finFrom.value||'',to=finTo.value||'',service=finService.value||'',q=(finSearch.value||'').trim().toLowerCase();
+  const saleCurrency=(document.getElementById('finSaleCurrency')?.value||'').toUpperCase();
+  const costCurrency=(document.getElementById('finCostCurrency')?.value||'').toUpperCase();
+  const onlyAnomalies=!!document.getElementById('finOnlyAnomalies')?.checked;
+
   const sales=state.sales.filter(s=>{
     if(from&&s.sold_at<from)return false;
     if(to&&s.sold_at>to)return false;
     const items=saleItemsFor(s.id),c=saleClient(s);
     if(service&&!items.some(i=>i.service_id===service))return false;
     if(q&&!String(c?.name||'').toLowerCase().includes(q))return false;
+    if(saleCurrency&&String(s.currency||'ARS').toUpperCase()!==saleCurrency)return false;
+    if(costCurrency&&!items.some(i=>i.direct_cost!=null&&String(i.direct_cost_currency||s.currency||'ARS').toUpperCase()===costCurrency))return false;
+    if(onlyAnomalies&&!financeAnomaliesForSale(s).length)return false;
     return items.length>0;
   }).sort((a,b)=>String(b.sold_at||'').localeCompare(String(a.sold_at||'')));
 
   let revenueArs=0,costArs=0,snapshotSales=0,liveFallbacks=0;
-  const serviceStats={},clientStats={};
+  const serviceStats={},clientStats={},currencyStats={};
+  let anomalyCount=0;
 
   sales.forEach(s=>{
+    const issues=financeAnomaliesForSale(s); anomalyCount+=issues.length;
     let saleArs=s.total_amount_ars==null?null:Number(s.total_amount_ars);
     if(saleArs==null){saleArs=convertToARS(Number(s.total_amount||0),s.currency||'ARS');liveFallbacks++;}
     else snapshotSales++;
     revenueArs+=Number(saleArs||0);
+
+    const sc=(s.currency||'ARS').toUpperCase();
+    currencyStats[sc]??={sales:0,revenueRaw:0,costItems:0,costRaw:0};
+    currencyStats[sc].sales++;
+    currencyStats[sc].revenueRaw+=Number(s.total_amount||0);
 
     const client=saleClient(s);
     if(client){
@@ -1812,6 +1874,13 @@ function renderFinance(){
       let itemCostArs=i.direct_cost_ars==null?null:Number(i.direct_cost_ars);
       if(i.direct_cost!=null&&itemCostArs==null)itemCostArs=convertToARS(Number(i.direct_cost||0),i.direct_cost_currency||s.currency||'ARS');
       costArs+=Number(itemCostArs||0);
+
+      if(i.direct_cost!=null){
+        const cc=(i.direct_cost_currency||s.currency||'ARS').toUpperCase();
+        currencyStats[cc]??={sales:0,revenueRaw:0,costItems:0,costRaw:0};
+        currencyStats[cc].costItems++;
+        currencyStats[cc].costRaw+=Number(i.direct_cost||0);
+      }
 
       const srv=serviceBy(i.service_id);
       serviceStats[i.service_id]??={name:srv?.name||'Servicio',qty:0,revenueArs:0,costArs:0};
@@ -1835,6 +1904,17 @@ function renderFinance(){
         <div class="financeStat"><span class="tiny muted">Ticket promedio</span><b>${money(avg,'ARS')}</b></div>
       </div>
       <div class="tiny muted" style="margin-top:8px">${snapshotSales} venta(s) con cotización histórica guardada${liveFallbacks?` · ${liveFallbacks} registro(s) viejo(s) convertidos con cotización actual`:''}.</div>
+    </div>
+    <div class="card">
+      <div class="row between"><b>🧪 Control de datos</b><span class="badge ${anomalyCount?'warn':''}">${anomalyCount} alerta(s)</span></div>
+      <div class="tiny muted" style="margin-top:5px">Detecta monedas sospechosas, cotizaciones faltantes y costos convertidos desproporcionados. No modifica nada automáticamente.</div>
+      <div style="margin-top:10px">${Object.entries(currencyStats).sort().map(([cur,x])=>`
+        <div class="item">
+          <b>${esc(cur)}</b>
+          <div class="tiny">Cobros: ${x.sales} · ${money(x.revenueRaw,cur)}</div>
+          <div class="tiny muted">Inversiones: ${x.costItems} · ${money(x.costRaw,cur)}</div>
+        </div>`).join('')||'<div class="muted">Sin movimientos.</div>'}
+      </div>
     </div>`;
 
   const topServices=Object.values(serviceStats).sort((a,b)=>b.qty-a.qty).slice(0,8);
@@ -1852,14 +1932,17 @@ function renderFinance(){
   `).join(''):'<div class="muted">Sin datos.</div>';
 
   financeSalesList.innerHTML=sales.length?sales.map(s=>{
-    const c=saleClient(s),names=saleServiceNames(s.id);
+    const c=saleClient(s),names=saleServiceNames(s.id),issues=financeAnomaliesForSale(s);
     const ars=s.total_amount_ars==null?convertToARS(s.total_amount,s.currency||'ARS'):Number(s.total_amount_ars);
+    const costs=saleItemsFor(s.id).filter(i=>i.direct_cost!=null);
     return `<button class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${s.id}')">
       <div class="row between"><b>${esc(c?.name||'Cliente')}</b><b>${money(s.total_amount,s.currency||'ARS')}</b></div>
       <div class="tiny muted">${esc(s.sold_at||'-')} · ${esc(names.join(' / '))}</div>
+      ${costs.length?`<div class="tiny">Inversión: ${costs.map(i=>money(i.direct_cost,i.direct_cost_currency||s.currency||'ARS')).join(' + ')}</div>`:''}
       ${s.currency!=='ARS'&&ars!=null?`<div class="tiny">≈ ${money(ars,'ARS')}</div>`:''}
+      ${issues.length?`<div class="tiny" style="margin-top:6px"><span class="badge warn">⚠️ ${issues.length} posible(s) incongruencia(s)</span><br>${issues.map(x=>`• ${esc(x)}`).join('<br>')}</div>`:''}
     </button>`;
-  }).join(''):'<div class="muted">Sin ventas.</div>';
+  }).join(''):'<div class="muted">Sin ventas para estos filtros.</div>';
 }
 function getSaleItemContext(itemId){
   const item=state.saleItems.find(x=>x.id===itemId);
