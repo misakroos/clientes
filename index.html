@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v40">
+<meta name="misakroos-version" content="v41">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -56,301 +56,63 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 .assistantBuilderActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 
 
-/* ================================
-   v40 · MOBILE FIRST RESPONSIVE
-   ================================ */
+/* v41 · vuelve a la estética v39; solo fija el compositor del Asistente */
+#screen-assistant{padding-bottom:430px}
+#assistantChat{min-height:260px;padding-bottom:16px}
 
-html,body{max-width:100%;overflow-x:hidden}
-body{font-size:15px}
-.app{width:100%;max-width:100%;margin:0 auto;padding-bottom:92px}
-main,.content,.screen,section{max-width:100%;min-width:0}
-
-.card,.item,.metric,.assistantBuilder,.sheet{
-  max-width:100%;
-  min-width:0;
+#assistantComposerFixed{
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:70px;
+  width:min(520px,100%);
+  z-index:18;
+  padding:0 10px;
   box-sizing:border-box;
 }
-
-.row{min-width:0}
-.row>*{min-width:0}
-.between{gap:10px}
-.wrap{row-gap:8px}
-
-.grid2,.filterGrid,.financeStats{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:10px;
+#assistantComposerFixed .assistantDock{
+  background:#081827;
+  border:1px solid var(--line);
+  border-radius:18px 18px 0 0;
+  padding:10px;
+  box-shadow:0 -12px 28px rgba(0,0,0,.28);
+  max-height:58vh;
+  overflow-y:auto;
 }
-
-input,select,textarea,.btn{
-  min-height:46px;
-  font-size:16px;
-}
-
-textarea{resize:vertical}
-
-.btn{
-  white-space:normal;
-  line-height:1.15;
-  text-align:center;
-}
-
-.small{
-  min-height:38px;
-  font-size:13px;
-  padding:8px 10px;
-}
-
-.sectionTitle{
-  font-size:20px;
-  line-height:1.15;
-}
-
-.metric b{font-size:24px}
-
-header,.topbar{
-  max-width:100%;
-  min-width:0;
-}
-
-.topbar{
-  flex-wrap:wrap;
-  gap:8px;
-}
-
-.topbar .row,
-header .row{
-  flex-wrap:wrap;
-}
-
-/* Bottom navigation mobile-first */
-.bottomnav{
-  width:100%;
-  max-width:100%;
-  left:0;
-  transform:none;
-  grid-template-columns:repeat(6,minmax(0,1fr));
-  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
-  gap:0;
-}
-
-.navbtn{
-  min-width:0;
-  padding:6px 2px;
-  font-size:10px;
-  line-height:1.15;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.navbtn b{font-size:20px;margin-bottom:2px}
-
-/* Modals */
-.modal{align-items:flex-end}
-.sheet{
-  width:100%;
-  max-width:100%;
-  max-height:92dvh;
-  padding:16px 14px calc(18px + env(safe-area-inset-bottom));
-  border-radius:22px 22px 0 0;
-}
-
-/* Filters and chips */
-.filterChips,
-.assistantBuilderRow{
-  display:flex;
-  gap:8px;
-  overflow-x:auto;
-  overflow-y:hidden;
-  padding-bottom:6px;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
-}
-.filterChips::-webkit-scrollbar,
-.assistantBuilderRow::-webkit-scrollbar{display:none}
-
-.filterChips .btn,
-.assistantBuilderRow .btn{
-  flex:0 0 auto;
-  white-space:nowrap;
-  min-height:40px;
-}
-
-/* Assistant */
-#screen-assistant{
-  padding-bottom:18px;
-}
-
-#assistantChat{
-  min-height:180px!important;
-}
-
-#assistantChat .card{
-  margin-left:0!important;
-  margin-right:0!important;
-  border-radius:18px;
-}
-
-.assistantBuilder{
-  padding:12px;
-  margin:10px 0;
-  border-radius:18px;
-}
-
-.assistantBuilderTitle{font-size:17px}
-.assistantBuilderHint{line-height:1.35}
-
-.assistantBuilderPath{
-  display:flex;
-  flex-wrap:nowrap;
-  overflow-x:auto;
-  gap:6px;
-  padding-bottom:5px;
-  scrollbar-width:none;
-}
-.assistantBuilderPath::-webkit-scrollbar{display:none}
-
-.assistantBuilderPath .crumb{
-  flex:0 0 auto;
-  max-width:78vw;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-.assistantBuilderActions{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:8px;
-}
-
-#assistantInput{
-  min-height:112px;
-  line-height:1.35;
-}
-
-#screen-assistant .card[style*="sticky"]{
-  position:relative!important;
-  bottom:auto!important;
-  z-index:auto!important;
+#assistantComposerFixed #assistantSuggestions{
   margin-bottom:8px;
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding-bottom:4px;
 }
-
-#assistantSuggestions{
-  margin-top:10px;
+#assistantComposerFixed #assistantSuggestions .btn{
+  flex:0 0 auto;
+  white-space:nowrap;
 }
-
-/* Account / Sales / Clients cards */
-.itemClickable{
-  overflow-wrap:anywhere;
+#assistantComposerFixed .assistantBuilder{
+  margin:0 0 8px;
+  padding:10px;
 }
-
-.item b,.tiny,.muted{
-  overflow-wrap:anywhere;
+#assistantComposerFixed textarea{
+  min-height:82px;
+  max-height:135px;
 }
-
-/* Finance */
-.financeCurrency .financeStats{
-  grid-template-columns:1fr;
+#assistantComposerFixed .assistantSendRow{
+  display:flex;
+  gap:8px;
+  margin-top:8px;
 }
-
-.financeStat{
-  min-width:0;
-}
-
-/* Prevent long emails from breaking layout */
-.accountEmail,
-input,
-select,
-textarea,
-.item,
-.card{
-  overflow-wrap:anywhere;
-  word-break:break-word;
-}
-
-/* Mobile spacing */
-section[id^="screen-"]{
-  padding-left:12px;
-  padding-right:12px;
-  padding-bottom:18px;
-}
-
-/* Tablet and desktop enhancement */
-@media (min-width:640px){
-  .app{max-width:720px}
-  section[id^="screen-"]{padding-left:18px;padding-right:18px}
-
-  .grid2,.filterGrid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .financeStats{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .assistantBuilderActions{
-    grid-template-columns:auto 1fr;
-  }
-
-  #assistantChat .card{
-    max-width:88%;
-  }
-
-  #assistantChat .card[style*="margin-left"]{
-    margin-left:auto!important;
-  }
-
-  #assistantChat .card[style*="margin-right"]{
-    margin-right:auto!important;
-  }
-
-  .sheet{
-    width:min(620px,100%);
-    max-width:620px;
-  }
-
-  .bottomnav{
-    left:50%;
-    transform:translateX(-50%);
-    width:min(720px,100%);
-  }
-}
-
-@media (min-width:900px){
-  .app{max-width:980px}
-
-  .financeStats{
-    grid-template-columns:repeat(4,minmax(0,1fr));
-  }
-
-  .sheet{
-    width:min(720px,92vw);
-    max-width:720px;
-    border-radius:22px;
-    margin-bottom:18px;
-  }
-
-  .modal{
-    align-items:center;
-    padding:20px;
-  }
-
-  .bottomnav{
-    width:min(980px,100%);
-  }
-}
-
-/* iPhone safe areas */
-@supports(padding:max(0px)){
-  body{padding-left:max(0px,env(safe-area-inset-left));padding-right:max(0px,env(safe-area-inset-right))}
+#assistantComposerFixed .assistantSendRow .primary{flex:1}
+@media(min-width:700px){
+  #assistantComposerFixed{width:min(620px,calc(100% - 20px))}
 }
 
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v40</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v41</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -548,27 +310,30 @@ section[id^="screen-"]{
       Cuanto más específico seas, mejor. Para movimientos indicá cliente + cuenta origen + cuenta destino.
       Para ventas indicá cliente + servicio + precio y, si lo sabés, correo/perfil/fecha.
     </div>
-    <div id="assistantSuggestions" class="filterChips" style="margin-top:10px"></div>
   </div>
 
   <div id="assistantChat" style="min-height:260px"></div>
 
-  
-<div class="assistantBuilder" id="assistantBuilder">
-  <div class="assistantBuilderTitle">✨ Armá tu consulta</div>
-  <div class="assistantBuilderHint">Tocá opciones y voy escribiendo el mensaje por vos. También podés editarlo antes de enviarlo.</div>
-  <div id="assistantBuilderPath" class="assistantBuilderPath"></div>
-  <div id="assistantBuilderSteps"></div>
-  <div class="assistantBuilderActions">
-    <button class="btn secondary small" type="button" onclick="assistantBuilderReset()">↺ Empezar de nuevo</button>
-    <button class="btn primary small" type="button" onclick="assistantBuilderSend()">Enviar consulta armada</button>
-  </div>
-</div>
-<div class="card" style="position:sticky;bottom:72px;z-index:5">
-    <textarea id="assistantInput" rows="3" placeholder="Ej.: Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com"></textarea>
-    <div class="row wrap" style="margin-top:8px">
-      <button class="btn primary" style="flex:1" onclick="assistantSend()">Enviar</button>
-      <button class="btn secondary small" onclick="assistantClear()">Limpiar</button>
+  <div id="assistantComposerFixed">
+    <div class="assistantDock">
+      <div id="assistantSuggestions" class="filterChips"></div>
+
+      <div class="assistantBuilder" id="assistantBuilder">
+        <div class="assistantBuilderTitle">✨ Armá tu consulta</div>
+        <div class="assistantBuilderHint">Tocá opciones y voy escribiendo el mensaje por vos. También podés editarlo antes de enviarlo.</div>
+        <div id="assistantBuilderPath" class="assistantBuilderPath"></div>
+        <div id="assistantBuilderSteps"></div>
+        <div class="assistantBuilderActions">
+          <button class="btn secondary small" type="button" onclick="assistantBuilderReset()">↺ Empezar de nuevo</button>
+          <button class="btn primary small" type="button" onclick="assistantBuilderSend()">Enviar consulta armada</button>
+        </div>
+      </div>
+
+      <textarea id="assistantInput" rows="3" placeholder="Ej.: Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com"></textarea>
+      <div class="assistantSendRow">
+        <button class="btn primary" onclick="assistantSend()">Enviar</button>
+        <button class="btn secondary small" onclick="assistantClear()">Limpiar</button>
+      </div>
     </div>
   </div>
 </section>
@@ -1168,7 +933,7 @@ function renderAssistantChat(){
       <div style="margin-top:4px">${m.html}</div>
     </div>
   `).join('');
-  setTimeout(()=>box.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'}),30);
+  setTimeout(()=>box.lastElementChild?.scrollIntoView({behavior:'smooth',block:'center'}),30);
 }
 
 function assistantFindClient(text){
@@ -1321,36 +1086,26 @@ function assistantBuilderRender(){
 
   const needsService = s.action && !(s.action==='buscar'&&s.subject==='cliente') && !(s.action==='consultar'&&s.subject==='cliente');
   if(needsService){
-    const services=state.services.filter(x=>x.active!==false).sort((a,b)=>a.name.localeCompare(b.name));
-    h+=`<div class="assistantBuilderLabel">¿En qué servicio?</div>
-      <select onchange="assistantBuilderSet('serviceId',this.value)">
-        <option value="">Seleccionar servicio...</option>
-        ${services.map(x=>`<option value="${x.id}" ${s.serviceId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}
-      </select>`;
+    h+=`<div class="assistantBuilderLabel">¿En qué servicio?</div><div class="assistantBuilderRow">`;
+    state.services.filter(x=>!x.archived_at).sort((a,b)=>a.name.localeCompare(b.name)).forEach(x=>h+=assistantBuilderButton(x.name,'serviceId',x.id,s.serviceId===x.id));
+    h+='</div>';
   }
 
   const needsClient = s.action==='mover'||s.action==='renovar'||(s.action==='crear'&&s.subject==='venta')||(s.action==='consultar'&&s.subject==='cliente')||(s.action==='buscar'&&s.subject==='cliente');
   if(needsClient){
-    const clients=state.clients.filter(x=>!x.archived_at).sort((a,b)=>a.name.localeCompare(b.name));
-    h+=`<div class="assistantBuilderLabel">¿Qué cliente?</div>
-      <select onchange="assistantBuilderSet('clientId',this.value)">
-        <option value="">Seleccionar cliente...</option>
-        ${clients.map(x=>`<option value="${x.id}" ${s.clientId===x.id?'selected':''}>${esc(x.name)}${x.phone_e164||x.phone_raw?` · ${esc(x.phone_e164||x.phone_raw)}`:''}</option>`).join('')}
-      </select>`;
+    h+=`<div class="assistantBuilderLabel">¿Qué cliente?</div><div class="assistantBuilderRow">`;
+    state.clients.filter(x=>!x.archived_at).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,80).forEach(x=>h+=assistantBuilderButton(x.name,'clientId',x.id,s.clientId===x.id));
+    h+='</div>';
   }
 
   if(s.action==='mover'&&s.serviceId){
     const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===s.serviceId);
-    h+=`<div class="assistantBuilderLabel">¿De qué cuenta?</div>
-      <select onchange="assistantBuilderSet('accountId',this.value)">
-        <option value="">Seleccionar cuenta origen...</option>
-        ${accounts.map(a=>`<option value="${a.id}" ${s.accountId===a.id?'selected':''}>${esc(a.login_email||'Cuenta')}</option>`).join('')}
-      </select>`;
-    h+=`<div class="assistantBuilderLabel">¿A qué cuenta?</div>
-      <select onchange="assistantBuilderSet('targetAccountId',this.value)">
-        <option value="">Seleccionar cuenta destino...</option>
-        ${accounts.filter(a=>a.id!==s.accountId).map(a=>`<option value="${a.id}" ${s.targetAccountId===a.id?'selected':''}>${esc(a.login_email||'Cuenta')}</option>`).join('')}
-      </select>`;
+    h+=`<div class="assistantBuilderLabel">¿De qué cuenta?</div><div class="assistantBuilderRow">`;
+    accounts.forEach(a=>h+=assistantBuilderButton(a.login_email||'Cuenta','accountId',a.id,s.accountId===a.id));
+    h+='</div>';
+    h+=`<div class="assistantBuilderLabel">¿A qué cuenta?</div><div class="assistantBuilderRow">`;
+    accounts.filter(a=>a.id!==s.accountId).forEach(a=>h+=assistantBuilderButton(a.login_email||'Cuenta','targetAccountId',a.id,s.targetAccountId===a.id));
+    h+='</div>';
   }
 
   if((s.action==='consultar'&&s.subject==='inversion')||(s.action==='crear'&&s.subject==='venta')){
