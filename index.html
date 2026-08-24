@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v36">
+<meta name="misakroos-version" content="v37">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
-*{box-sizing:border-box}body{margin:0;background:#07111f;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.app{max-width:520px;margin:auto;min-height:100vh;background:#081522}.topbar{position:sticky;top:0;z-index:10;background:#07111fee;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.main{padding:14px 14px 90px}.card,.item{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.metric b{display:block;font-size:22px}.muted{color:var(--muted)}.tiny{font-size:12px}.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.hidden{display:none!important}.sectionTitle{font-weight:800;font-size:18px;margin:4px 0 12px}.btn{border:0;border-radius:11px;padding:10px 12px;font-weight:700}.primary{background:var(--accent);color:#fff}.secondary{background:var(--panel2);color:#fff;border:1px solid var(--line)}.warn{background:#33250d;color:#ffd47a;border:1px solid #6a4b13}.danger{background:#321117;color:#ff9ba4;border:1px solid #6b222b}.ok{background:#0d2d1d;color:#83efac;border:1px solid #216e44}.small{padding:7px 9px;font-size:12px}input,select,textarea{width:100%;background:#071421;color:#fff;border:1px solid var(--line);border-radius:11px;padding:10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 5px}.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(5,1fr);background:#07111ff5;border-top:1px solid var(--line);padding:7px}.navbtn{background:none;border:0;color:var(--muted);font-size:11px;padding:7px}.navbtn.active{color:#fff}.navbtn b{display:block;font-size:18px}.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:30}.sheet{width:min(520px,100%);max-height:90vh;overflow:auto;background:#091725;border-radius:20px 20px 0 0;border:1px solid var(--line);padding:16px}.auth{min-height:100vh;display:grid;place-items:center;padding:22px}.authbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}.badge.info{color:#9fc4ff}.badge.ok{color:#7af0a9}.badge.warn{color:#ffd883}.badge.danger{color:#ff9ca5}.badge{padding:4px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+*{box-sizing:border-box}body{margin:0;background:#07111f;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.app{max-width:520px;margin:auto;min-height:100vh;background:#081522}.topbar{position:sticky;top:0;z-index:10;background:#07111fee;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.main{padding:14px 14px 90px}.card,.item{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.metric b{display:block;font-size:22px}.muted{color:var(--muted)}.tiny{font-size:12px}.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.hidden{display:none!important}.sectionTitle{font-weight:800;font-size:18px;margin:4px 0 12px}.btn{border:0;border-radius:11px;padding:10px 12px;font-weight:700}.primary{background:var(--accent);color:#fff}.secondary{background:var(--panel2);color:#fff;border:1px solid var(--line)}.warn{background:#33250d;color:#ffd47a;border:1px solid #6a4b13}.danger{background:#321117;color:#ff9ba4;border:1px solid #6b222b}.ok{background:#0d2d1d;color:#83efac;border:1px solid #216e44}.small{padding:7px 9px;font-size:12px}input,select,textarea{width:100%;background:#071421;color:#fff;border:1px solid var(--line);border-radius:11px;padding:10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 5px}.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(6,1fr);background:#07111ff5;border-top:1px solid var(--line);padding:7px}.navbtn{background:none;border:0;color:var(--muted);font-size:11px;padding:7px}.navbtn.active{color:#fff}.navbtn b{display:block;font-size:18px}.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:30}.sheet{width:min(520px,100%);max-height:90vh;overflow:auto;background:#091725;border-radius:20px 20px 0 0;border:1px solid var(--line);padding:16px}.auth{min-height:100vh;display:grid;place-items:center;padding:22px}.authbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}.badge.info{color:#9fc4ff}.badge.ok{color:#7af0a9}.badge.warn{color:#ffd883}.badge.danger{color:#ff9ca5}.badge{padding:4px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
 .hint{margin-top:7px;padding:9px 10px;border-radius:11px;background:#0b2034;border:1px solid #244766;color:#b9cbe0;font-size:12px}
 .inlineNew{margin-top:8px;padding:10px;border:1px dashed #34577a;border-radius:12px;background:#081b2c}
 .saleRow{position:relative}.removeRow{position:absolute;right:10px;top:10px}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v36</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v37</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -231,6 +231,34 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   <div class="sectionTitle">Ventas del período</div>
   <div id="financeSalesList"></div>
 </section>
+<section id="screen-assistant" class="hidden">
+  <div class="row between">
+    <div>
+      <div class="sectionTitle" style="margin-bottom:2px">💬 Asistente MISAKROOS</div>
+      <div class="tiny muted">Consultá datos o prepará cambios escribiendo como hablás normalmente.</div>
+    </div>
+    <span class="badge info">beta</span>
+  </div>
+
+  <div class="card">
+    <b>Cómo pedirme las cosas</b>
+    <div class="tiny muted" style="margin-top:6px">
+      Cuanto más específico seas, mejor. Para movimientos indicá cliente + cuenta origen + cuenta destino.
+      Para ventas indicá cliente + servicio + precio y, si lo sabés, correo/perfil/fecha.
+    </div>
+    <div id="assistantSuggestions" class="filterChips" style="margin-top:10px"></div>
+  </div>
+
+  <div id="assistantChat" style="min-height:260px"></div>
+
+  <div class="card" style="position:sticky;bottom:72px;z-index:5">
+    <textarea id="assistantInput" rows="3" placeholder="Ej.: Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com"></textarea>
+    <div class="row wrap" style="margin-top:8px">
+      <button class="btn primary" style="flex:1" onclick="assistantSend()">Enviar</button>
+      <button class="btn secondary small" onclick="assistantClear()">Limpiar</button>
+    </div>
+  </div>
+</section>
 <section id="screen-more" class="hidden">
   <div class="sectionTitle">Gestión</div>
 
@@ -306,7 +334,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </div>
 <div id="activityLogList"></div>
 </section>
-</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;accountCapacityFilter='all';accountServiceFilter='';showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
+</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;accountCapacityFilter='all';accountServiceFilter='';showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="assistant" onclick="showScreen('assistant',this);renderAssistant()"><b>💬</b>Asistente</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
 <div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()"><div id="sheet" class="sheet"></div></div>
 <script>
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
@@ -725,6 +753,434 @@ function renderGlobalSearch(){
   box.classList.remove('hidden');
 }
 
+
+let assistantMessages=[];
+let assistantPendingActions={};
+let assistantActionSeq=0;
+
+function assistantNormalize(s){
+  return String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+function assistantEscapeJsString(s){
+  return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+}
+
+function assistantAdd(role,htmlText){
+  assistantMessages.push({role,html:htmlText,at:new Date().toISOString()});
+  if(assistantMessages.length>80)assistantMessages=assistantMessages.slice(-80);
+  try{localStorage.setItem('misakroos_assistant_chat',JSON.stringify(assistantMessages.slice(-40)));}catch{}
+  renderAssistantChat();
+}
+
+function assistantLoad(){
+  if(assistantMessages.length)return;
+  try{
+    const saved=JSON.parse(localStorage.getItem('misakroos_assistant_chat')||'[]');
+    if(Array.isArray(saved))assistantMessages=saved.slice(-40);
+  }catch{}
+}
+
+function assistantClear(){
+  if(!confirm('¿Limpiar el chat del asistente en este dispositivo?'))return;
+  assistantMessages=[];
+  assistantPendingActions={};
+  localStorage.removeItem('misakroos_assistant_chat');
+  renderAssistant();
+}
+
+function assistantSuggestion(text){
+  const input=document.getElementById('assistantInput');
+  if(!input)return;
+  input.value=text;
+  input.focus();
+}
+
+function assistantSmartSuggestions(){
+  const suggestions=[
+    'Mostrame cuentas Netflix con cupos libres',
+    '¿Qué clientes vencen esta semana?',
+    'Buscá costos o monedas raras',
+    'Mostrame ventas pendientes de renovación'
+  ];
+
+  const exp=state.saleItems
+    .filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7)
+    .sort((a,b)=>String(a.end_date).localeCompare(String(b.end_date)))[0];
+  if(exp){
+    const sale=saleBy(exp.sale_id),c=sale&&clientBy(sale.client_id),srv=serviceBy(exp.service_id);
+    if(c&&srv)suggestions.push(`Prepará renovación de ${srv.name} para ${c.name}`);
+  }
+
+  const netflix=state.services.find(s=>assistantNormalize(s.name).includes('netflix'));
+  if(netflix){
+    const accs=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===netflix.id);
+    const withFree=accs.find(a=>state.slots.some(sl=>sl.account_id===a.id&&sl.active&&!activeAssignSlot(sl.id)));
+    if(withFree)suggestions.push(`¿Cuántos cupos libres tiene Netflix?`);
+  }
+
+  suggestions.push('Prepará una venta para Lourdes de Netflix a $8500');
+  return suggestions.slice(0,7);
+}
+
+function renderAssistant(){
+  assistantLoad();
+  const sug=document.getElementById('assistantSuggestions');
+  if(sug){
+    sug.innerHTML=assistantSmartSuggestions().map(x=>
+      `<button class="btn secondary small" onclick="assistantSuggestion('${assistantEscapeJsString(x)}')">${esc(x)}</button>`
+    ).join('');
+  }
+  if(!assistantMessages.length){
+    assistantMessages=[{
+      role:'assistant',
+      html:`Hola 👋 Soy el asistente del CRM. Puedo <b>consultar</b> clientes, cuentas, vencimientos y finanzas, o <b>preparar cambios</b> para que vos los confirmes.<br><br>
+      <span class="tiny muted">Nunca modifico datos directamente sin mostrarte antes qué voy a hacer.</span>`,
+      at:new Date().toISOString()
+    }];
+  }
+  renderAssistantChat();
+}
+
+function renderAssistantChat(){
+  const box=document.getElementById('assistantChat');
+  if(!box)return;
+  box.innerHTML=assistantMessages.map(m=>`
+    <div class="card" style="${m.role==='user'?'margin-left:36px;background:#102238':'margin-right:24px'}">
+      <div class="tiny muted">${m.role==='user'?'Vos':'Asistente'}</div>
+      <div style="margin-top:4px">${m.html}</div>
+    </div>
+  `).join('');
+  setTimeout(()=>box.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'}),30);
+}
+
+function assistantFindClient(text){
+  const q=assistantNormalize(text);
+  const candidates=state.clients.filter(c=>!c.archived_at&&q.includes(assistantNormalize(c.name)));
+  return candidates.sort((a,b)=>String(b.name).length-String(a.name).length)[0]||null;
+}
+
+function assistantFindService(text){
+  const q=assistantNormalize(text);
+  return state.services
+    .filter(s=>s.active!==false&&q.includes(assistantNormalize(s.name)))
+    .sort((a,b)=>String(b.name).length-String(a.name).length)[0]||null;
+}
+
+function assistantEmails(text){
+  return [...String(text||'').matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map(m=>m[0].toLowerCase());
+}
+
+function assistantFindAccountByEmail(email,serviceId=''){
+  const e=normalizeAccountEmail(email);
+  const list=state.accounts.filter(a=>!a.archived_at&&normalizeAccountEmail(a.login_email)===e&&(!serviceId||a.service_id===serviceId));
+  return list.length===1?list[0]:list[0]||null;
+}
+
+function assistantAccountClients(account){
+  if(!account)return [];
+  const slotIds=new Set(state.slots.filter(s=>s.account_id===account.id&&s.active).map(s=>s.id));
+  return state.assignments.filter(a=>!a.released_at&&slotIds.has(a.account_slot_id)).map(a=>{
+    const item=state.saleItems.find(i=>i.id===a.sale_item_id);
+    const sale=item&&saleBy(item.sale_id);
+    const client=sale&&clientBy(sale.client_id);
+    const slot=slotBy(a.account_slot_id);
+    return {assignment:a,item,sale,client,slot};
+  }).filter(x=>x.client&&x.item);
+}
+
+function assistantFreeSlots(account){
+  return state.slots.filter(s=>s.account_id===account.id&&s.active&&!activeAssignSlot(s.id));
+}
+
+function assistantCreateAction(type,data){
+  const id=`aa_${++assistantActionSeq}_${Date.now()}`;
+  assistantPendingActions[id]={type,data};
+  return id;
+}
+
+function assistantAnomalySummary(){
+  const bad=[];
+  state.sales.forEach(s=>{
+    if(typeof financeAnomaliesForSale!=='function')return;
+    const issues=financeAnomaliesForSale(s);
+    if(issues.length)bad.push({sale:s,issues});
+  });
+  return bad;
+}
+
+function assistantHandleQuery(text){
+  const q=assistantNormalize(text);
+  const service=assistantFindService(text);
+
+  if((q.includes('cupos libres')||q.includes('cuentas libres')||q.includes('con cupo'))){
+    const srv=service||state.services.find(s=>assistantNormalize(s.name).includes('netflix'));
+    if(!srv)return {handled:true,html:'Decime de qué servicio querés revisar los cupos.'};
+    const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===srv.id);
+    const rows=accounts.map(a=>({a,free:assistantFreeSlots(a).length,total:state.slots.filter(s=>s.account_id===a.id&&s.active).length})).filter(x=>x.free>0);
+    return {handled:true,html:rows.length
+      ?`Encontré <b>${rows.reduce((n,x)=>n+x.free,0)} cupos libres</b> en ${esc(srv.name)}:<br><br>${rows.map(x=>`• ${esc(x.a.login_email||'Cuenta')} — <b>${x.free}</b> libres de ${x.total}`).join('<br>')}`
+      :`No encontré cupos libres en ${esc(srv.name)}.`};
+  }
+
+  if(q.includes('vence')||q.includes('vencen')||q.includes('esta semana')){
+    const items=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing')
+      .sort((a,b)=>String(a.end_date).localeCompare(String(b.end_date)));
+    return {handled:true,html:items.length
+      ?`Hay <b>${items.length}</b> servicio(s) que vencen en los próximos 7 días:<br><br>${items.slice(0,20).map(i=>{
+          const sale=saleBy(i.sale_id),c=sale&&clientBy(sale.client_id),srv=serviceBy(i.service_id);
+          return `• <b>${esc(c?.name||'Cliente')}</b> — ${esc(srv?.name||'Servicio')} — ${formatDateAR(i.end_date)}`;
+        }).join('<br>')}`
+      :'No hay servicios que venzan en los próximos 7 días.'};
+  }
+
+  if(q.includes('rara')||q.includes('raros')||q.includes('incongru')||q.includes('moneda')){
+    const bad=assistantAnomalySummary();
+    return {handled:true,html:bad.length
+      ?`Encontré <b>${bad.length} venta(s)</b> con posibles incongruencias:<br><br>${bad.slice(0,15).map(x=>{
+          const c=clientBy(x.sale.client_id);
+          return `• <b>${esc(c?.name||'Cliente')}</b>: ${x.issues.map(esc).join(' / ')}`;
+        }).join('<br>')}<br><br><button class="btn warn small" onclick="showScreen('finance');document.getElementById('finOnlyAnomalies').checked=true;renderFinance()">Abrir control de datos</button>`
+      :'No encontré incongruencias con las reglas actuales.'};
+  }
+
+  if(q.includes('pendiente')&&q.includes('renov')){
+    const items=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)||Number(i.renewal_notice_stage||0)>0);
+    return {handled:true,html:items.length
+      ?`Encontré <b>${items.length}</b> servicio(s) con seguimiento de renovación:<br><br>${items.slice(0,20).map(i=>{
+          const sale=saleBy(i.sale_id),c=sale&&clientBy(sale.client_id),srv=serviceBy(i.service_id);
+          return `• ${esc(c?.name||'Cliente')} — ${esc(srv?.name||'Servicio')} — ${esc(renewalNoticeLabel(i)||i.workflow_status||'Pendiente')}`;
+        }).join('<br>')}`
+      :'No encontré renovaciones pendientes.'};
+  }
+
+  const client=assistantFindClient(text);
+  if(client&&(q.includes('mostra')||q.includes('datos')||q.includes('tiene')||q.includes('servicios'))){
+    const sales=state.sales.filter(s=>s.client_id===client.id);
+    const ids=new Set(sales.map(s=>s.id));
+    const items=state.saleItems.filter(i=>ids.has(i.sale_id));
+    return {handled:true,html:`<b>${esc(client.name)}</b><br>${esc(client.phone_e164||client.phone_raw||'Sin teléfono')}<br><br>${items.length?items.map(i=>{
+      const a=activeAssignItem(i.id),sl=a&&slotBy(a.account_slot_id),acc=sl&&accountBy(sl.account_id);
+      return `• ${esc(serviceBy(i.service_id)?.name||'Servicio')} — ${esc(acc?.login_email||'Sin cuenta')} — vence ${esc(i.end_date||'-')}`;
+    }).join('<br>'):'No tiene servicios asociados.'}<br><br><button class="btn secondary small" onclick="openClientDetail('${client.id}')">Abrir ficha</button>`};
+  }
+
+  return {handled:false};
+}
+
+function assistantHandleMove(text){
+  const q=assistantNormalize(text);
+  if(!(q.includes('movi')||q.includes('move')||q.includes('pas')||q.includes('cambia'))||!q.includes('cuenta'))return {handled:false};
+
+  const client=assistantFindClient(text);
+  const emails=assistantEmails(text);
+  if(!client)return {handled:true,html:'Pude detectar que querés mover un cliente, pero no encontré el nombre en el CRM. Escribí el nombre tal como está cargado.'};
+  if(emails.length<2)return {handled:true,html:`Encontré a <b>${esc(client.name)}</b>, pero necesito <b>dos correos</b>: cuenta origen y cuenta destino.<br><br>Ej.: <i>Mové a ${esc(client.name)} de cuentaA@gmail.com a cuentaB@gmail.com</i>`};
+
+  const source=assistantFindAccountByEmail(emails[0]);
+  const target=assistantFindAccountByEmail(emails[1]);
+  if(!source||!target)return {handled:true,html:'No pude encontrar una de las dos cuentas. Revisá los correos.'};
+  if(source.service_id!==target.service_id)return {handled:true,html:'Las cuentas son de servicios distintos. No voy a preparar ese movimiento.'};
+
+  const rows=assistantAccountClients(source).filter(x=>x.client.id===client.id);
+  if(!rows.length)return {handled:true,html:`${esc(client.name)} no figura actualmente en ${esc(source.login_email||emails[0])}.`};
+  if(rows.length>1)return {handled:true,html:`${esc(client.name)} aparece más de una vez en la cuenta origen. Abrí la cuenta y elegí el perfil exacto para evitar mover el incorrecto.`};
+
+  const free=assistantFreeSlots(target);
+  if(!free.length)return {handled:true,html:`La cuenta destino <b>${esc(target.login_email)}</b> no tiene cupos libres.`};
+
+  const row=rows[0];
+  const historical=clientHistoricalAccountIds(client.id,source.service_id);
+  const wasThere=historical.has(target.id);
+  const actionId=assistantCreateAction('move',{
+    assignmentId:row.assignment.id,
+    saleItemId:row.item.id,
+    clientId:client.id,
+    profileName:row.assignment.profile_name||null,
+    sourceAccountId:source.id,
+    targetAccountId:target.id,
+    targetSlotId:free[0].id
+  });
+
+  return {handled:true,html:`
+    Entendí este movimiento:
+    <div class="item" style="margin-top:8px">
+      <b>${esc(client.name)}</b><br>
+      ${esc(source.login_email)} → <b>${esc(target.login_email)}</b><br>
+      <span class="tiny muted">Perfil: ${esc(row.assignment.profile_name||'Sin perfil')} · destino: cupo ${free[0].slot_number}</span>
+      ${wasThere?'<div class="tiny"><span class="badge warn">⚠️ Este cliente ya estuvo antes en la cuenta destino</span></div>':''}
+    </div>
+    <div class="row wrap" style="margin-top:8px">
+      <button class="btn primary small" onclick="assistantConfirmAction('${actionId}')">Confirmar movimiento</button>
+      <button class="btn secondary small" onclick="assistantCancelAction('${actionId}')">Cancelar</button>
+    </div>`};
+}
+
+function assistantParseMoney(text){
+  const matches=[...String(text||'').matchAll(/(?:\$|ars\s*|uyu\s*|usd\s*|usdt\s*)?(\d[\d.,]*)/gi)];
+  for(const m of matches){
+    const raw=m[1];
+    if(!raw)return null;
+    let clean=raw.replace(/\./g,'').replace(',','.');
+    const n=Number(clean);
+    if(Number.isFinite(n)&&n>0)return n;
+  }
+  return null;
+}
+
+function assistantHandleSale(text){
+  const q=assistantNormalize(text);
+  if(!(q.includes('venta')||q.includes('vender')||q.includes('prepara')||q.includes('carga')) )return {handled:false};
+  const client=assistantFindClient(text);
+  const service=assistantFindService(text);
+  const amount=assistantParseMoney(text);
+  if(!client&&!service)return {handled:false};
+
+  const emails=assistantEmails(text);
+  const currency=q.includes('usdt')?'USDT':q.includes('usd')?'USD':q.includes('uyu')?'UYU':q.includes('clp')?'CLP':'ARS';
+  const data={
+    clientId:client?.id||'',
+    clientName:client?.name||'',
+    serviceId:service?.id||'',
+    serviceName:service?.name||'',
+    total:amount||'',
+    currency,
+    email:emails[0]||''
+  };
+  const id=assistantCreateAction('prepare_sale',data);
+  return {handled:true,html:`
+    Te preparé un borrador de venta:
+    <div class="item" style="margin-top:8px">
+      Cliente: <b>${esc(data.clientName||'Falta elegir')}</b><br>
+      Servicio: <b>${esc(data.serviceName||'Falta elegir')}</b><br>
+      Total: <b>${data.total?money(data.total,data.currency):'Falta completar'}</b><br>
+      ${data.email?`Cuenta: ${esc(data.email)}<br>`:''}
+    </div>
+    <div class="tiny muted">Voy a abrir el formulario normal para que revises y completes lo que falte. La venta no se guarda hasta tu confirmación.</div>
+    <button class="btn primary small" style="margin-top:8px" onclick="assistantConfirmAction('${id}')">Abrir formulario autocompletado</button>`};
+}
+
+function assistantHandleRenewal(text){
+  const q=assistantNormalize(text);
+  if(!q.includes('renov'))return {handled:false};
+  const client=assistantFindClient(text);
+  const service=assistantFindService(text);
+  if(!client)return {handled:false};
+
+  const sales=state.sales.filter(s=>s.client_id===client.id);
+  const ids=new Set(sales.map(s=>s.id));
+  let items=state.saleItems.filter(i=>ids.has(i.sale_id));
+  if(service)items=items.filter(i=>i.service_id===service.id);
+
+  if(items.length!==1){
+    return {handled:true,html:items.length
+      ?`Encontré ${items.length} servicios posibles para ${esc(client.name)}. Abrí su ficha y elegí cuál querés renovar.<br><br><button class="btn secondary small" onclick="openClientDetail('${client.id}')">Abrir ficha</button>`
+      :`No encontré un servicio para renovar de ${esc(client.name)}.`};
+  }
+
+  const item=items[0];
+  return {handled:true,html:`Encontré <b>${esc(serviceBy(item.service_id)?.name||'Servicio')}</b> de ${esc(client.name)}, vence ${esc(item.end_date||'-')}.<br><br><button class="btn primary small" onclick="renewSingleService('${item.id}')">Abrir renovación</button>`};
+}
+
+async function assistantConfirmAction(id){
+  const action=assistantPendingActions[id];
+  if(!action)return assistantAdd('assistant','Esa acción ya no está disponible. Volvé a escribir el pedido.');
+
+  try{
+    if(action.type==='move'){
+      const d=action.data;
+      const assignment=state.assignments.find(a=>a.id===d.assignmentId&&!a.released_at);
+      const targetSlot=slotBy(d.targetSlotId);
+      if(!assignment)throw new Error('El perfil ya no está en la ubicación original.');
+      if(!targetSlot||activeAssignSlot(targetSlot.id))throw new Error('El cupo destino ya no está libre.');
+
+      const source=accountBy(d.sourceAccountId),target=accountBy(d.targetAccountId),client=clientBy(d.clientId);
+      const rel=await sb.from('slot_assignments').update({
+        released_at:new Date().toISOString(),
+        release_reason:`Movimiento desde Asistente: ${source?.login_email||''} → ${target?.login_email||''}`
+      }).eq('id',assignment.id);
+      if(rel.error)throw rel.error;
+
+      const ins=await sb.from('slot_assignments').insert({
+        account_slot_id:d.targetSlotId,
+        sale_item_id:d.saleItemId,
+        client_id:d.clientId,
+        profile_name:d.profileName
+      });
+      if(ins.error)throw ins.error;
+
+      delete assistantPendingActions[id];
+      await refreshAll();
+      assistantAdd('assistant',`✅ Listo. Moví a <b>${esc(client?.name||'Cliente')}</b> de ${esc(source?.login_email||'cuenta origen')} a <b>${esc(target?.login_email||'cuenta destino')}</b>. El historial anterior quedó guardado.`);
+      return;
+    }
+
+    if(action.type==='prepare_sale'){
+      const d=action.data;
+      delete assistantPendingActions[id];
+      openSaleModal();
+      setTimeout(()=>{
+        if(d.clientId)selectSaleClient(d.clientId);
+        else if(d.clientName){saleClientName.value=d.clientName;syncSaleClient();}
+        if(d.total) saleTotal.value=d.total;
+        if(d.currency) saleCurr.value=d.currency;
+        const row=document.querySelector('.saleRow');
+        if(row){
+          if(d.serviceName){
+            row.querySelector('.siServiceName').value=d.serviceName;
+            syncSaleRow(row.querySelector('.siServiceName'));
+          }
+          if(d.email){
+            const emailInput=row.querySelector('.siAccountEmail');
+            if(emailInput){emailInput.value=d.email;emailInput.dispatchEvent(new Event('input'));}
+          }
+        }
+        updateSaleDistribution();
+      },60);
+      return;
+    }
+  }catch(err){
+    console.error(err);
+    assistantAdd('assistant',`⚠️ No pude completar la acción: ${esc(err.message||String(err))}`);
+    await refreshAll();
+  }
+}
+
+function assistantCancelAction(id){
+  delete assistantPendingActions[id];
+  assistantAdd('assistant','Acción cancelada. No modifiqué ningún dato.');
+}
+
+async function assistantSend(){
+  const input=document.getElementById('assistantInput');
+  const text=(input?.value||'').trim();
+  if(!text)return;
+  input.value='';
+  assistantAdd('user',esc(text));
+
+  const handlers=[assistantHandleMove,assistantHandleSale,assistantHandleRenewal,assistantHandleQuery];
+  for(const handler of handlers){
+    const r=handler(text);
+    if(r?.handled){
+      assistantAdd('assistant',r.html);
+      return;
+    }
+  }
+
+  assistantAdd('assistant',`
+    No pude convertir ese pedido en una acción segura todavía. Probá incluir más datos.<br><br>
+    <b>Ejemplos que entiendo bien:</b><br>
+    • Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com<br>
+    • Mostrame cuentas Netflix con cupos libres<br>
+    • Prepará una venta para Lourdes de Netflix a $8500<br>
+    • ¿Qué clientes vencen esta semana?<br>
+    • Buscá costos o monedas raras<br><br>
+    <span class="tiny muted">Para modificaciones prefiero pedirte datos de más antes que tocar el registro equivocado.</span>
+  `);
+}
+
 function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
 function renderAll(){
   mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
@@ -733,7 +1189,7 @@ function renderAll(){
   const activeAccountIds=new Set(state.accounts.filter(a=>!a.archived_at&&a.status==='active').map(a=>a.id));
   mSlots.textContent=state.slots.filter(s=>s.active&&activeAccountIds.has(s.account_id)&&!occ.has(s.id)).length;
   mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing').length;
-  renderClients();renderSales();renderAccounts();renderMore();renderHome();
+  renderClients();renderSales();renderAccounts();renderMore();renderHome();renderAssistant();
 }
 function goAccountsService(serviceId){
   accountServiceFilter=serviceId||'';
