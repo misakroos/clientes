@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v37">
+<meta name="misakroos-version" content="v38">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v37</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v38</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -911,21 +911,80 @@ function assistantAnomalySummary(){
   return bad;
 }
 
-function assistantHandleQuery(text){
-  const q=assistantNormalize(text);
-  const service=assistantFindService(text);
+function assistantTokens(text){
+  return assistantNormalize(text)
+    .replace(/[¿?¡!.,;:()[\]{}]/g,' ')
+    .split(' ')
+    .filter(Boolean);
+}
 
-  if((q.includes('cupos libres')||q.includes('cuentas libres')||q.includes('con cupo'))){
-    const srv=service||state.services.find(s=>assistantNormalize(s.name).includes('netflix'));
-    if(!srv)return {handled:true,html:'Decime de qué servicio querés revisar los cupos.'};
-    const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===srv.id);
-    const rows=accounts.map(a=>({a,free:assistantFreeSlots(a).length,total:state.slots.filter(s=>s.account_id===a.id&&s.active).length})).filter(x=>x.free>0);
-    return {handled:true,html:rows.length
-      ?`Encontré <b>${rows.reduce((n,x)=>n+x.free,0)} cupos libres</b> en ${esc(srv.name)}:<br><br>${rows.map(x=>`• ${esc(x.a.login_email||'Cuenta')} — <b>${x.free}</b> libres de ${x.total}`).join('<br>')}`
-      :`No encontré cupos libres en ${esc(srv.name)}.`};
+function assistantIncludesAny(q,words){
+  return words.some(w=>q.includes(w));
+}
+
+function assistantIntent(text){
+  const q=assistantNormalize(text);
+  const t=assistantTokens(text);
+
+  const hasService=!!assistantFindService(text);
+
+  const capacityWords=['cupo','cupos','libre','libres','espacio','espacios','disponible','disponibles','lugar','lugares','perfil libre','perfiles libres'];
+  const accountWords=['cuenta','cuentas','perfil','perfiles'];
+  const expiryWords=['vence','vencen','vencimiento','vencimientos','caduca','caducan','esta semana','proximos dias','próximos días'];
+  const anomalyWords=['raro','raros','rara','raras','incongruencia','incongruencias','moneda','monedas','costo raro','costos raros','dato raro','datos raros'];
+  const renewalWords=['pendiente renovacion','pendientes renovacion','renovacion pendiente','renovaciones pendientes','primer aviso','segundo aviso'];
+  const clientInfoWords=['datos de','informacion de','información de','servicios de','que tiene','qué tiene','mostrame a','mostrar a'];
+
+  if(assistantIncludesAny(q,capacityWords) && (hasService || assistantIncludesAny(q,accountWords))){
+    return 'capacity';
+  }
+  if(assistantIncludesAny(q,expiryWords))return 'expiry';
+  if(assistantIncludesAny(q,anomalyWords))return 'anomalies';
+  if(assistantIncludesAny(q,renewalWords))return 'renewal_pending';
+  if(assistantIncludesAny(q,clientInfoWords))return 'client_info';
+
+  // tolerancia simple a errores comunes
+  if((q.includes('cupo')||q.includes('cup')||q.includes('libre'))&&hasService)return 'capacity';
+  if((q.includes('venc')||q.includes('caduc'))&&!q.includes('renov'))return 'expiry';
+
+  return '';
+}
+
+function assistantCapacityResponse(text){
+  const service=assistantFindService(text)||state.services.find(s=>assistantNormalize(s.name).includes('netflix'));
+  if(!service){
+    return `Creo que querés consultar disponibilidad, pero no pude identificar el servicio. Probá, por ejemplo: <b>“cupos libres de Netflix”</b>.`;
   }
 
-  if(q.includes('vence')||q.includes('vencen')||q.includes('esta semana')){
+  const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===service.id);
+  const rows=accounts.map(a=>{
+    const total=state.slots.filter(s=>s.account_id===a.id&&s.active).length;
+    const free=assistantFreeSlots(a).length;
+    return {a,total,free};
+  }).filter(x=>x.free>0);
+
+  const totalFree=rows.reduce((n,x)=>n+x.free,0);
+
+  return rows.length
+    ? `<b>${esc(service.name)} — disponibilidad</b><br><br>
+       ${accounts.length} cuenta(s) activa(s)<br>
+       ${rows.length} cuenta(s) con espacio<br>
+       <b>${totalFree} cupo(s) libre(s) en total</b><br><br>
+       ${rows.map(x=>`• ${esc(x.a.login_email||'Cuenta')} — <b>${x.free}</b> libres de ${x.total}`).join('<br>')}
+       <br><br><button class="btn secondary small" onclick="goAccountsService('${service.id}')">Ver cuentas disponibles</button>`
+    : `No encontré cupos libres en <b>${esc(service.name)}</b>.`;
+}
+
+function assistantHandleQuery(text){
+  const q=assistantNormalize(text);
+  const intent=assistantIntent(text);
+  const service=assistantFindService(text);
+
+  if(intent==='capacity'){
+    return {handled:true,html:assistantCapacityResponse(text)};
+  }
+
+  if(intent==='expiry'){
     const items=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing')
       .sort((a,b)=>String(a.end_date).localeCompare(String(b.end_date)));
     return {handled:true,html:items.length
@@ -936,7 +995,7 @@ function assistantHandleQuery(text){
       :'No hay servicios que venzan en los próximos 7 días.'};
   }
 
-  if(q.includes('rara')||q.includes('raros')||q.includes('incongru')||q.includes('moneda')){
+  if(intent==='anomalies'){
     const bad=assistantAnomalySummary();
     return {handled:true,html:bad.length
       ?`Encontré <b>${bad.length} venta(s)</b> con posibles incongruencias:<br><br>${bad.slice(0,15).map(x=>{
@@ -946,7 +1005,7 @@ function assistantHandleQuery(text){
       :'No encontré incongruencias con las reglas actuales.'};
   }
 
-  if(q.includes('pendiente')&&q.includes('renov')){
+  if(intent==='renewal_pending'){
     const items=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)||Number(i.renewal_notice_stage||0)>0);
     return {handled:true,html:items.length
       ?`Encontré <b>${items.length}</b> servicio(s) con seguimiento de renovación:<br><br>${items.slice(0,20).map(i=>{
@@ -957,7 +1016,7 @@ function assistantHandleQuery(text){
   }
 
   const client=assistantFindClient(text);
-  if(client&&(q.includes('mostra')||q.includes('datos')||q.includes('tiene')||q.includes('servicios'))){
+  if(client&&(intent==='client_info'||q.includes(assistantNormalize(client.name)))){
     const sales=state.sales.filter(s=>s.client_id===client.id);
     const ids=new Set(sales.map(s=>s.id));
     const items=state.saleItems.filter(i=>ids.has(i.sale_id));
@@ -1169,15 +1228,39 @@ async function assistantSend(){
     }
   }
 
+  const q=assistantNormalize(text);
+  const service=assistantFindService(text);
+  const client=assistantFindClient(text);
+
+  if(service && (q.includes('cupo')||q.includes('libre')||q.includes('espacio')||q.includes('lugar')||q.includes('perfil'))){
+    assistantAdd('assistant',`
+      Creo que querés consultar <b>disponibilidad de ${esc(service.name)}</b>.<br><br>
+      <button class="btn primary small" onclick="assistantSuggestion('Mostrame cupos libres de ${assistantEscapeJsString(service.name)}');setTimeout(assistantSend,30)">Sí, mostrar disponibilidad</button>
+      <div class="tiny muted" style="margin-top:8px">Si no era eso, decime qué querés saber de ${esc(service.name)}.</div>
+    `);
+    return;
+  }
+
+  if(client){
+    assistantAdd('assistant',`
+      Encontré a <b>${esc(client.name)}</b>, pero no estoy seguro de qué querés hacer.<br><br>
+      <div class="filterChips">
+        <button class="btn secondary small" onclick="assistantSuggestion('Mostrame los servicios de ${assistantEscapeJsString(client.name)}')">Ver sus servicios</button>
+        <button class="btn secondary small" onclick="assistantSuggestion('Prepará renovación para ${assistantEscapeJsString(client.name)}')">Preparar renovación</button>
+      </div>
+    `);
+    return;
+  }
+
   assistantAdd('assistant',`
-    No pude convertir ese pedido en una acción segura todavía. Probá incluir más datos.<br><br>
-    <b>Ejemplos que entiendo bien:</b><br>
+    No pude identificar con suficiente seguridad qué querés hacer.<br><br>
+    <b>Probá escribirlo más parecido a una conversación:</b><br>
+    • ¿Hay cupos libres de Netflix?<br>
+    • Qué cuentas Netflix tienen lugar<br>
+    • Mostrame los servicios de Alejandro<br>
     • Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com<br>
-    • Mostrame cuentas Netflix con cupos libres<br>
-    • Prepará una venta para Lourdes de Netflix a $8500<br>
-    • ¿Qué clientes vencen esta semana?<br>
-    • Buscá costos o monedas raras<br><br>
-    <span class="tiny muted">Para modificaciones prefiero pedirte datos de más antes que tocar el registro equivocado.</span>
+    • Prepará una venta para Lourdes de Netflix a $8500<br><br>
+    <span class="tiny muted">Ahora entiendo singular/plural y varias formas de decir lo mismo; no hace falta usar una frase exacta.</span>
   `);
 }
 
