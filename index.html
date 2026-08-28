@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v41">
+<meta name="misakroos-version" content="v42">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -112,7 +112,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v41</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v42</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -4313,86 +4313,240 @@ function firstMatch(text, patterns){
   }
   return '';
 }
+
+function cleanExtractorText(text){
+  return String(text||'')
+    .replace(/\r/g,'')
+    // [correo](mailto:correo) o [correo](mailto\:correo)
+    .replace(/\[([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\]\(mailto\\?:[^\)]+\)/gi,'$1')
+    .replace(/mailto\\?:/gi,'')
+    .replace(/[ \t]+/g,' ')
+    .trim();
+}
+
+function extractorServiceAliases(){
+  const aliases=new Set([
+    'Netflix','Disney+','Disney Plus','Disney','Max','HBO Max',
+    'Prime Video','Amazon Prime','Paramount+','Spotify','YouTube Premium',
+    'Crunchyroll','Apple TV+','Vix','Alfa TV','Flujo TV'
+  ]);
+  state.services.forEach(s=>{if(s?.name)aliases.add(String(s.name).trim())});
+  return [...aliases].filter(Boolean).sort((a,b)=>b.length-a.length);
+}
+
+function canonicalExtractorService(name){
+  const raw=String(name||'').trim();
+  const norm=raw.toLowerCase().replace(/\s+/g,' ');
+  const direct=state.services.find(s=>String(s.name||'').trim().toLowerCase()===norm);
+  if(direct)return direct.name;
+
+  const compact=norm.replace(/\+/g,' plus');
+  const fuzzy=state.services.find(s=>{
+    const n=String(s.name||'').trim().toLowerCase().replace(/\+/g,' plus');
+    return n===compact || n.includes(compact) || compact.includes(n);
+  });
+  if(fuzzy)return fuzzy.name;
+
+  if(/^disney(?:\s*plus|\+)?$/i.test(raw))return state.services.find(s=>/disney/i.test(s.name))?.name||'Disney+';
+  if(/^hbo\s*max$/i.test(raw))return state.services.find(s=>/^max$/i.test(s.name))?.name||'Max';
+  return raw;
+}
+
 function parseSaleText(text){
-  const t=String(text||'').replace(/\r/g,'');
-  const lines=t.split('\n').map(x=>x.trim()).filter(Boolean);
+  const t=cleanExtractorText(text);
 
   const email=(t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||'';
-
   const phone=firstMatch(t,[
     /(?:tel[eé]fono|telefono|whatsapp|celular|n[uú]mero)\s*[:\-]?\s*([+\d][\d\s().-]{7,})/i
   ]);
-
   const client=firstMatch(t,[
-    /(?:cliente|nombre(?:\s+del\s+cliente)?)\s*[:\-]\s*([^\n]+)/i
+    /(?:cliente|nombre(?:\s+del\s+cliente)?)\s*[:\-]\s*([^|]+?)(?=\s+(?:tel[eé]fono|telefono|fecha|total|servicios?)\s*:|$)/i
   ]);
-
   const password=firstMatch(t,[
     /(?:contrase(?:ñ|n)a|password|clave|pass|pwd)\s*[:=\-]?\s*([^\n|]+)/i
   ]);
-
   const profile=firstMatch(t,[
-    /perfil(?:\s*(?:n[º°o.]|numero|número)?)?\s*[:=\-]?\s*([^\n|]+)/i
+    /perfil(?:\s*(?:n[º°o.]|numero|número)?)?\s*[:=\-]?\s*(.+?)(?=\s*[·|]\s*\d+\s*(?:dispositivos?|pantallas?)|\s+\d+\s*(?:dispositivos?|pantallas?)|\s+\d{4}-\d{2}-\d{2}|$)/i
   ]);
-
   const devices=firstMatch(t,[
     /(\d+)\s*(?:dispositivos?|pantallas?)/i,
     /(?:dispositivos?|pantallas?)\s*[:=\-]?\s*(\d+)/i
   ]);
 
   let service=firstMatch(t,[
-    /(?:servicio|plataforma|producto)\s*[:=\-]\s*([^\n]+)/i
+    /(?:servicio|plataforma|producto)\s*[:=\-]\s*([^|]+?)(?=\s+(?:cuenta|email|correo|perfil)\s*:|$)/i
   ]);
-
   if(!service){
-    const known=[
-      'Netflix','Disney+','Disney Plus','Prime Video','Amazon Prime',
-      'Max','HBO Max','Paramount+','Spotify','YouTube Premium',
-      'Crunchyroll','Apple TV+','Vix','Alfa TV','Flujo TV'
-    ];
     const lower=t.toLowerCase();
-    service=known.find(x=>lower.includes(x.toLowerCase()))||'';
+    service=extractorServiceAliases().find(x=>lower.includes(x.toLowerCase()))||'';
   }
 
   const cost=firstMatch(t,[
-    /(?:costo|cost|precio proveedor|price)\s*[:=\-]?\s*(?:usd|usdt|\$)?\s*([\d.,]+)/i
+    /(?:costo|cost|precio proveedor|price)\s*[:=\-]?\s*(?:usd|usdt|ars|uyu|clp|\$)?\s*([\d.,]+)/i
   ]);
 
   let costCurrency='';
-  if(/\busdt\b/i.test(t)) costCurrency='USDT';
+  const costCurrMatch=t.match(/(?:costo|cost|precio proveedor|price)\s*[:=\-]?\s*(?:\$)?\s*[\d.,]+\s*(ARS|UYU|CLP|USD|USDT)\b/i);
+  if(costCurrMatch)costCurrency=costCurrMatch[1].toUpperCase();
+  else if(/\busdt\b/i.test(t)) costCurrency='USDT';
   else if(/\busd\b/i.test(t)) costCurrency='USD';
   else if(/\buyu\b/i.test(t)) costCurrency='UYU';
   else if(/\bclp\b/i.test(t)) costCurrency='CLP';
   else if(/\bars\b/i.test(t)) costCurrency='ARS';
 
-  return {client,phone,service,email,profile,password,devices,cost,costCurrency};
-}
-function fillSaleFromExtractor(){
-  const parsed=parseSaleText(document.getElementById('saleExtractorText').value);
-  if(parsed.client) saleClientName.value=parsed.client;
-  if(parsed.phone) saleClientPhone.value=parsed.phone;
-  syncSaleClient();
+  const datePair=t.match(/(\d{4}-\d{2}-\d{2})\s*(?:→|->|–|—|\ba\b)\s*(\d{4}-\d{2}-\d{2})/);
+  const startDate=datePair?.[1]||'';
+  const endDate=datePair?.[2]||'';
 
-  let row=document.querySelector('.saleRow');
-  if(!row){addSaleRow();row=document.querySelector('.saleRow')}
-  if(parsed.service) row.querySelector('.siServiceName').value=parsed.service;
-  if(parsed.email) row.querySelector('.siAccountEmail').value=parsed.email;
-  if(parsed.profile) row.querySelector('.siProfile').value=parsed.profile;
+  let renewalType='';
+  let renewalDays='';
+  const renewal=firstMatch(t,[/renovaci[oó]n\s*[:\-]\s*(.+?)(?=\s+costo\s*:|$)/i]);
+  if(/mismo\s+d[ií]a/i.test(renewal))renewalType='monthly_same_day';
+  else if(/manual/i.test(renewal))renewalType='manual';
+  else {
+    const dm=String(renewal).match(/(\d+)\s*d[ií]as?/i);
+    if(dm){renewalType=Number(dm[1])===30?'days':'custom_days';renewalDays=dm[1]}
+  }
+
+  return {
+    client,phone,service:canonicalExtractorService(service),email,profile,password,devices,
+    cost,costCurrency,startDate,endDate,renewalType,renewalDays,rawText:t
+  };
+}
+
+function parseMultiSaleText(text){
+  const t=cleanExtractorText(text);
+  const result={
+    client:firstMatch(t,[/(?:^|\s)cliente\s*:\s*(.+?)(?=\s+tel[eé]fono\s*:|\s+fecha\s*:|\s+total\s+cobrado\s*:|\s+servicios?\s*:|$)/i]),
+    phone:firstMatch(t,[/tel[eé]fono\s*:\s*([+\d][\d\s().-]{7,})/i]),
+    soldAt:firstMatch(t,[/(?:^|\s)fecha\s*:\s*(\d{4}-\d{2}-\d{2})/i]),
+    total:firstMatch(t,[/total\s+cobrado\s*:\s*([\d.,]+)/i]),
+    currency:firstMatch(t,[/total\s+cobrado\s*:\s*[\d.,]+\s*(ARS|UYU|CLP|USD|USDT)\b/i]),
+    items:[]
+  };
+
+  const servPos=t.search(/\bservicios?\s*:/i);
+  const body=servPos>=0?t.slice(t.indexOf(':',servPos)+1).trim():t;
+
+  const aliases=extractorServiceAliases();
+  const alt=aliases.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s+')).join('|');
+  const re=new RegExp(`(?:^|\\s)(${alt})\\s+Cuenta\\s*:`, 'gi');
+  const matches=[];
+  let m;
+  while((m=re.exec(body))){
+    const lead=m[0].length-m[0].trimStart().length;
+    matches.push({index:m.index+lead,service:m[1]});
+    if(re.lastIndex===m.index)re.lastIndex++;
+  }
+
+  if(matches.length){
+    matches.forEach((x,i)=>{
+      const end=i+1<matches.length?matches[i+1].index:body.length;
+      const block=body.slice(x.index,end).trim();
+      const parsed=parseSaleText(block);
+      parsed.service=canonicalExtractorService(x.service);
+      parsed.rawText=block;
+      result.items.push(parsed);
+    });
+  }else{
+    const one=parseSaleText(body);
+    if(one.service||one.email||one.profile)result.items=[one];
+  }
+
+  return result;
+}
+
+function applyParsedDataToSaleRow(row,parsed){
+  if(!row||!parsed)return;
+
+  if(parsed.service)row.querySelector('.siServiceName').value=parsed.service;
+  syncSaleRow(row.querySelector('.siServiceName'));
+
+  if(parsed.email){
+    row.querySelector('.siAccountEmail').value=parsed.email;
+    syncSaleRow(row.querySelector('.siAccountEmail'));
+  }
+  if(parsed.profile)row.querySelector('.siProfile').value=parsed.profile;
   if(parsed.password){
     row.querySelector('.siPassword').value=parsed.password;
     row.querySelector('.siIncludePassword').checked=true;
   }
-  if(parsed.devices) row.querySelector('.siDevices').value=parsed.devices;
-  if(parsed.cost){
-    const costTarget=row.querySelector('.siProviderCost')||row.querySelector('.siExistingCost');
-    if(costTarget) costTarget.value=String(parsed.cost).replace(',','.');
-  }
+  if(parsed.devices)row.querySelector('.siDevices').value=parsed.devices;
+
+  // El costo del texto corresponde al costo/inversión de esta fila.
+  if(parsed.cost)row.querySelector('.siCost').value=String(parsed.cost).replace(/\./g,'').replace(',','.');
   if(parsed.costCurrency){
-    const currTarget=row.querySelector('.siProviderCurrency')||row.querySelector('.siExistingCurrency');
-    if(currTarget) currTarget.value=parsed.costCurrency;
+    const cc=row.querySelector('.siCostCurrency');
+    if(cc&&[...cc.options].some(o=>o.value===parsed.costCurrency))cc.value=parsed.costCurrency;
   }
-  syncSaleRow(row.querySelector('.siServiceName'));
-  if(parsed.email) syncSaleRow(row.querySelector('.siAccountEmail'));
+
+  if(parsed.startDate)row.querySelector('.siStart').value=parsed.startDate;
+  if(parsed.endDate)row.querySelector('.siEnd').value=parsed.endDate;
+
+  if(parsed.renewalType){
+    const rt=row.querySelector('.siRenewalType');
+    rt.value=parsed.renewalType;
+    if(parsed.renewalType==='custom_days'&&parsed.renewalDays){
+      row.querySelector('.siRenewalDays').value=parsed.renewalDays;
+    }
+    syncSaleRowRenewalFields(rt);
+    // Si el texto ya trajo vencimiento exacto, respetarlo después del cálculo automático.
+    if(parsed.endDate)row.querySelector('.siEnd').value=parsed.endDate;
+  }
+
+  const raw=row.querySelector('.siRowExtractorText');
+  if(raw&&parsed.rawText)raw.value=parsed.rawText;
+  updateSaleDistribution();
+}
+
+function fillSaleFromExtractor(){
+  const source=document.getElementById('saleExtractorText')?.value||'';
+  const parsed=parseMultiSaleText(source);
+
+  if(parsed.client)saleClientName.value=parsed.client.trim();
+  if(parsed.phone)saleClientPhone.value=parsed.phone.trim();
+  if(parsed.soldAt)saleDate.value=parsed.soldAt;
+  if(parsed.total)saleTotal.value=String(parsed.total).replace(/\./g,'').replace(',','.');
+  if(parsed.currency&&[...saleCurr.options].some(o=>o.value===parsed.currency.toUpperCase()))saleCurr.value=parsed.currency.toUpperCase();
+  syncSaleClient();
+
+  if(!parsed.items.length)return alert('No pude identificar servicios en el texto.');
+
+  // Reemplazar las filas vacías existentes para evitar duplicados al extraer.
+  const existing=[...document.querySelectorAll('.saleRow')];
+  const hasMeaningful=existing.some(r=>
+    r.querySelector('.siServiceName')?.value.trim()||
+    r.querySelector('.siAccountEmail')?.value.trim()||
+    r.querySelector('.siProfile')?.value.trim()
+  );
+  if(hasMeaningful&&!confirm(`Detecté ${parsed.items.length} servicio(s).\n\n¿Querés reemplazar las filas actuales por lo extraído?`))return;
+
+  saleBuilder.innerHTML='';
+  parsed.items.forEach(item=>{
+    addSaleRow();
+    const row=saleBuilder.lastElementChild;
+    applyParsedDataToSaleRow(row,item);
+  });
+
+  syncSaleDatesFromSaleDate();
+  // Volvemos a restaurar fechas exactas del texto porque syncSaleDates puede recalcularlas.
+  parsed.items.forEach((item,i)=>{
+    const row=document.querySelectorAll('.saleRow')[i];
+    if(item.startDate)row.querySelector('.siStart').value=item.startDate;
+    if(item.endDate)row.querySelector('.siEnd').value=item.endDate;
+  });
+  updateSaleDistribution();
+
+  alert(`Extractor listo ✅\n\nDetecté ${parsed.items.length} servicio(s) en la misma venta.`);
+}
+
+function extractSingleSaleRow(button){
+  const row=button.closest('.saleRow');
+  const text=row?.querySelector('.siRowExtractorText')?.value||'';
+  if(!text.trim())return alert('Pegá el texto de este servicio primero.');
+  const parsed=parseSaleText(text);
+  if(!parsed.service&&!parsed.email&&!parsed.profile)return alert('No pude reconocer datos de este servicio.');
+  applyParsedDataToSaleRow(row,parsed);
 }
 
 function inlineSupplierOptions(){
@@ -4403,13 +4557,17 @@ function inlineSupplierOptions(){
 function openSaleModal(){
   openModal(`<div class="row between"><div><div class="sectionTitle" style="margin-bottom:2px">Nueva venta</div><div class="tiny muted">Cargá la venta y MISAKROOS irá creando lo que falte.</div></div><button class="btn secondary small" onclick="closeModal()">✕</button></div>
   <div class="extractor">
-    <div class="row between"><div><b>Extractor de texto</b><div class="tiny muted">Pegá exactamente el mensaje que te mandó el proveedor. MISAKROOS intenta encontrar servicio, correo, clave, perfil y otros datos.</div></div><span class="badge info">opcional</span></div>
-    <textarea id="saleExtractorText" placeholder="Ejemplo:
-Disney+ Premium
-Email: cuenta@gmail.com
-Pass: 123456
-Perfil 2
-1 dispositivo"></textarea>
+    <div class="row between"><div><b>Extractor de texto</b><div class="tiny muted">Pegá una venta completa con uno o varios servicios. MISAKROOS separa cada servicio y crea una fila por perfil automáticamente.</div></div><span class="badge info">opcional</span></div>
+    <textarea id="saleExtractorText" placeholder="Podés pegar una venta completa:
+CONFIRMAR VENTA
+Cliente: Paula
+Teléfono: 549...
+Fecha: 2026-08-28
+Total cobrado: 22000 ARS
+SERVICIOS:
+Netflix Cuenta: cuenta1@... Perfil: Paula · 1 dispositivo(s) ...
+Netflix Cuenta: cuenta1@... Perfil: MiaYAgus · 1 dispositivo(s) ...
+Disney Cuenta: cuenta2@... Perfil: Pau · 1 dispositivo(s) ..."></textarea>
     <button class="btn secondary" style="width:100%;margin-top:8px" onclick="fillSaleFromExtractor()">Extraer y completar</button>
   </div>
   <hr>
@@ -4511,6 +4669,14 @@ function syncSaleClient(){
 function addSaleRow(){
   const d=document.createElement('div');d.className='card saleRow';
   d.innerHTML=`<button class="btn danger small removeRow" onclick="this.closest('.saleRow').remove();updateSaleDistribution()">Quitar</button>
+  <div class="extractor" style="margin:4px 0 12px">
+    <div class="row between">
+      <div><b>Extraer solo este servicio</b><div class="tiny muted">Pegá el texto correspondiente a esta cuenta/perfil.</div></div>
+      <span class="badge info">opcional</span>
+    </div>
+    <textarea class="siRowExtractorText" rows="3" placeholder="Ej: Netflix Cuenta: cuenta@gmail.com Perfil: Paula · 1 dispositivo 2026-08-28 → 2026-09-28 Renovación: Mismo día del próximo mes Costo: 3000 ARS"></textarea>
+    <button type="button" class="btn secondary small" style="width:100%;margin-top:7px" onclick="extractSingleSaleRow(this)">Extraer en esta fila</button>
+  </div>
   <label>Servicio</label>
   <input class="siServiceName" list="serviceNamesGlobal" placeholder="Ej: Disney+" oninput="syncSaleRow(this);refreshRowAccountSuggestionsFromService(this)">
   <datalist id="serviceNamesGlobal">${serviceNameOptions()}</datalist>
@@ -5180,7 +5346,7 @@ async function saveSale(){
         include_password:row.querySelector('.siIncludePassword').checked,
         contracted_devices:Number(row.querySelector('.siDevices').value||1),
         delivery_notes:row.querySelector('.siDeliveryNotes').value.trim()||null,
-        provider_raw_text:document.getElementById('saleExtractorText')?.value.trim()||null,
+        provider_raw_text:row.querySelector('.siRowExtractorText')?.value.trim()||document.getElementById('saleExtractorText')?.value.trim()||null,
         purchase_id:resolved.purchaseId||null
       }).select().single();
       if(ir.error)throw ir.error;
