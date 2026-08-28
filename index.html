@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v46">
+<meta name="misakroos-version" content="v47">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -185,7 +185,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v46</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v47</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -2382,6 +2382,8 @@ function openSaleDetail(saleId){
       ${otherCosts.length?`<div class="tiny muted" style="margin-top:4px">Otros costos sin convertir: ${otherCosts.map(([c,n])=>money(n,c)).join(' + ')}</div>`:''}
       <div class="row wrap" style="margin-top:10px">
         <button class="btn primary small" onclick="openEditSaleHeader('${sale.id}')">✏️ Editar datos de venta</button>
+        <button class="btn primary small" onclick="openQuickSaleTotal('${sale.id}')">💰 Modificar total</button>
+        <button class="btn ok small" onclick="openAddServiceToSale('${sale.id}')">+ Agregar servicio</button>
         <button class="btn ok small" onclick="openSaleDeliveryModal('${sale.id}')">📲 Enviar venta completa por WhatsApp</button>
         <button class="btn warn small" onclick="sendWholeSaleRenewalWhatsApp('${sale.id}')">💬 Enviar renovación general por WhatsApp</button>
         <button class="btn ok small" onclick="renewWholeSale('${sale.id}')">🔄 Renovar toda la venta</button>
@@ -2391,6 +2393,224 @@ function openSaleDetail(saleId){
     <div class="sectionTitle">Servicios incluidos</div>
     ${itemsHtml}
   `);
+}
+
+
+function openQuickSaleTotal(saleId){
+  const sale=saleBy(saleId);
+  if(!sale)return;
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">Modificar total de la venta</div>
+        <div class="tiny muted">No modifica los servicios ni vencimientos.</div>
+      </div>
+      <button class="btn secondary small" onclick="openSaleDetail('${saleId}')">✕</button>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label>Total cobrado</label>
+        <input id="quickSaleTotal" type="number" step="0.01" value="${Number(sale.total_amount||0)}">
+      </div>
+      <div>
+        <label>Moneda</label>
+        <select id="quickSaleCurrency">
+          ${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveQuickSaleTotal('${saleId}')">
+      Guardar nuevo total
+    </button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openSaleDetail('${saleId}')">
+      Cancelar
+    </button>
+  `);
+}
+
+async function saveQuickSaleTotal(saleId){
+  try{
+    if(!fxUpdatedAt)await refreshFxRates(true);
+    const total=Number(document.getElementById('quickSaleTotal')?.value||0);
+    const currency=document.getElementById('quickSaleCurrency')?.value||'ARS';
+    const fx=snapshotFxToARS(total,currency);
+
+    const r=await sb.from('sales').update({
+      total_amount:total,
+      currency,
+      fx_rate_to_ars:fx.rate,
+      total_amount_ars:fx.amountArs,
+      fx_rate_source:fx.source
+    }).eq('id',saleId);
+
+    if(r.error)throw r.error;
+
+    // Redistribuir el importe interno entre los servicios existentes.
+    const items=saleItemsFor(saleId);
+    if(items.length){
+      const each=total/items.length;
+      const up=await sb.from('sale_items').update({allocated_revenue:each}).in('id',items.map(i=>i.id));
+      if(up.error)console.warn(up.error);
+    }
+
+    await refreshAll();
+    openSaleDetail(saleId);
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+  }
+}
+
+function openAddServiceToSale(saleId){
+  const sale=saleBy(saleId);
+  if(!sale)return;
+  const client=saleClient(sale);
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin-bottom:2px">Agregar servicio a la venta</div>
+        <div class="tiny muted">${esc(client?.name||'Cliente')} · venta del ${esc(sale.sold_at||'-')}</div>
+      </div>
+      <button class="btn secondary small" onclick="openSaleDetail('${saleId}')">✕</button>
+    </div>
+
+    <div class="card">
+      <div class="tiny muted">Total actual de la venta</div>
+      <div style="font-size:1.2rem;font-weight:800">${money(sale.total_amount,sale.currency||'ARS')}</div>
+
+      <div class="grid2" style="margin-top:8px">
+        <div>
+          <label>Nuevo total cobrado</label>
+          <input id="saleTotal" type="number" step="0.01" value="${Number(sale.total_amount||0)}" oninput="updateSaleDistribution()">
+        </div>
+        <div>
+          <label>Moneda</label>
+          <select id="saleCurr" onchange="updateSaleDistribution()">
+            ${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="tiny muted">Si el servicio aumenta el precio de la venta, cambiá el total acá antes de guardar.</div>
+    </div>
+
+    <input id="saleDate" type="hidden" value="${esc(sale.sold_at||today())}">
+    <input id="saleClientId" type="hidden" value="${esc(sale.client_id||'')}">
+    <input id="saleClientName" type="hidden" value="${esc(client?.name||'')}">
+    <input id="saleClientPhone" type="hidden" value="${esc(client?.phone_raw||client?.phone_e164||'')}">
+    <textarea id="saleExtractorText" class="hidden"></textarea>
+
+    <div class="sectionTitle">Nuevo servicio</div>
+    <div id="saleBuilder"></div>
+    <div id="saleDist" class="hint"></div>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveAddedServiceToSale('${saleId}')">
+      + Guardar servicio en esta venta
+    </button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openSaleDetail('${saleId}')">
+      Cancelar
+    </button>
+  `);
+
+  addSaleRow();
+
+  // En este formulario siempre debe quedar exactamente una fila.
+  const remove=document.querySelector('#saleBuilder .removeRow');
+  if(remove)remove.classList.add('hidden');
+}
+
+async function saveAddedServiceToSale(saleId){
+  const sale=saleBy(saleId);
+  if(!sale)return alert('No se encontró la venta.');
+
+  const row=document.querySelector('#saleBuilder .saleRow');
+  if(!row)return alert('No hay un servicio para agregar.');
+
+  const serviceName=row.querySelector('.siServiceName')?.value.trim();
+  if(!serviceName)return alert('Elegí el servicio.');
+
+  try{
+    if(!fxUpdatedAt)await refreshFxRates(true);
+
+    const client=saleClient(sale);
+    const service=await resolveServiceForRow(row);
+    const reserved=new Set();
+    const resolved=await resolveAccountAndSlot(row,service,reserved);
+
+    const newTotal=Number(document.getElementById('saleTotal')?.value||sale.total_amount||0);
+    const newCurrency=document.getElementById('saleCurr')?.value||sale.currency||'ARS';
+    const saleFx=snapshotFxToARS(newTotal,newCurrency);
+
+    // Primero actualizamos el total general.
+    const saleUpdate=await sb.from('sales').update({
+      total_amount:newTotal,
+      currency:newCurrency,
+      fx_rate_to_ars:saleFx.rate,
+      total_amount_ars:saleFx.amountArs,
+      fx_rate_source:saleFx.source
+    }).eq('id',saleId);
+    if(saleUpdate.error)throw saleUpdate.error;
+
+    const cost=row.querySelector('.siCost')?.value;
+    const costCurrency=row.querySelector('.siCostCurrency')?.value||newCurrency;
+    const costFx=snapshotFxToARS(cost?Number(cost):0,costCurrency);
+
+    const currentCount=saleItemsFor(saleId).length;
+    const newCount=currentCount+1;
+
+    const ir=await sb.from('sale_items').insert({
+      sale_id:saleId,
+      service_id:service.id,
+      allocated_revenue:newCount?newTotal/newCount:newTotal,
+      direct_cost:cost?Number(cost):null,
+      direct_cost_currency:costCurrency,
+      direct_cost_fx_rate_to_ars:cost?costFx.rate:null,
+      direct_cost_ars:cost?costFx.amountArs:null,
+      renewal_type_override:(row.querySelector('.siRenewalType')?.value==='custom_days'?'days':row.querySelector('.siRenewalType')?.value)||null,
+      renewal_days_override:['days','custom_days'].includes(row.querySelector('.siRenewalType')?.value)
+        ?(row.querySelector('.siRenewalType')?.value==='days'?30:Number(row.querySelector('.siRenewalDays')?.value||30))
+        :null,
+      start_date:row.querySelector('.siStart')?.value||sale.sold_at||today(),
+      end_date:row.querySelector('.siEnd')?.value||null,
+      include_password:row.querySelector('.siIncludePassword')?.checked!==false,
+      contracted_devices:Number(row.querySelector('.siDevices')?.value||1),
+      delivery_notes:row.querySelector('.siDeliveryNotes')?.value.trim()||null,
+      provider_raw_text:row.querySelector('.siRowExtractorText')?.value.trim()||null,
+      purchase_id:resolved.purchaseId||null,
+      workflow_status:'active'
+    }).select().single();
+
+    if(ir.error)throw ir.error;
+
+    if(resolved.slotId){
+      const ar=await sb.from('slot_assignments').insert({
+        account_slot_id:resolved.slotId,
+        sale_item_id:ir.data.id,
+        client_id:sale.client_id,
+        profile_name:row.querySelector('.siProfile')?.value.trim()||null
+      });
+      if(ar.error)throw ar.error;
+    }
+
+    // Redistribuir el total interno entre TODOS los servicios de la venta.
+    const freshItems=await sb.from('sale_items').select('id').eq('sale_id',saleId);
+    if(!freshItems.error&&freshItems.data?.length){
+      const each=newTotal/freshItems.data.length;
+      const up=await sb.from('sale_items').update({allocated_revenue:each}).in('id',freshItems.data.map(x=>x.id));
+      if(up.error)console.warn(up.error);
+    }
+
+    await refreshAll();
+    alert(`Servicio agregado ✅\n\nAhora la venta tiene ${newCount} servicio(s).`);
+    openSaleDetail(saleId);
+  }catch(err){
+    console.error(err);
+    alert(err.message||String(err));
+    await refreshAll();
+  }
 }
 
 function openEditSaleHeader(saleId){
@@ -5692,11 +5912,16 @@ async function saveEditedSaleItem(itemId){
     if(!fxUpdatedAt)await refreshFxRates(true);
     const editCostValue=editCost.value===''?null:Number(editCost.value);
     const editCostFx=snapshotFxToARS(editCostValue||0,editCostCurrency.value);
+    const editedTotal=Number(editSaleTotal.value||0);
+    const editedSaleFx=snapshotFxToARS(editedTotal,editSaleCurr.value);
     const saleUpdate=await sb.from('sales').update({
       client_id:editSaleClient.value,
-      total_amount:Number(editSaleTotal.value||0),
+      total_amount:editedTotal,
       currency:editSaleCurr.value,
-      sold_at:editSoldAt.value||today()
+      sold_at:editSoldAt.value||today(),
+      fx_rate_to_ars:editedSaleFx.rate,
+      total_amount_ars:editedSaleFx.amountArs,
+      fx_rate_source:editedSaleFx.source
     }).eq('id',sale.id);
     if(saleUpdate.error)throw saleUpdate.error;
 
