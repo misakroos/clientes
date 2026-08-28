@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v50">
+<meta name="misakroos-version" content="v51">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
-*{box-sizing:border-box}body{margin:0;background:#07111f;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.app{max-width:520px;margin:auto;min-height:100vh;background:#081522}.topbar{position:sticky;top:0;z-index:10;background:#07111fee;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.main{padding:14px 14px 90px}.card,.item{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.metric b{display:block;font-size:22px}.muted{color:var(--muted)}.tiny{font-size:12px}.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.hidden{display:none!important}.sectionTitle{font-weight:800;font-size:18px;margin:4px 0 12px}.btn{border:0;border-radius:11px;padding:10px 12px;font-weight:700}.primary{background:var(--accent);color:#fff}.secondary{background:var(--panel2);color:#fff;border:1px solid var(--line)}.warn{background:#33250d;color:#ffd47a;border:1px solid #6a4b13}.danger{background:#321117;color:#ff9ba4;border:1px solid #6b222b}.ok{background:#0d2d1d;color:#83efac;border:1px solid #216e44}.small{padding:7px 9px;font-size:12px}input,select,textarea{width:100%;background:#071421;color:#fff;border:1px solid var(--line);border-radius:11px;padding:10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 5px}.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(6,1fr);background:#07111ff5;border-top:1px solid var(--line);padding:7px}.navbtn{background:none;border:0;color:var(--muted);font-size:11px;padding:7px}.navbtn.active{color:#fff}.navbtn b{display:block;font-size:18px}.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:30}.sheet{width:min(520px,100%);max-height:90vh;overflow:auto;background:#091725;border-radius:20px 20px 0 0;border:1px solid var(--line);padding:16px}.auth{min-height:100vh;display:grid;place-items:center;padding:22px}.authbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}.badge.info{color:#9fc4ff}.badge.ok{color:#7af0a9}.badge.warn{color:#ffd883}.badge.danger{color:#ff9ca5}.badge{padding:4px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+*{box-sizing:border-box}body{margin:0;background:#07111f;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}.app{max-width:520px;margin:auto;min-height:100vh;background:#081522}.topbar{position:sticky;top:0;z-index:10;background:#07111fee;padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.main{padding:14px 14px 90px}.card,.item{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:14px}.metric b{display:block;font-size:22px}.muted{color:var(--muted)}.tiny{font-size:12px}.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.wrap{flex-wrap:wrap}.hidden{display:none!important}.sectionTitle{font-weight:800;font-size:18px;margin:4px 0 12px}.btn{border:0;border-radius:11px;padding:10px 12px;font-weight:700}.primary{background:var(--accent);color:#fff}.secondary{background:var(--panel2);color:#fff;border:1px solid var(--line)}.warn{background:#33250d;color:#ffd47a;border:1px solid #6a4b13}.danger{background:#321117;color:#ff9ba4;border:1px solid #6b222b}.ok{background:#0d2d1d;color:#83efac;border:1px solid #216e44}.small{padding:7px 9px;font-size:12px}input,select,textarea{width:100%;background:#071421;color:#fff;border:1px solid var(--line);border-radius:11px;padding:10px}label{display:block;color:var(--muted);font-size:12px;margin:8px 0 5px}.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(5,1fr);background:#07111ff5;border-top:1px solid var(--line);padding:7px}.navbtn{background:none;border:0;color:var(--muted);font-size:11px;padding:7px}.navbtn.active{color:#fff}.navbtn b{display:block;font-size:18px}.modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:30}.sheet{width:min(520px,100%);max-height:90vh;overflow:auto;background:#091725;border-radius:20px 20px 0 0;border:1px solid var(--line);padding:16px}.auth{min-height:100vh;display:grid;place-items:center;padding:22px}.authbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}.badge.info{color:#9fc4ff}.badge.ok{color:#7af0a9}.badge.warn{color:#ffd883}.badge.danger{color:#ff9ca5}.badge{padding:4px 7px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
 .hint{margin-top:7px;padding:9px 10px;border-radius:11px;background:#0b2034;border:1px solid #244766;color:#b9cbe0;font-size:12px}
 .inlineNew{margin-top:8px;padding:10px;border:1px dashed #34577a;border-radius:12px;background:#081b2c}
 .saleRow{position:relative}.removeRow{position:absolute;right:10px;top:10px}
@@ -57,58 +57,6 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 
 
 /* v41 · vuelve a la estética v39; solo fija el compositor del Asistente */
-#screen-assistant{padding-bottom:430px}
-#assistantChat{min-height:260px;padding-bottom:16px}
-
-#assistantComposerFixed{
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:70px;
-  width:min(520px,100%);
-  z-index:18;
-  padding:0 10px;
-  box-sizing:border-box;
-}
-#assistantComposerFixed .assistantDock{
-  background:#081827;
-  border:1px solid var(--line);
-  border-radius:18px 18px 0 0;
-  padding:10px;
-  box-shadow:0 -12px 28px rgba(0,0,0,.28);
-  max-height:58vh;
-  overflow-y:auto;
-}
-#assistantComposerFixed #assistantSuggestions{
-  margin-bottom:8px;
-  display:flex;
-  gap:7px;
-  overflow-x:auto;
-  padding-bottom:4px;
-}
-#assistantComposerFixed #assistantSuggestions .btn{
-  flex:0 0 auto;
-  white-space:nowrap;
-}
-#assistantComposerFixed .assistantBuilder{
-  margin:0 0 8px;
-  padding:10px;
-}
-#assistantComposerFixed textarea{
-  min-height:82px;
-  max-height:135px;
-}
-#assistantComposerFixed .assistantSendRow{
-  display:flex;
-  gap:8px;
-  margin-top:8px;
-}
-#assistantComposerFixed .assistantSendRow .primary{flex:1}
-@media(min-width:700px){
-  #assistantComposerFixed{width:min(620px,calc(100% - 20px))}
-}
-
-
 .saleReviewModal{
   max-height:88vh;
   display:flex;
@@ -198,10 +146,10 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v50</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v51</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
-  <button type="button" class="btn secondary small" onclick="goDashboard();return false;" title="Ir al dashboard">📊 Dashboard</button><button class="btn secondary small" onclick="logout()">Salir</button>
+  <button class="btn secondary small" onclick="logout()">Salir</button>
 </div></div><div class="main">
 
 <div class="card" style="margin:8px 0 12px">
@@ -381,50 +329,15 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   <div class="sectionTitle">Ventas del período</div>
   <div id="financeSalesList"></div>
 </section>
-<section id="screen-assistant" class="hidden">
-  <div class="row between">
-    <div>
-      <div class="sectionTitle" style="margin-bottom:2px">💬 Asistente MISAKROOS</div>
-      <div class="tiny muted">Consultá datos o prepará cambios escribiendo como hablás normalmente.</div>
-    </div>
-    <span class="badge info">beta</span>
-  </div>
-
-  <div class="card">
-    <b>Cómo pedirme las cosas</b>
-    <div class="tiny muted" style="margin-top:6px">
-      Cuanto más específico seas, mejor. Para movimientos indicá cliente + cuenta origen + cuenta destino.
-      Para ventas indicá cliente + servicio + precio y, si lo sabés, correo/perfil/fecha.
-    </div>
-  </div>
-
-  <div id="assistantChat" style="min-height:260px"></div>
-
-  <div id="assistantComposerFixed">
-    <div class="assistantDock">
-      <div id="assistantSuggestions" class="filterChips"></div>
-
-      <div class="assistantBuilder" id="assistantBuilder">
-        <div class="assistantBuilderTitle">✨ Armá tu consulta</div>
-        <div class="assistantBuilderHint">Tocá opciones y voy escribiendo el mensaje por vos. También podés editarlo antes de enviarlo.</div>
-        <div id="assistantBuilderPath" class="assistantBuilderPath"></div>
-        <div id="assistantBuilderSteps"></div>
-        <div class="assistantBuilderActions">
-          <button class="btn secondary small" type="button" onclick="assistantBuilderReset()">↺ Empezar de nuevo</button>
-          <button class="btn primary small" type="button" onclick="assistantBuilderSend()">Enviar consulta armada</button>
-        </div>
-      </div>
-
-      <textarea id="assistantInput" rows="3" placeholder="Ej.: Mové a Alejandro de cuentaA@gmail.com a cuentaB@gmail.com"></textarea>
-      <div class="assistantSendRow">
-        <button class="btn primary" onclick="assistantSend()">Enviar</button>
-        <button class="btn secondary small" onclick="assistantClear()">Limpiar</button>
-      </div>
-    </div>
-  </div>
-</section>
 <section id="screen-more" class="hidden">
   <div class="sectionTitle">Gestión</div>
+
+  <div class="card">
+    <button type="button" class="btn primary" style="width:100%;font-size:15px" onclick="goDashboardFromMore()">
+      📊 Ir al Dashboard
+    </button>
+    <div class="tiny muted" style="margin-top:7px">Volvé al resumen principal de clientes, pendientes, cupos y vencimientos.</div>
+  </div>
 
   <div class="card">
     <div class="row between">
@@ -498,7 +411,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </div>
 <div id="activityLogList"></div>
 </section>
-</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;accountCapacityFilter='all';accountServiceFilter='';showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="assistant" onclick="showScreen('assistant',this);renderAssistant()"><b>💬</b>Asistente</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
+</div><nav class="bottomnav"><button class="navbtn active" data-screen="home" onclick="showScreen('home',this)"><b>⌂</b>Inicio</button><button class="navbtn" data-screen="clients" onclick="showScreen('clients',this)"><b>👥</b>Clientes</button><button class="navbtn" data-screen="sales" onclick="salesStatusFilter='all';showScreen('sales',this)"><b>💳</b>Ventas</button><button class="navbtn" data-screen="accounts" onclick="accountsOnlyFree=false;accountCapacityFilter='all';accountServiceFilter='';showScreen('accounts',this)"><b>📺</b>Cuentas</button><button class="navbtn" data-screen="more" onclick="showScreen('more',this)"><b>☰</b>Más</button></nav></div>
 <div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()"><div id="sheet" class="sheet"></div></div>
 <script>
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
@@ -521,6 +434,29 @@ function setAccountCapacityFilter(kind){
 }
 
 
+
+
+function goDashboardFromMore(){
+  const home=document.getElementById('screen-home');
+  if(!home)return alert('No se encontró la pantalla Dashboard.');
+
+  document.querySelectorAll('[id^="screen-"]').forEach(x=>x.classList.add('hidden'));
+  home.classList.remove('hidden');
+
+  document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));
+  const homeBtn=document.querySelector('.navbtn[data-screen="home"]');
+  if(homeBtn)homeBtn.classList.add('active');
+
+  renderAll();
+
+  requestAnimationFrame(()=>{
+    window.scrollTo(0,0);
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
+    const main=document.querySelector('.main');
+    if(main)main.scrollTop=0;
+  });
+}
 
 function goDashboard(){
   try{
