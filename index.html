@@ -203,11 +203,140 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   .dashBar{max-width:32px}
 }
 
+
+/* v53 — Dashboard responsive/compacto */
+#screen-home{max-width:100%;overflow-x:hidden}
+#screen-home .card{min-width:0}
+#screen-home .grid2{min-width:0}
+.dashHero{padding:14px}
+.dashHero .sectionTitle{font-size:1.12rem!important}
+
+.dashMetric{
+  min-height:84px!important;
+  padding:12px!important;
+  gap:4px;
+}
+.dashMetric b{font-size:1.42rem!important}
+.dashMetric .tiny{font-size:11px!important}
+
+.dashMiniCard{padding:12px!important;min-height:88px}
+.dashBigNumber{
+  font-size:1.22rem!important;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+
+.dashChart{
+  height:178px!important;
+  gap:5px!important;
+  overflow:hidden;
+  padding:8px 0 0!important;
+}
+.dashBarWrap{gap:4px!important;min-width:0}
+.dashBarValue{
+  font-size:9px!important;
+  white-space:nowrap;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.dashBar{max-width:28px!important}
+.dashBarLabel{font-size:10px!important}
+.dashBarWrap .tiny{font-size:9px!important;white-space:nowrap}
+
+.dashSplit{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+.dashTinyCard{
+  min-width:0;
+  padding:9px!important;
+}
+.dashIndicatorTitle{font-size:10px!important}
+.dashIndicatorValue{
+  font-size:.96rem!important;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+.dashTinyCard .tiny{font-size:9px!important}
+
+#dashTops{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+.dashChip{
+  display:block!important;
+  min-width:0;
+  width:auto;
+  margin:0!important;
+  padding:9px!important;
+  border-radius:12px!important;
+  font-size:10px!important;
+  line-height:1.25;
+  overflow-wrap:anywhere;
+}
+.dashChip b{display:block;margin-top:3px;font-size:12px}
+
+.dashRank{
+  min-width:0;
+  padding:8px!important;
+  gap:7px!important;
+}
+.dashRankNum{
+  width:24px!important;height:24px!important;
+  font-size:11px!important;
+}
+.dashRankTitle{
+  font-size:12px!important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.dashRankMeta{font-size:9px!important}
+.dashRank>div:last-child{
+  max-width:42%;
+  font-size:11px!important;
+  overflow-wrap:anywhere;
+}
+.dashRank>div:last-child .tiny{font-size:9px!important}
+
+@media(max-width:700px){
+  #screen-home>.grid2,
+  #screen-home>.card+.grid2{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+
+  /* Las secciones grandes del dashboard pasan a una sola columna */
+  #screen-home .grid2:has(#dashIndicators),
+  #screen-home .grid2:has(#dashTopClients){
+    grid-template-columns:1fr!important;
+  }
+
+  #screen-home .sectionTitle{font-size:1rem}
+  #screen-home .card{padding:11px}
+}
+
+@media(max-width:420px){
+  .dashMetric{min-height:78px!important;padding:10px!important}
+  .dashMetric b{font-size:1.28rem!important}
+  .dashBigNumber{font-size:1.08rem!important}
+
+  .dashChart{height:165px!important}
+  .dashBar{max-width:24px!important}
+  .dashBarValue{font-size:8px!important}
+  .dashBarWrap .tiny{display:none}
+
+  #dashTops{grid-template-columns:1fr 1fr!important}
+  .dashChip{font-size:9px!important;padding:8px!important}
+  .dashChip b{font-size:11px!important}
+}
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v52</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v53</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -226,7 +355,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
         <div class="sectionTitle" style="margin:4px 0 6px;font-size:1.25rem">📊 Dashboard</div>
         <div class="tiny" style="opacity:.92">Resumen visual de clientes, ventas, servicios y rendimiento del negocio.</div>
       </div>
-      <span class="badge ok">v52</span>
+      <span class="badge ok">v53</span>
     </div>
     <div class="tiny" style="margin-top:10px;opacity:.9">Tip: tocá las tarjetas y seguí navegando al detalle.</div>
   </div>
@@ -247,7 +376,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
       <b id="mSlots">0</b>
       <span class="tiny">Disponibles para vender</span>
     </button>
-    <button class="metric metricBtn dashMetric dashRed" onclick="goSalesPreset('expiring')">
+    <button class="metric metricBtn dashMetric dashRed" onclick="goSalesPreset('expiring7')">
       <div class="tiny muted">Vencen ≤ 7 días</div>
       <b id="mExpiring">0</b>
       <span class="tiny">Atención inmediata</span>
@@ -1785,6 +1914,12 @@ function dashboardMoneyARS(v){
   const n=Number(v||0);
   return money(n,'ARS');
 }
+function dashboardCompactNumber(v){
+  const n=Number(v||0);
+  if(Math.abs(n)>=1000000)return '$ '+(n/1000000).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';
+  if(Math.abs(n)>=1000)return '$ '+(n/1000).toLocaleString('es-AR',{maximumFractionDigits:1})+'k';
+  return '$ '+Math.round(n).toLocaleString('es-AR');
+}
 function renderMiniRanks(targetId, rows, emptyText){
   const el=document.getElementById(targetId);
   if(!el)return;
@@ -1813,10 +1948,10 @@ function renderSalesBars(targetId, rows){
   el.innerHTML=`<div class="dashChart">` + rows.map(r=>{
     const h=Math.max(8, Math.round((Number(r.amount||0)/max)*140));
     return `<div class="dashBarWrap">
-      <div class="dashBarValue">${dashboardMoneyARS(r.amount).replace('ARS','').trim()}</div>
+      <div class="dashBarValue">${dashboardCompactNumber(r.amount)}</div>
       <div class="dashBar" style="height:${h}px"></div>
       <div class="dashBarLabel">${esc(r.label)}</div>
-      <div class="tiny muted">${r.count} venta(s)</div>
+      <div class="tiny muted">${r.count}</div>
     </div>`;
   }).join('') + `</div>`;
 }
