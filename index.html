@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v44">
+<meta name="misakroos-version" content="v45">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -142,11 +142,25 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   flex:1;
 }
 
+
+.saleReviewOverlay{
+  position:absolute;
+  inset:0;
+  z-index:40;
+  background:#091725;
+  border-radius:20px 20px 0 0;
+  display:flex;
+  flex-direction:column;
+  padding:16px;
+  box-sizing:border-box;
+}
+#sheet{position:relative}
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v44</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v45</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -5330,6 +5344,10 @@ function duplicateSaleWarnings(){
   return [...new Set(warnings)];
 }
 
+function closeSaleReview(){
+  document.getElementById('saleReviewOverlay')?.remove();
+}
+
 function reviewSaleBeforeSave(){
   const rows=[...document.querySelectorAll('.saleRow')];
   if(!rows.length)return alert('Agregá al menos un servicio.');
@@ -5371,14 +5389,19 @@ function reviewSaleBeforeSave(){
       <div class="tiny" style="margin-top:6px">${warnings.map(w=>`• ${esc(w)}`).join('<br>')}</div>
     </div>`:'';
 
-  openModal(`
+  closeSaleReview();
+
+  const overlay=document.createElement('div');
+  overlay.id='saleReviewOverlay';
+  overlay.className='saleReviewOverlay';
+  overlay.innerHTML=`
     <div class="saleReviewModal">
       <div class="row between">
         <div>
           <div class="sectionTitle" style="margin-bottom:2px">Confirmar venta</div>
           <div class="tiny muted">Revisá todo antes de guardar.</div>
         </div>
-        <button class="btn secondary small" onclick="closeModal()">✕</button>
+        <button class="btn secondary small" onclick="closeSaleReview()">✕</button>
       </div>
 
       <div class="saleReviewScroll">
@@ -5399,56 +5422,24 @@ function reviewSaleBeforeSave(){
 
       <div class="saleReviewFooter">
         <div class="row">
-          <button class="btn secondary" onclick="closeModal()">← Volver a editar</button>
-          <button class="btn primary" onclick="confirmSaleFromPreview()">✓ Guardar venta</button>
+          <button class="btn secondary" onclick="closeSaleReview()">← Volver a editar</button>
+          <button class="btn primary" id="confirmSaleBtn" onclick="confirmSaleFromPreview()">✓ Guardar venta</button>
         </div>
       </div>
     </div>
-  `);
+  `;
+
+  document.getElementById('sheet').appendChild(overlay);
 }
 
-function confirmSaleFromPreview(){
-  closeModal();
-  setTimeout(()=>saveSale(),30);
-}
-
-async function insertAssignmentWithRetry({resolved,row,itemId,client,reservedSlotIds,service}){
-  if(!resolved.slotId)return null;
-
-  let slotId=resolved.slotId;
-  for(let attempt=0;attempt<2;attempt++){
-    const ar=await sb.from('slot_assignments').insert({
-      account_slot_id:slotId,
-      sale_item_id:itemId,
-      client_id:client.id,
-      profile_name:row.querySelector('.siProfile').value.trim()||null
-    }).select().single();
-
-    if(!ar.error){
-      reservedSlotIds.add(slotId);
-      state.assignments.push(ar.data);
-      return ar.data;
-    }
-
-    const msg=String(ar.error.message||'');
-    const duplicateSlot=msg.includes('one_active_assignment_per_slot')||msg.includes('duplicate key value');
-
-    if(!duplicateSlot||attempt===1)throw ar.error;
-
-    // Refrescar solo asignaciones antes de buscar otro cupo.
-    const fresh=await sb.from('slot_assignments').select('*').is('released_at',null);
-    if(fresh.error)throw fresh.error;
-
-    // Mantener históricos locales, sustituyendo la parte activa por la recién consultada.
-    state.assignments=[
-      ...state.assignments.filter(a=>a.released_at),
-      ...(fresh.data||[])
-    ];
-
-    const next=pickAvailableSlot(resolved.account.id,'',reservedSlotIds);
-    if(!next)throw new Error(`Mientras guardábamos la venta se ocupó el cupo de ${resolved.account.login_email}. Ya no queda otro libre.`);
-    slotId=next;
+async function confirmSaleFromPreview(){
+  const btn=document.getElementById('confirmSaleBtn');
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='Guardando...';
   }
+  closeSaleReview();
+  await saveSale();
 }
 
 async function saveSale(){
@@ -5522,7 +5513,7 @@ async function saveSale(){
     console.error(err);
     alert(
       (err.message||String(err))+
-      `\n\nNo es un problema de cantidad de cupos necesariamente. Si el error ocurrió después de guardar parte de la venta, revisá Ventas antes de volver a intentarlo para no duplicarla.`
+      `\n\nLa venta pudo quedar parcialmente creada si el error ocurrió durante el guardado. Revisá Ventas antes de volver a intentarlo.`
     );
     await refreshAll();
   }
