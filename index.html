@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v45">
+<meta name="misakroos-version" content="v46">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -144,23 +144,48 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 
 
 .saleReviewOverlay{
-  position:absolute;
+  position:fixed;
   inset:0;
-  z-index:40;
-  background:#091725;
-  border-radius:20px 20px 0 0;
+  z-index:100;
+  background:rgba(0,0,0,.78);
   display:flex;
-  flex-direction:column;
-  padding:16px;
+  align-items:flex-end;
+  justify-content:center;
+  padding:0;
   box-sizing:border-box;
 }
-#sheet{position:relative}
+.saleReviewOverlayPanel{
+  width:min(520px,100%);
+  height:min(92vh,850px);
+  background:#091725;
+  border:1px solid var(--line);
+  border-radius:22px 22px 0 0;
+  padding:16px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.saleReviewOverlayPanel .saleReviewModal{
+  min-height:0;
+  flex:1;
+}
+@media(min-width:700px){
+  .saleReviewOverlay{
+    align-items:center;
+    padding:18px;
+  }
+  .saleReviewOverlayPanel{
+    border-radius:22px;
+    height:min(88vh,850px);
+  }
+}
 
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v45</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v46</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -5345,7 +5370,8 @@ function duplicateSaleWarnings(){
 }
 
 function closeSaleReview(){
-  document.getElementById('saleReviewOverlay')?.remove();
+  const overlay=document.getElementById('saleReviewOverlay');
+  if(overlay)overlay.remove();
 }
 
 function reviewSaleBeforeSave(){
@@ -5394,7 +5420,11 @@ function reviewSaleBeforeSave(){
   const overlay=document.createElement('div');
   overlay.id='saleReviewOverlay';
   overlay.className='saleReviewOverlay';
+  overlay.addEventListener('click',e=>{
+    if(e.target===overlay)closeSaleReview();
+  });
   overlay.innerHTML=`
+    <div class="saleReviewOverlayPanel">
     <div class="saleReviewModal">
       <div class="row between">
         <div>
@@ -5427,9 +5457,10 @@ function reviewSaleBeforeSave(){
         </div>
       </div>
     </div>
+    </div>
   `;
 
-  document.getElementById('sheet').appendChild(overlay);
+  document.body.appendChild(overlay);
 }
 
 async function confirmSaleFromPreview(){
