@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v49">
+<meta name="misakroos-version" content="v50">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -198,10 +198,10 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v49</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v50</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
-  <button class="btn secondary small" onclick="goDashboard()" title="Ir al dashboard">📊 Dashboard</button><button class="btn secondary small" onclick="logout()">Salir</button>
+  <button type="button" class="btn secondary small" onclick="goDashboard();return false;" title="Ir al dashboard">📊 Dashboard</button><button class="btn secondary small" onclick="logout()">Salir</button>
 </div></div><div class="main">
 
 <div class="card" style="margin:8px 0 12px">
@@ -523,10 +523,49 @@ function setAccountCapacityFilter(kind){
 
 
 function goDashboard(){
-  const btn=document.querySelector('.navbtn[data-screen="home"]');
-  showScreen('home',btn||undefined);
-  renderHome();
-  window.scrollTo({top:0,behavior:'smooth'});
+  try{
+    // Cerrar cualquier capa/modal que pueda estar bloqueando la navegación.
+    closeSaleReview?.();
+
+    const modal=document.getElementById('modal');
+    if(modal){
+      modal.classList.add('hidden');
+      const sheet=document.getElementById('sheet');
+      if(sheet)sheet.innerHTML='';
+    }
+
+    const globalResults=document.getElementById('globalSearchResults');
+    if(globalResults)globalResults.classList.add('hidden');
+
+    // Mostrar Inicio directamente, sin depender de showScreen().
+    document.querySelectorAll('[id^="screen-"]').forEach(screen=>{
+      screen.classList.add('hidden');
+    });
+
+    const home=document.getElementById('screen-home');
+    if(!home)throw new Error('No se encontró la pantalla Inicio.');
+    home.classList.remove('hidden');
+
+    // Marcar Inicio en la navegación inferior.
+    document.querySelectorAll('.navbtn').forEach(btn=>btn.classList.remove('active'));
+    const homeBtn=document.querySelector('.navbtn[data-screen="home"]');
+    if(homeBtn)homeBtn.classList.add('active');
+
+    // Actualizar las tarjetas del dashboard.
+    renderAll();
+    renderHome();
+
+    // Subir tanto el documento como posibles contenedores desplazables.
+    window.scrollTo({top:0,left:0,behavior:'smooth'});
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
+
+    const main=document.querySelector('.main');
+    if(main)main.scrollTop=0;
+  }catch(err){
+    console.error('Dashboard navigation error',err);
+    alert('No pude abrir el Dashboard: '+(err.message||String(err)));
+  }
 }
 
 function goClients(){
