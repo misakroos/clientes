@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v51">
+<meta name="misakroos-version" content="v52">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -142,11 +142,72 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   }
 }
 
+
+.dashHero{
+  background:linear-gradient(135deg,#113a6a 0%,#1f5db6 45%,#4b2bb8 100%);
+  border-color:#5e82d6;
+  color:#eef5ff;
+}
+.dashMetric{
+  text-align:left;
+  min-height:102px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:space-between;
+}
+.dashMetric b{font-size:1.75rem;line-height:1}
+.dashBlue{background:linear-gradient(180deg,#0a2441,#0d355e)}
+.dashOrange{background:linear-gradient(180deg,#3e2510,#6b3d13)}
+.dashGreen{background:linear-gradient(180deg,#0e2a1d,#165637)}
+.dashRed{background:linear-gradient(180deg,#35151a,#641f2a)}
+.dashMiniCard{background:linear-gradient(180deg,#0c1c2c,#0a1724)}
+.dashBigNumber{font-size:1.45rem;font-weight:800;margin-top:4px}
+.dashChip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 10px;border-radius:999px;border:1px solid var(--line);
+  background:#0b2034;font-size:12px;margin:4px 6px 0 0
+}
+.dashRank{
+  display:flex;align-items:center;gap:10px;
+  padding:10px;border-radius:14px;border:1px solid var(--line);
+  background:#0b1a28;margin-top:8px
+}
+.dashRankNum{
+  width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  font-weight:800;background:#16395c;color:#d9ecff;flex:0 0 auto
+}
+.dashRankBody{min-width:0;flex:1}
+.dashRankTitle{font-weight:700}
+.dashRankMeta{font-size:12px;color:var(--muted)}
+.dashChart{
+  display:flex;align-items:flex-end;gap:8px;height:210px;margin-top:10px;
+  padding:8px 2px 2px
+}
+.dashBarWrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.dashBarValue{font-size:11px;color:var(--muted)}
+.dashBar{
+  width:100%;max-width:42px;min-height:8px;border-radius:12px 12px 4px 4px;
+  background:linear-gradient(180deg,#5fc3ff,#2c75ff 70%,#2356b8);
+  box-shadow:0 6px 18px rgba(40,105,255,.18)
+}
+.dashBarLabel{font-size:11px;color:var(--muted);text-align:center;line-height:1.15}
+.dashSplit{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dashTinyCard{
+  border:1px solid var(--line);background:#0b1a28;border-radius:14px;padding:10px
+}
+.dashIndicatorTitle{font-size:12px;color:var(--muted)}
+.dashIndicatorValue{font-size:1.1rem;font-weight:800;margin-top:3px}
+@media(max-width:520px){
+  .dashChart{gap:5px;height:190px}
+  .dashBar{max-width:32px}
+}
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v51</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v52</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -156,28 +217,114 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   <input id="globalSearch" placeholder="🔎 Buscar cliente, teléfono, correo, perfil, servicio..." oninput="renderGlobalSearch()">
   <div id="globalSearchResults" class="hidden" style="margin-top:8px"></div>
 </div>
-<section id="screen-home"><div class="grid2">
-<button class="metric metricBtn" onclick="goClients()"><b id="mClients">0</b><span class="muted tiny">Clientes</span></button>
-<button class="metric metricBtn" onclick="goSalesPreset('pending')"><b id="mPending">0</b><span class="muted tiny">Pendientes</span></button>
-<button class="metric metricBtn" onclick="goAccountsFree()"><b id="mSlots">0</b><span class="muted tiny">Cupos libres</span></button>
-<button class="metric metricBtn" onclick="goSalesPreset('expiring7')"><b id="mExpiring">0</b><span class="muted tiny">Vencen ≤ 7 días</span></button>
-</div>
-<div class="card" style="margin-top:12px"><div class="sectionTitle">Accesos rápidos</div><div class="grid2"><button class="btn primary" onclick="openSaleModal()">+ Venta</button><button class="btn secondary" onclick="openPurchaseModal()">+ Compra</button><button class="btn secondary" onclick="openClientModal()">+ Cliente</button><button class="btn secondary" onclick="openAccountModal()">+ Cuenta</button></div></div>
 
-<details class="card" open>
-  <summary class="sectionTitle" style="cursor:pointer">Capacidad por servicio</summary>
-  <div id="homeCapacity"></div>
-</details>
-
-<div class="card">
-  <div class="row between">
-    <div class="sectionTitle" style="margin:0">Actividad reciente</div>
-    <button class="btn secondary small" onclick="showScreen('more')">Ver log</button>
+<section id="screen-home">
+  <div class="card dashHero">
+    <div class="row between" style="align-items:flex-start">
+      <div>
+        <div class="tiny" style="opacity:.85;letter-spacing:.4px">MISAKROOS CRM</div>
+        <div class="sectionTitle" style="margin:4px 0 6px;font-size:1.25rem">📊 Dashboard</div>
+        <div class="tiny" style="opacity:.92">Resumen visual de clientes, ventas, servicios y rendimiento del negocio.</div>
+      </div>
+      <span class="badge ok">v52</span>
+    </div>
+    <div class="tiny" style="margin-top:10px;opacity:.9">Tip: tocá las tarjetas y seguí navegando al detalle.</div>
   </div>
-  <div id="homeActivity" style="margin-top:8px"></div>
-</div>
 
-<div class="card"><div class="sectionTitle">Próximos a vencer</div><div id="homeExpiring"></div></div></section>
+  <div class="grid2" style="margin-top:12px">
+    <button class="metric metricBtn dashMetric dashBlue" onclick="goClients()">
+      <div class="tiny muted">Clientes</div>
+      <b id="mClients">0</b>
+      <span class="tiny">Totales cargados</span>
+    </button>
+    <button class="metric metricBtn dashMetric dashOrange" onclick="goSalesPreset('pending')">
+      <div class="tiny muted">Pendientes</div>
+      <b id="mPending">0</b>
+      <span class="tiny">Cobro / renovación</span>
+    </button>
+    <button class="metric metricBtn dashMetric dashGreen" onclick="goAccountsFree()">
+      <div class="tiny muted">Cupos libres</div>
+      <b id="mSlots">0</b>
+      <span class="tiny">Disponibles para vender</span>
+    </button>
+    <button class="metric metricBtn dashMetric dashRed" onclick="goSalesPreset('expiring')">
+      <div class="tiny muted">Vencen ≤ 7 días</div>
+      <b id="mExpiring">0</b>
+      <span class="tiny">Atención inmediata</span>
+    </button>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div class="card dashMiniCard">
+      <div class="tiny muted">Facturación del mes</div>
+      <div id="dashMonthSales" class="dashBigNumber">$0</div>
+      <div id="dashMonthSalesMeta" class="tiny muted">0 ventas este mes</div>
+    </div>
+    <div class="card dashMiniCard">
+      <div class="tiny muted">Ganancia estimada del mes</div>
+      <div id="dashMonthProfit" class="dashBigNumber">$0</div>
+      <div id="dashMonthProfitMeta" class="tiny muted">ingreso - costo directo</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin:0">Gráfico de ventas</div>
+        <div class="tiny muted">Últimos 7 días · monto vendido por día</div>
+      </div>
+      <button class="btn secondary small" onclick="renderHome()">Actualizar gráfico</button>
+    </div>
+    <div id="dashSalesChart" style="margin-top:10px"></div>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div class="card">
+      <div class="sectionTitle" style="margin:0 0 8px">📌 Indicadores</div>
+      <div id="dashIndicators"></div>
+    </div>
+    <div class="card">
+      <div class="sectionTitle" style="margin:0 0 8px">🏆 Tops</div>
+      <div id="dashTops"></div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div class="card">
+      <div class="row between">
+        <div class="sectionTitle" style="margin:0">👑 Top clientes</div>
+        <button class="btn secondary small" onclick="showScreen('clients')">Ver clientes</button>
+      </div>
+      <div id="dashTopClients" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="row between">
+        <div class="sectionTitle" style="margin:0">🎬 Top servicios</div>
+        <button class="btn secondary small" onclick="showScreen('services')">Ver servicios</button>
+      </div>
+      <div id="dashTopServices" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <details class="card" open style="margin-top:12px">
+    <summary class="sectionTitle" style="cursor:pointer">Capacidad por servicio</summary>
+    <div id="homeCapacity"></div>
+  </details>
+
+  <div class="card" style="margin-top:12px">
+    <div class="row between">
+      <div class="sectionTitle" style="margin:0">Actividad reciente</div>
+      <button class="btn secondary small" onclick="showScreen('more')">Ver log</button>
+    </div>
+    <div id="homeActivity" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="sectionTitle">Próximos a vencer</div>
+    <div id="homeExpiring"></div>
+  </div>
+</section>
+
 <section id="screen-clients" class="hidden"><div class="row between"><div class="sectionTitle">Clientes</div><button class="btn primary small" onclick="openClientModal()">+ Agregar</button></div><input id="clientSearch" placeholder="Buscar..." oninput="renderClients()"><div id="clientsList" style="margin-top:10px"></div></section>
 <section id="screen-sales" class="hidden">
 <div class="row between"><div class="sectionTitle">Ventas</div><button class="btn primary small" onclick="openSaleModal()">+ Venta</button></div>
@@ -1597,65 +1744,342 @@ function activityOpenAction(log){
   return '';
 }
 
+
+function amountArsFromSale(sale){
+  if(!sale)return 0;
+  if(typeof sale.total_amount_ars==='number')return Number(sale.total_amount_ars||0);
+  const curr=sale.currency||'ARS';
+  const amount=Number(sale.total_amount||0);
+  if(curr==='ARS')return amount;
+  try{
+    return snapshotFxToARS(amount,curr).amountArs||0;
+  }catch(_e){
+    return amount;
+  }
+}
+function amountArsFromItemCost(item){
+  if(typeof item.direct_cost_ars==='number' && item.direct_cost_ars!==null)return Number(item.direct_cost_ars||0);
+  const curr=item.direct_cost_currency||'ARS';
+  const amount=Number(item.direct_cost||0);
+  if(!amount)return 0;
+  if(curr==='ARS')return amount;
+  try{
+    return snapshotFxToARS(amount,curr).amountArs||0;
+  }catch(_e){
+    return amount;
+  }
+}
+function dayKey(dateStr){
+  return String(dateStr||'').slice(0,10);
+}
+function shortDayLabel(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+}
+function sameMonth(dateStr,ref){
+  if(!dateStr)return false;
+  const d=new Date(dateStr+'T12:00:00');
+  return d.getFullYear()===ref.getFullYear() && d.getMonth()===ref.getMonth();
+}
+function dashboardMoneyARS(v){
+  const n=Number(v||0);
+  return money(n,'ARS');
+}
+function renderMiniRanks(targetId, rows, emptyText){
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  el.innerHTML = rows.length ? rows.map((r,i)=>`
+    <div class="dashRank">
+      <div class="dashRankNum">${i+1}</div>
+      <div class="dashRankBody">
+        <div class="dashRankTitle">${esc(r.title)}</div>
+        <div class="dashRankMeta">${esc(r.meta||'')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800">${esc(r.value)}</div>
+        ${r.subvalue?`<div class="tiny muted">${esc(r.subvalue)}</div>`:''}
+      </div>
+    </div>
+  `).join('') : `<div class="muted">${emptyText}</div>`;
+}
+function renderSalesBars(targetId, rows){
+  const el=document.getElementById(targetId);
+  if(!el)return;
+  if(!rows.length){
+    el.innerHTML='<div class="muted">Todavía no hay ventas para mostrar.</div>';
+    return;
+  }
+  const max=Math.max(...rows.map(r=>Number(r.amount||0)),1);
+  el.innerHTML=`<div class="dashChart">` + rows.map(r=>{
+    const h=Math.max(8, Math.round((Number(r.amount||0)/max)*140));
+    return `<div class="dashBarWrap">
+      <div class="dashBarValue">${dashboardMoneyARS(r.amount).replace('ARS','').trim()}</div>
+      <div class="dashBar" style="height:${h}px"></div>
+      <div class="dashBarLabel">${esc(r.label)}</div>
+      <div class="tiny muted">${r.count} venta(s)</div>
+    </div>`;
+  }).join('') + `</div>`;
+}
 function renderHome(){
+  const todayRef=new Date();
+  const todayIso=today();
+
+  // Métricas rápidas ya existentes
+  if(typeof mClients!=='undefined')mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
+  if(typeof mPending!=='undefined')mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;
+  const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
+  const activeAccountIds=new Set(state.accounts.filter(a=>!a.archived_at&&a.status==='active').map(a=>a.id));
+  if(typeof mSlots!=='undefined')mSlots.textContent=state.slots.filter(s=>s.active&&activeAccountIds.has(s.account_id)&&!occ.has(s.id)).length;
+  if(typeof mExpiring!=='undefined')mExpiring.textContent=state.saleItems.filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing').length;
+
+  // Ventas del mes
+  const salesThisMonth=state.sales.filter(s=>sameMonth(s.sold_at,todayRef));
+  const monthRevenueArs=salesThisMonth.reduce((sum,s)=>sum+amountArsFromSale(s),0);
+  const monthSaleIds=new Set(salesThisMonth.map(s=>s.id));
+  const monthCostArs=state.saleItems
+    .filter(i=>monthSaleIds.has(i.sale_id))
+    .reduce((sum,i)=>sum+amountArsFromItemCost(i),0);
+  const monthProfitArs=monthRevenueArs-monthCostArs;
+
+  const dashMonthSales=document.getElementById('dashMonthSales');
+  const dashMonthSalesMeta=document.getElementById('dashMonthSalesMeta');
+  const dashMonthProfit=document.getElementById('dashMonthProfit');
+  const dashMonthProfitMeta=document.getElementById('dashMonthProfitMeta');
+  if(dashMonthSales)dashMonthSales.textContent=dashboardMoneyARS(monthRevenueArs);
+  if(dashMonthSalesMeta)dashMonthSalesMeta.textContent=`${salesThisMonth.length} venta(s) este mes`;
+  if(dashMonthProfit)dashMonthProfit.textContent=dashboardMoneyARS(monthProfitArs);
+  if(dashMonthProfitMeta)dashMonthProfitMeta.textContent=`Costo directo: ${dashboardMoneyARS(monthCostArs)}`;
+
+  // gráfico últimos 7 días
+  const last7=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();
+    d.setDate(d.getDate()-i);
+    const iso=d.toISOString().slice(0,10);
+    const daySales=state.sales.filter(s=>dayKey(s.sold_at)===iso);
+    last7.push({
+      label:shortDayLabel(iso),
+      amount:daySales.reduce((sum,s)=>sum+amountArsFromSale(s),0),
+      count:daySales.length
+    });
+  }
+  renderSalesBars('dashSalesChart', last7);
+
+  // día con más ventas
+  const salesByDay={};
+  state.sales.forEach(s=>{
+    const k=dayKey(s.sold_at);
+    if(!k)return;
+    salesByDay[k]=salesByDay[k]||{count:0,amount:0};
+    salesByDay[k].count++;
+    salesByDay[k].amount+=amountArsFromSale(s);
+  });
+  const bestDayEntry=Object.entries(salesByDay).sort((a,b)=>{
+    if(b[1].count!==a[1].count)return b[1].count-a[1].count;
+    return b[1].amount-a[1].amount;
+  })[0];
+
+  // ticket promedio
+  const totalRevenueAll=state.sales.reduce((sum,s)=>sum+amountArsFromSale(s),0);
+  const avgTicket=state.sales.length?totalRevenueAll/state.sales.length:0;
+  const activeServicesCount=state.saleItems.filter(i=>{
+    if(i.workflow_status==='not_renewing')return false;
+    if(!i.end_date)return true;
+    return i.end_date>=todayIso;
+  }).length;
+  const topServiceName=(function(){
+    const counts={};
+    state.saleItems.forEach(i=>{
+      const name=serviceBy(i.service_id)?.name||'Servicio';
+      counts[name]=(counts[name]||0)+1;
+    });
+    const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+    return top?`${top[0]} (${top[1]})`:'Sin datos';
+  })();
+
+  const indicators=document.getElementById('dashIndicators');
+  if(indicators){
+    indicators.innerHTML=`
+      <div class="dashSplit">
+        <div class="dashTinyCard">
+          <div class="dashIndicatorTitle">Servicios activos</div>
+          <div class="dashIndicatorValue">${activeServicesCount}</div>
+          <div class="tiny muted">perfiles / servicios vigentes</div>
+        </div>
+        <div class="dashTinyCard">
+          <div class="dashIndicatorTitle">Ticket promedio</div>
+          <div class="dashIndicatorValue">${dashboardMoneyARS(avgTicket)}</div>
+          <div class="tiny muted">promedio por venta</div>
+        </div>
+        <div class="dashTinyCard">
+          <div class="dashIndicatorTitle">Día con más ventas</div>
+          <div class="dashIndicatorValue">${bestDayEntry?formatDateAR(bestDayEntry[0]):'—'}</div>
+          <div class="tiny muted">${bestDayEntry?bestDayEntry[1].count+' venta(s) · '+dashboardMoneyARS(bestDayEntry[1].amount):'Sin datos'}</div>
+        </div>
+        <div class="dashTinyCard">
+          <div class="dashIndicatorTitle">Servicio más vendido</div>
+          <div class="dashIndicatorValue" style="font-size:1rem">${esc(topServiceName)}</div>
+          <div class="tiny muted">histórico total</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // tops compactos
+  const topClientByRevenue=(function(){
+    const acc={};
+    state.sales.forEach(s=>{
+      const c=clientBy(s.client_id);
+      if(!c)return;
+      const key=c.id;
+      acc[key]=acc[key]||{name:c.name||'Cliente', amount:0, count:0};
+      acc[key].amount+=amountArsFromSale(s);
+      acc[key].count++;
+    });
+    return Object.values(acc).sort((a,b)=>b.amount-a.amount)[0];
+  })();
+
+  const topServiceByCount=(function(){
+    const acc={};
+    state.saleItems.forEach(i=>{
+      const name=serviceBy(i.service_id)?.name||'Servicio';
+      acc[name]=(acc[name]||0)+1;
+    });
+    const top=Object.entries(acc).sort((a,b)=>b[1]-a[1])[0];
+    return top ? {name:top[0], count:top[1]} : null;
+  })();
+
+  const tops=document.getElementById('dashTops');
+  if(tops){
+    tops.innerHTML=`
+      <div class="dashChip">👑 Mejor cliente: <b>${esc(topClientByRevenue?.name||'—')}</b></div>
+      <div class="dashChip">💸 Facturación: <b>${dashboardMoneyARS(topClientByRevenue?.amount||0)}</b></div>
+      <div class="dashChip">🧾 Ventas de ese cliente: <b>${topClientByRevenue?.count||0}</b></div>
+      <div class="dashChip">🎬 Servicio top: <b>${esc(topServiceByCount?.name||'—')}</b></div>
+      <div class="dashChip">📦 Cantidad: <b>${topServiceByCount?.count||0}</b></div>
+      <div class="dashChip">📈 Ventas totales: <b>${state.sales.length}</b></div>
+    `;
+  }
+
+  // ranking top clientes
+  const clientRanks=(function(){
+    const acc={};
+    state.sales.forEach(s=>{
+      const c=clientBy(s.client_id);
+      if(!c)return;
+      acc[c.id]=acc[c.id]||{title:c.name||'Cliente', amount:0, count:0, phone:c.phone_raw||c.phone_e164||''};
+      acc[c.id].amount+=amountArsFromSale(s);
+      acc[c.id].count++;
+    });
+    return Object.values(acc)
+      .sort((a,b)=>b.amount-a.amount)
+      .slice(0,5)
+      .map(x=>({
+        title:x.title,
+        meta:x.phone?x.phone:`${x.count} venta(s)`,
+        value:dashboardMoneyARS(x.amount),
+        subvalue:`${x.count} venta(s)`
+      }));
+  })();
+  renderMiniRanks('dashTopClients', clientRanks, 'Todavía no hay clientes con ventas.');
+
+  // ranking top servicios
+  const serviceRanks=(function(){
+    const acc={};
+    state.saleItems.forEach(i=>{
+      const s=serviceBy(i.service_id);
+      const name=s?.name||'Servicio';
+      acc[name]=acc[name]||{title:name,count:0,rev:0};
+      acc[name].count++;
+      const sale=saleBy(i.sale_id);
+      acc[name].rev+=amountArsFromSale(sale);
+    });
+    return Object.values(acc)
+      .sort((a,b)=>b.count-a.count || b.rev-a.rev)
+      .slice(0,5)
+      .map(x=>({
+        title:x.title,
+        meta:`${x.count} servicio(s) vendidos`,
+        value:String(x.count),
+        subvalue:dashboardMoneyARS(x.rev)
+      }));
+  })();
+  renderMiniRanks('dashTopServices', serviceRanks, 'Todavía no hay servicios cargados.');
+
+  // próximos a vencer
   const a=state.saleItems
     .filter(i=>i.end_date&&daysUntil(i.end_date)>=0&&daysUntil(i.end_date)<=7&&i.workflow_status!=='not_renewing')
     .sort((x,y)=>String(x.end_date).localeCompare(String(y.end_date)));
 
-  homeExpiring.innerHTML=a.length?a.map(i=>{
-    const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);
-    const d=daysUntil(i.end_date);
-    return `<button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${i.sale_id}')">
-      <div class="row between">
-        <b>${esc(c?.name||'')}</b>
-        <span class="badge ${d===0?'danger':'warn'}">${d===0?'Hoy':d+' días'}</span>
-      </div>
-      <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${esc(i.end_date)}</div>
-      <div class="tiny muted">Tocá para abrir la venta completa</div>
-    </button>`;
-  }).join(''):'<div class="muted">Nada próximo a vencer.</div>';
+  const homeExpiring=document.getElementById('homeExpiring');
+  if(homeExpiring){
+    homeExpiring.innerHTML=a.length?a.slice(0,8).map(i=>{
+      const s=saleBy(i.sale_id),c=s&&clientBy(s.client_id);
+      const d=daysUntil(i.end_date);
+      return `<button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${i.sale_id}')">
+        <div class="row between">
+          <b>${esc(c?.name||'')}</b>
+          <span class="badge ${d===0?'danger':'warn'}">${d===0?'Hoy':d+' días'}</span>
+        </div>
+        <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'')} · vence ${formatDateAR(i.end_date)}</div>
+        <div class="tiny muted">Tocá para abrir la venta completa</div>
+      </button>`;
+    }).join(''):'<div class="muted">Nada próximo a vencer.</div>';
+  }
 
+  // capacidad por servicio
   const cap=document.getElementById('homeCapacity');
   if(cap){
     const rows=state.services
       .filter(s=>s.active!==false)
       .map(service=>{
-        const accounts=state.accounts.filter(a=>!a.archived_at&&a.status==='active'&&a.service_id===service.id);
+        const accounts=state.accounts.filter(a=>a.service_id===service.id && !a.archived_at && a.status==='active');
         const accountIds=new Set(accounts.map(a=>a.id));
-        const slots=state.slots.filter(s=>s.active&&accountIds.has(s.account_id));
-        const occupied=slots.filter(s=>activeAssignSlot(s.id)).length;
-        const free=Math.max(0,slots.length-occupied);
-        return {service,accounts:accounts.length,total:slots.length,occupied,free};
+        const activeSlots=state.slots.filter(s=>accountIds.has(s.account_id) && s.active);
+        const occSet=new Set(
+          state.assignments
+            .filter(a=>!a.released_at)
+            .map(a=>a.account_slot_id)
+        );
+        const free=activeSlots.filter(s=>!occSet.has(s.id)).length;
+        const total=activeSlots.length;
+        const occupied=Math.max(0,total-free);
+        return {service,total,free,occupied};
       })
-      .filter(x=>x.accounts||x.total)
-      .sort((a,b)=>b.occupied-a.occupied);
+      .sort((a,b)=>b.total-a.total);
 
-    cap.innerHTML=rows.length?rows.map(x=>`
-      <button class="item itemClickable" type="button" style="width:100%;text-align:left;color:inherit" onclick="goAccountsService('${x.service.id}')">
+    cap.innerHTML=rows.length?rows.map(r=>{
+      const pct=r.total?Math.round((r.occupied/r.total)*100):0;
+      return `<div class="item">
         <div class="row between">
-          <b>${esc(x.service.name)}</b>
-          <span class="badge">${x.occupied}/${x.total}</span>
+          <b>${esc(r.service.name)}</b>
+          <span class="badge ${r.free>0?'ok':'danger'}">${r.free} libre(s)</span>
         </div>
-        <div class="tiny">${x.accounts} cuenta(s) · ${x.occupied} ocupados · ${x.free} libres</div>
-        <div class="tiny muted">Tocá para abrir las cuentas de ${esc(x.service.name)}</div>
-      </button>
-    `).join(''):'<div class="muted">Todavía no hay capacidad cargada.</div>';
+        <div class="tiny muted">Total: ${r.total} · Ocupados: ${r.occupied} · Libres: ${r.free}</div>
+        <div style="margin-top:8px;background:#08131f;border-radius:999px;height:10px;overflow:hidden;border:1px solid var(--line)">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#4db1ff,#6b6cff)"></div>
+        </div>
+      </div>`;
+    }).join(''):'<div class="muted">Sin datos de capacidad.</div>';
   }
 
-  const activity=document.getElementById('homeActivity');
-  if(activity){
-    const rows=state.activityLog.slice(0,8);
-    activity.innerHTML=rows.length?rows.map(x=>{
-      const action=activityOpenAction(x);
-      const tag=action?'button':'div';
-      return `<${tag} ${action?`onclick="${action}" type="button"`:''} class="item ${action?'itemClickable':''}" style="width:100%;text-align:left;color:inherit">
-        <b>${esc(x.action||'Actividad')}</b>
-        <div class="tiny">${esc(formatActivityDetails(x))}</div>
-        <div class="tiny muted">${esc((x.created_at||'').slice(0,16).replace('T',' '))}</div>
-      </${tag}>`;
-    }).join(''):'<div class="muted">Todavía no hay actividad reciente.</div>';
+  // actividad reciente
+  const homeActivity=document.getElementById('homeActivity');
+  if(homeActivity){
+    const last=(state.activities||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,6);
+    homeActivity.innerHTML=last.length?last.map(x=>`
+      <div class="item">
+        <div class="row between">
+          <b>${esc(x.action||'Actividad')}</b>
+          <span class="tiny muted">${x.created_at?new Date(x.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</span>
+        </div>
+        <div class="tiny muted">${esc(x.entity_type||'')}</div>
+        <div class="tiny">${esc(x.detail||x.summary||'')}</div>
+      </div>
+    `).join(''):'<div class="muted">Sin actividad reciente.</div>';
   }
 }
+
 function renderClients(){
   const q=(clientSearch?.value||'').toLowerCase();
   const a=state.clients.filter(c=>!c.archived_at&&((c.name||'').toLowerCase().includes(q)||(c.phone_raw||'').includes(q)||(c.phone_e164||'').includes(q)));
