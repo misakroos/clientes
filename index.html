@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v42">
+<meta name="misakroos-version" content="v44">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -108,11 +108,45 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   #assistantComposerFixed{width:min(620px,calc(100% - 20px))}
 }
 
+
+.saleReviewModal{
+  max-height:88vh;
+  display:flex;
+  flex-direction:column;
+}
+.saleReviewScroll{
+  overflow:auto;
+  padding-right:2px;
+  flex:1;
+}
+.saleReviewService{
+  border:1px solid var(--line);
+  background:var(--panel2);
+  border-radius:14px;
+  padding:12px;
+  margin:9px 0;
+}
+.saleReviewFooter{
+  position:sticky;
+  bottom:0;
+  background:#091725;
+  border-top:1px solid var(--line);
+  padding-top:10px;
+  margin-top:10px;
+}
+.saleReviewFooter .row{
+  display:flex;
+  gap:8px;
+}
+.saleReviewFooter .row .btn{
+  flex:1;
+}
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v42</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v44</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -5127,13 +5161,29 @@ async function createProviderProfilePurchase(row,service,existing=false){
   return pr.data;
 }
 
-async function resolveAccountAndSlot(row,service){
+function freeSlotsForAccount(accountId,reservedSlotIds=new Set()){
+  return state.slots
+    .filter(s=>s.account_id===accountId&&s.active)
+    .filter(s=>!activeAssignSlot(s.id))
+    .filter(s=>!reservedSlotIds.has(s.id))
+    .sort((a,b)=>Number(a.slot_number||0)-Number(b.slot_number||0));
+}
+
+function pickAvailableSlot(accountId,preferredSlotId='',reservedSlotIds=new Set()){
+  const free=freeSlotsForAccount(accountId,reservedSlotIds);
+  if(preferredSlotId){
+    const preferred=free.find(s=>s.id===preferredSlotId);
+    if(preferred)return preferred.id;
+  }
+  return free[0]?.id||null;
+}
+
+async function resolveAccountAndSlot(row,service,reservedSlotIds=new Set()){
   const email=row.querySelector('.siAccountEmail').value.trim();
   if(!email)return {account:null,slotId:null,purchaseId:null};
 
   let ac=findAccountByEmail(email,service.id);
 
-  // v15: si el correo ya existe para este servicio, se reutiliza y no se crea otra cuenta.
   if(ac){
     const typedPassword=row.querySelector('.siPassword')?.value.trim();
     if(typedPassword && typedPassword!==ac.login_password){
@@ -5141,17 +5191,25 @@ async function resolveAccountAndSlot(row,service){
       if(upr.error)throw upr.error;
       ac.login_password=typedPassword;
     }
+
     if(ac.account_mode==='full_account'){
-      const chosen=row.querySelector('.siSlot').value;
-      if(!chosen)throw new Error(`La cuenta completa ${email} no tiene un cupo libre seleccionado.`);
+      const preferred=row.querySelector('.siSlot').value;
+      const chosen=pickAvailableSlot(ac.id,preferred,reservedSlotIds);
+      if(!chosen){
+        const total=state.slots.filter(s=>s.account_id===ac.id&&s.active).length;
+        const occupied=state.slots.filter(s=>s.account_id===ac.id&&s.active&&activeAssignSlot(s.id)).length;
+        const reserved=state.slots.filter(s=>s.account_id===ac.id&&reservedSlotIds.has(s.id)).length;
+        throw new Error(`La cuenta ${email} no tiene más cupos disponibles para esta venta. Total ${total} · ocupados ${occupied} · reservados en esta venta ${reserved}.`);
+      }
       return {account:ac,slotId:chosen,purchaseId:null};
     }
 
     const action=row.querySelector('.siProviderAction').value;
 
     if(action==='use_free'){
-      const chosen=row.querySelector('.siSlot').value;
-      if(!chosen)throw new Error(`No hay un perfil comprado libre en ${email}.`);
+      const preferred=row.querySelector('.siSlot').value;
+      const chosen=pickAvailableSlot(ac.id,preferred,reservedSlotIds);
+      if(!chosen)throw new Error(`No hay un perfil comprado libre en ${email} para esta fila.`);
       return {account:ac,slotId:chosen,purchaseId:null};
     }
 
@@ -5179,10 +5237,9 @@ async function resolveAccountAndSlot(row,service){
       if(rr.error)throw rr.error;
       await refreshAll();
       ac=findAccountByEmail(email,service.id);
-      const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
-      const free=state.slots.filter(s=>s.account_id===ac.id&&s.active&&!occ.has(s.id));
-      if(!free.length)throw new Error('La cuenta convertida no tiene cupos libres.');
-      return {account:ac,slotId:free[0].id,purchaseId:null};
+      const chosen=pickAvailableSlot(ac.id,'',reservedSlotIds);
+      if(!chosen)throw new Error('La cuenta convertida no tiene cupos libres.');
+      return {account:ac,slotId:chosen,purchaseId:null};
     }
   }
 
@@ -5209,7 +5266,7 @@ async function resolveAccountAndSlot(row,service){
     if(sl.error)throw sl.error;
     state.accounts.push(ac);
     state.slots.push(...(sl.data||[]));
-    const first=(sl.data||[])[0];
+    const first=(sl.data||[]).find(s=>!reservedSlotIds.has(s.id));
     if(!first)throw new Error(`No se pudo crear el perfil comprado en ${email}.`);
     return {account:ac,slotId:first.id,purchaseId:purchase.id};
   }
@@ -5232,7 +5289,7 @@ async function resolveAccountAndSlot(row,service){
   if(sl.error)throw sl.error;
   state.accounts.push(ac);
   state.slots.push(...(sl.data||[]));
-  const first=(sl.data||[])[0];
+  const first=(sl.data||[]).find(s=>!reservedSlotIds.has(s.id));
   if(!first)throw new Error(`No se pudo generar el primer cupo de ${email}.`);
   return {account:ac,slotId:first.id,purchaseId:null};
 }
@@ -5284,7 +5341,7 @@ function reviewSaleBeforeSave(){
   const currency=saleCurr.value||'ARS';
   const warnings=duplicateSaleWarnings();
 
-  const serviceLines=rows.map((row,idx)=>{
+  const servicesHtml=rows.map((row,idx)=>{
     const service=(row.querySelector('.siServiceName')?.value||'Sin servicio').trim();
     const email=(row.querySelector('.siAccountEmail')?.value||'Sin cuenta').trim();
     const profile=(row.querySelector('.siProfile')?.value||'Sin perfil').trim();
@@ -5292,27 +5349,119 @@ function reviewSaleBeforeSave(){
     const start=row.querySelector('.siStart')?.value||'-';
     const end=row.querySelector('.siEnd')?.value||'-';
     const cost=Number(row.querySelector('.siCost')?.value||0);
+    const costCurrency=row.querySelector('.siCostCurrency')?.value||currency;
     const renewal=row.querySelector('.siRenewalType')?.selectedOptions?.[0]?.textContent||'';
-    return `${idx+1}. ${service}\n   Cuenta: ${email}\n   Perfil: ${profile} · ${devices} dispositivo(s)\n   ${start} → ${end}\n   Renovación: ${renewal}\n   Costo: ${cost} ${currency}`;
-  }).join('\n\n');
 
-  const warningText=warnings.length
-    ?`\n\n⚠️ REVISAR POSIBLES DUPLICADOS:\n- ${warnings.join('\n- ')}`
-    :'';
+    return `<div class="saleReviewService">
+      <div class="row between">
+        <b>${idx+1}. ${esc(service)}</b>
+        <span class="badge">${devices} disp.</span>
+      </div>
+      <div class="tiny" style="margin-top:6px"><b>Cuenta:</b> ${esc(email)}</div>
+      <div class="tiny"><b>Perfil:</b> ${esc(profile)}</div>
+      <div class="tiny"><b>Período:</b> ${esc(start)} → ${esc(end)}</div>
+      <div class="tiny"><b>Renovación:</b> ${esc(renewal)}</div>
+      <div class="tiny"><b>Costo:</b> ${money(cost,costCurrency)}</div>
+    </div>`;
+  }).join('');
 
-  const text=`CONFIRMAR VENTA\n\nCliente: ${client}\nTeléfono: ${saleClientPhone.value||'Sin teléfono'}\nFecha: ${saleDate.value||today()}\nTotal cobrado: ${total} ${currency}\n\nSERVICIOS:\n${serviceLines}${warningText}\n\n¿Está todo correcto y querés guardar la venta?`;
+  const warningsHtml=warnings.length?`
+    <div class="card" style="border-color:#6a4b13">
+      <b>⚠️ Revisar posibles duplicados</b>
+      <div class="tiny" style="margin-top:6px">${warnings.map(w=>`• ${esc(w)}`).join('<br>')}</div>
+    </div>`:'';
 
-  if(confirm(text))saveSale();
+  openModal(`
+    <div class="saleReviewModal">
+      <div class="row between">
+        <div>
+          <div class="sectionTitle" style="margin-bottom:2px">Confirmar venta</div>
+          <div class="tiny muted">Revisá todo antes de guardar.</div>
+        </div>
+        <button class="btn secondary small" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="saleReviewScroll">
+        <div class="card">
+          <div class="tiny muted">Cliente</div>
+          <b>${esc(client)}</b>
+          <div class="tiny" style="margin-top:4px">${esc(saleClientPhone.value||'Sin teléfono')}</div>
+          <div class="tiny"><b>Fecha:</b> ${esc(saleDate.value||today())}</div>
+          <div class="tiny"><b>Total cobrado:</b> ${money(total,currency)}</div>
+          <div class="tiny"><b>Servicios:</b> ${rows.length}</div>
+        </div>
+
+        ${warningsHtml}
+
+        <div class="sectionTitle" style="margin-top:12px">Servicios</div>
+        ${servicesHtml}
+      </div>
+
+      <div class="saleReviewFooter">
+        <div class="row">
+          <button class="btn secondary" onclick="closeModal()">← Volver a editar</button>
+          <button class="btn primary" onclick="confirmSaleFromPreview()">✓ Guardar venta</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function confirmSaleFromPreview(){
+  closeModal();
+  setTimeout(()=>saveSale(),30);
+}
+
+async function insertAssignmentWithRetry({resolved,row,itemId,client,reservedSlotIds,service}){
+  if(!resolved.slotId)return null;
+
+  let slotId=resolved.slotId;
+  for(let attempt=0;attempt<2;attempt++){
+    const ar=await sb.from('slot_assignments').insert({
+      account_slot_id:slotId,
+      sale_item_id:itemId,
+      client_id:client.id,
+      profile_name:row.querySelector('.siProfile').value.trim()||null
+    }).select().single();
+
+    if(!ar.error){
+      reservedSlotIds.add(slotId);
+      state.assignments.push(ar.data);
+      return ar.data;
+    }
+
+    const msg=String(ar.error.message||'');
+    const duplicateSlot=msg.includes('one_active_assignment_per_slot')||msg.includes('duplicate key value');
+
+    if(!duplicateSlot||attempt===1)throw ar.error;
+
+    // Refrescar solo asignaciones antes de buscar otro cupo.
+    const fresh=await sb.from('slot_assignments').select('*').is('released_at',null);
+    if(fresh.error)throw fresh.error;
+
+    // Mantener históricos locales, sustituyendo la parte activa por la recién consultada.
+    state.assignments=[
+      ...state.assignments.filter(a=>a.released_at),
+      ...(fresh.data||[])
+    ];
+
+    const next=pickAvailableSlot(resolved.account.id,'',reservedSlotIds);
+    if(!next)throw new Error(`Mientras guardábamos la venta se ocupó el cupo de ${resolved.account.login_email}. Ya no queda otro libre.`);
+    slotId=next;
+  }
 }
 
 async function saveSale(){
-  const rows=[...document.querySelectorAll('.saleRow')];if(!rows.length)return alert('Agregá al menos un servicio.');
+  const rows=[...document.querySelectorAll('.saleRow')];
+  if(!rows.length)return alert('Agregá al menos un servicio.');
   const total=Number(saleTotal.value||0);
+  const reservedSlotIds=new Set();
 
   try{
     const client=await resolveClientForSale();
     if(!fxUpdatedAt)await refreshFxRates(true);
     const saleFx=snapshotFxToARS(total,saleCurr.value);
+
     const sr=await sb.from('sales').insert({
       client_id:client.id,
       sold_at:saleDate.value||today(),
@@ -5326,7 +5475,11 @@ async function saveSale(){
 
     for(const row of rows){
       const service=await resolveServiceForRow(row);
-      const resolved=await resolveAccountAndSlot(row,service);
+      const resolved=await resolveAccountAndSlot(row,service,reservedSlotIds);
+
+      // Reservamos de inmediato el cupo para que otra fila de ESTA MISMA venta no lo elija.
+      if(resolved.slotId)reservedSlotIds.add(resolved.slotId);
+
       const cost=row.querySelector('.siCost').value;
       const costCurrency=row.querySelector('.siCostCurrency')?.value||saleCurr.value;
       const costFx=snapshotFxToARS(cost?Number(cost):0,costCurrency);
@@ -5339,8 +5492,10 @@ async function saveSale(){
         direct_cost_currency:costCurrency,
         direct_cost_fx_rate_to_ars:cost?costFx.rate:null,
         direct_cost_ars:cost?costFx.amountArs:null,
-      renewal_type_override:(row.querySelector('.siRenewalType')?.value==='custom_days'?'days':row.querySelector('.siRenewalType')?.value)||null,
-      renewal_days_override:(['days','custom_days'].includes(row.querySelector('.siRenewalType')?.value))?(row.querySelector('.siRenewalType')?.value==='days'?30:Number(row.querySelector('.siRenewalDays')?.value||30)):null,
+        renewal_type_override:(row.querySelector('.siRenewalType')?.value==='custom_days'?'days':row.querySelector('.siRenewalType')?.value)||null,
+        renewal_days_override:(['days','custom_days'].includes(row.querySelector('.siRenewalType')?.value))
+          ?(row.querySelector('.siRenewalType')?.value==='days'?30:Number(row.querySelector('.siRenewalDays')?.value||30))
+          :null,
         start_date:row.querySelector('.siStart').value||today(),
         end_date:row.querySelector('.siEnd').value||calculateRowEndDate(row.querySelector('.siStart').value||today(),row,service)||null,
         include_password:row.querySelector('.siIncludePassword').checked,
@@ -5352,22 +5507,23 @@ async function saveSale(){
       if(ir.error)throw ir.error;
 
       if(resolved.slotId){
-        const ar=await sb.from('slot_assignments').insert({
-          account_slot_id:resolved.slotId,
-          sale_item_id:ir.data.id,
-          client_id:client.id,
-          profile_name:row.querySelector('.siProfile').value.trim()||null
+        // Para el retry permitimos reutilizar el slot que ya está reservado por esta misma fila.
+        reservedSlotIds.delete(resolved.slotId);
+        await insertAssignmentWithRetry({
+          resolved,row,itemId:ir.data.id,client,reservedSlotIds,service
         });
-        if(ar.error)throw ar.error;
       }
     }
 
     closeModal();
     await refreshAll();
-    alert('Venta guardada. MISAKROOS creó automáticamente los datos nuevos que hacían falta.');
+    alert(`Venta guardada ✅\n\n${rows.length} servicio(s) cargados y cada perfil asignado a un cupo distinto.`);
   }catch(err){
     console.error(err);
-    alert(err.message||String(err));
+    alert(
+      (err.message||String(err))+
+      `\n\nNo es un problema de cantidad de cupos necesariamente. Si el error ocurrió después de guardar parte de la venta, revisá Ventas antes de volver a intentarlo para no duplicarla.`
+    );
     await refreshAll();
   }
 }
