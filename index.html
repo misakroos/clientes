@@ -636,7 +636,8 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 
   <div class="grid2">
     <button class="btn primary" onclick="openFinanceScreen()">💰 Finanzas</button>
-    <button class="btn secondary" onclick="openServiceModal()">Servicios</button>
+    <button class="btn secondary" onclick="openServiceModal()">Servicios internos</button>
+    <button class="btn primary" onclick="openCatalogManager()">🛍️ Catálogo público</button>
     <button class="btn secondary" onclick="openSupplierModal()">Proveedores</button>
     <button class="btn secondary" onclick="openPurchaseModal()">Compras</button>
     <button class="btn secondary" onclick="refreshAll()">Actualizar</button>
@@ -693,7 +694,8 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_tlT-G0ziq1E5Cwnp2AEx3w_Ip0Xzi-6';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[],cashMovements:[],activityLog:[]};
+let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[],cashMovements:[],activityLog:[],catalogCategories:[],catalogServices:[]};
+let catalogSetupError='';
 let salesStatusFilter='all';
 let accountsOnlyFree=false;
 let accountServiceFilter='';
@@ -1073,11 +1075,16 @@ async function refreshAll(){
     sb.from('notifications').select('*').order('created_at',{ascending:false}).limit(100),
     sb.from('push_subscriptions').select('*').eq('active',true),
     sb.from('cash_movements').select('*').order('movement_date',{ascending:false}).limit(500),
-    sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(500)
+    sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(500),
+    sb.from('catalog_categories').select('*').order('sort_order').order('name'),
+    sb.from('catalog_services').select('*').order('sort_order').order('name')
   ]);
 
-  const keys=['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions','cashMovements','activityLog'];
+  const keys=['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions','cashMovements','activityLog','catalogCategories','catalogServices'];
   keys.forEach((k,i)=>state[k]=qs[i].data||[]);
+  catalogSetupError=qs[13]?.error||qs[14]?.error
+    ?'Falta ejecutar catalogo_publico_supabase.sql en Supabase.'
+    :'';
 
   renderAll();
   updateNotificationBell();
@@ -3802,6 +3809,235 @@ async function deleteAccount(id){
 
 function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
 async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
+
+/* ═══════════════════════════════════════════════════════
+   CATÁLOGO PÚBLICO · independiente del historial del CRM
+   ═══════════════════════════════════════════════════════ */
+function catalogCategoryBy(id){return state.catalogCategories.find(x=>x.id===id)}
+function catalogServiceBy(id){return state.catalogServices.find(x=>x.id===id)}
+function catalogSlugify(value){
+  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||('categoria-'+Date.now());
+}
+function catalogCategoryLabel(id){
+  const c=catalogCategoryBy(id);
+  return c?`${c.icon||'📁'} ${c.name}`:'Sin categoría';
+}
+
+function openCatalogManager(){
+  if(catalogSetupError){
+    return openModal(`
+      <div class="sectionTitle">🛍️ Catálogo público</div>
+      <div class="hint">${esc(catalogSetupError)}</div>
+      <div class="tiny muted" style="margin-top:10px">Después de ejecutar el archivo SQL, tocá Actualizar y volvé a entrar.</div>
+      <button class="btn secondary" style="width:100%;margin-top:12px" onclick="closeModal()">Cerrar</button>
+    `);
+  }
+
+  const categories=[...state.catalogCategories].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||(a.name||'').localeCompare(b.name||'','es'));
+  const services=[...state.catalogServices].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||(a.name||'').localeCompare(b.name||'','es'));
+
+  openModal(`
+    <div class="row between">
+      <div>
+        <div class="sectionTitle" style="margin:0">🛍️ Catálogo público</div>
+        <div class="tiny muted">Lo que actives acá aparecerá en la página de clientes.</div>
+      </div>
+      <button class="btn secondary small" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="grid2" style="margin:12px 0">
+      <button class="btn primary" onclick="openCatalogServiceModal()">+ Servicio</button>
+      <button class="btn secondary" onclick="openCatalogCategoryModal()">+ Categoría</button>
+    </div>
+
+    <div class="sectionTitle" style="margin-top:16px">Categorías</div>
+    ${categories.map(c=>{
+      const count=services.filter(s=>s.category_id===c.id).length;
+      return `<div class="item">
+        <div class="row between">
+          <div><b>${esc(c.icon||'📁')} ${esc(c.name)}</b><div class="tiny muted">${count} servicio(s) · orden ${Number(c.sort_order||0)}</div></div>
+          <span class="badge ${c.active!==false?'ok':'warn'}">${c.active!==false?'Visible':'Oculta'}</span>
+        </div>
+        <div class="row wrap" style="margin-top:8px">
+          <button class="btn secondary small" onclick="openCatalogCategoryModal('${c.id}')">✏️ Editar</button>
+          <button class="btn danger small" onclick="deleteCatalogCategory('${c.id}')">Eliminar</button>
+        </div>
+      </div>`;
+    }).join('')||'<div class="muted">Todavía no hay categorías.</div>'}
+
+    <div class="sectionTitle" style="margin-top:18px">Servicios publicados</div>
+    ${services.map(s=>`<div class="item">
+      <div class="row between">
+        <div style="min-width:0">
+          <b>${esc(s.name)}</b>
+          <div class="tiny muted">${esc(catalogCategoryLabel(s.category_id))} · ${Array.isArray(s.plans)?s.plans.length:0} plan(es)</div>
+        </div>
+        <label style="margin:0;display:flex;align-items:center;gap:6px;color:#fff">
+          <input type="checkbox" style="width:auto" ${s.active!==false?'checked':''} onchange="toggleCatalogService('${s.id}',this.checked)">
+          ${s.active!==false?'Visible':'Oculto'}
+        </label>
+      </div>
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn secondary small" onclick="openCatalogServiceModal('${s.id}')">✏️ Editar</button>
+        <button class="btn danger small" onclick="deleteCatalogService('${s.id}')">Eliminar</button>
+      </div>
+    </div>`).join('')||'<div class="muted">Todavía no hay servicios públicos.</div>'}
+  `);
+}
+
+function openCatalogCategoryModal(id=''){
+  const c=id?catalogCategoryBy(id):null;
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nueva'} categoría</div>
+    <label>Nombre</label><input id="catName" value="${esc(c?.name||'')}">
+    <div class="grid2">
+      <div><label>Ícono</label><input id="catIcon" value="${esc(c?.icon||'📁')}" placeholder="🎬"></div>
+      <div><label>Orden</label><input id="catOrder" type="number" value="${Number(c?.sort_order||0)}"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;color:#fff;margin-top:12px">
+      <input id="catActive" type="checkbox" style="width:auto" ${c?.active!==false?'checked':''}> Mostrar categoría en la página
+    </label>
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCatalogCategory('${id}')">Guardar categoría</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openCatalogManager()">Volver</button>
+  `);
+}
+
+async function saveCatalogCategory(id=''){
+  const name=document.getElementById('catName').value.trim();
+  if(!name)return alert('Ingresá el nombre de la categoría.');
+  const current=id?catalogCategoryBy(id):null;
+  const payload={
+    name,
+    slug:current?.slug||catalogSlugify(name),
+    icon:document.getElementById('catIcon').value.trim()||null,
+    sort_order:Number(document.getElementById('catOrder').value||0),
+    active:document.getElementById('catActive').checked,
+    updated_at:new Date().toISOString()
+  };
+  const r=id
+    ?await sb.from('catalog_categories').update(payload).eq('id',id)
+    :await sb.from('catalog_categories').insert(payload);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openCatalogManager();
+}
+
+async function deleteCatalogCategory(id){
+  const c=catalogCategoryBy(id);if(!c)return;
+  const used=state.catalogServices.filter(s=>s.category_id===id).length;
+  if(used)return alert(`No podés eliminar "${c.name}" porque contiene ${used} servicio(s). Primero movelos o eliminalos.`);
+  if(!confirm(`¿Eliminar la categoría "${c.name}"?`))return;
+  const r=await sb.from('catalog_categories').delete().eq('id',id);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openCatalogManager();
+}
+
+let catalogDraftPlans=[];
+function normalizeCatalogPlans(value){
+  const rows=Array.isArray(value)?value:[];
+  return rows.map(p=>({name:String(p.name||''),sub:String(p.sub||''),ar:p.ar??'',uy:p.uy??''}));
+}
+function syncCatalogPlanDraft(){
+  const rows=[...document.querySelectorAll('.catalog-plan-row')];
+  if(!rows.length)return;
+  catalogDraftPlans=rows.map(row=>({
+    name:row.querySelector('[data-plan-name]')?.value.trim()||'',
+    sub:row.querySelector('[data-plan-sub]')?.value.trim()||'',
+    ar:row.querySelector('[data-plan-ar]')?.value||'',
+    uy:row.querySelector('[data-plan-uy]')?.value||''
+  }));
+}
+function renderCatalogPlanEditor(){
+  const box=document.getElementById('catalogPlansEditor');if(!box)return;
+  box.innerHTML=catalogDraftPlans.map((p,i)=>`<div class="item catalog-plan-row" data-plan-index="${i}">
+    <div class="row between"><b>Plan ${i+1}</b><button class="btn danger small" onclick="removeCatalogPlan(${i})">Quitar</button></div>
+    <label>Nombre del plan</label><input data-plan-name value="${esc(p.name)}" placeholder="1 Pantalla">
+    <label>Detalle breve</label><input data-plan-sub value="${esc(p.sub)}" placeholder="Acceso individual">
+    <div class="grid2">
+      <div><label>Precio Argentina</label><input data-plan-ar type="number" value="${esc(p.ar)}"></div>
+      <div><label>Precio Uruguay</label><input data-plan-uy type="number" value="${esc(p.uy)}"></div>
+    </div>
+  </div>`).join('')||'<div class="hint">Agregá al menos un plan con sus precios.</div>';
+}
+function addCatalogPlan(){
+  syncCatalogPlanDraft();catalogDraftPlans.push({name:'',sub:'',ar:'',uy:''});renderCatalogPlanEditor();
+}
+function removeCatalogPlan(index){
+  syncCatalogPlanDraft();catalogDraftPlans.splice(index,1);renderCatalogPlanEditor();
+}
+
+function openCatalogServiceModal(id=''){
+  const s=id?catalogServiceBy(id):null;
+  catalogDraftPlans=normalizeCatalogPlans(s?.plans);
+  if(!catalogDraftPlans.length)catalogDraftPlans=[{name:'1 Pantalla',sub:'Acceso individual',ar:'',uy:''}];
+  const categories=[...state.catalogCategories].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nuevo'} servicio público</div>
+    <div class="hint">Este servicio es solo para el catálogo de clientes. No modifica ventas, cuentas ni historial.</div>
+    <label>Nombre</label><input id="catalogSvcName" value="${esc(s?.name||'')}">
+    <label>Categoría</label><select id="catalogSvcCategory">
+      <option value="">Sin categoría</option>
+      ${categories.map(c=>`<option value="${c.id}" ${s?.category_id===c.id?'selected':''}>${esc(c.icon||'📁')} ${esc(c.name)}</option>`).join('')}
+    </select>
+    <label>Descripción</label><textarea id="catalogSvcDescription">${esc(s?.description||'')}</textarea>
+    <label>URL del logo (opcional)</label><input id="catalogSvcLogo" value="${esc(s?.logo_url||'')}" placeholder="https://...">
+    <div class="grid2">
+      <div><label>Color</label><input id="catalogSvcColor" type="color" value="${esc(s?.accent_color||'#3B82F6')}"></div>
+      <div><label>Orden</label><input id="catalogSvcOrder" type="number" value="${Number(s?.sort_order||0)}"></div>
+    </div>
+    <div class="row wrap" style="margin-top:12px">
+      <label style="display:flex;align-items:center;gap:7px;color:#fff;margin:0"><input id="catalogSvcActive" type="checkbox" style="width:auto" ${s?.active!==false?'checked':''}> Mostrar en la página</label>
+      <label style="display:flex;align-items:center;gap:7px;color:#fff;margin:0"><input id="catalogSvcFeatured" type="checkbox" style="width:auto" ${s?.featured?'checked':''}> Destacado</label>
+    </div>
+    <div class="row between" style="margin-top:18px"><div class="sectionTitle" style="margin:0">Planes y precios</div><button class="btn secondary small" onclick="addCatalogPlan()">+ Plan</button></div>
+    <div id="catalogPlansEditor" style="margin-top:8px"></div>
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCatalogService('${id}')">Guardar servicio</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openCatalogManager()">Volver</button>
+  `);
+  renderCatalogPlanEditor();
+}
+
+async function saveCatalogService(id=''){
+  syncCatalogPlanDraft();
+  const name=document.getElementById('catalogSvcName').value.trim();
+  if(!name)return alert('Ingresá el nombre del servicio.');
+  const plans=catalogDraftPlans.map(p=>({
+    name:p.name||'Plan',sub:p.sub||'',
+    ar:p.ar===''?null:Number(p.ar),uy:p.uy===''?null:Number(p.uy)
+  })).filter(p=>p.ar!==null||p.uy!==null);
+  if(!plans.length)return alert('Agregá al menos un plan con precio.');
+  const payload={
+    name,
+    category_id:document.getElementById('catalogSvcCategory').value||null,
+    description:document.getElementById('catalogSvcDescription').value.trim()||null,
+    logo_url:document.getElementById('catalogSvcLogo').value.trim()||null,
+    accent_color:document.getElementById('catalogSvcColor').value||'#3B82F6',
+    sort_order:Number(document.getElementById('catalogSvcOrder').value||0),
+    active:document.getElementById('catalogSvcActive').checked,
+    featured:document.getElementById('catalogSvcFeatured').checked,
+    plans,
+    updated_at:new Date().toISOString()
+  };
+  const r=id
+    ?await sb.from('catalog_services').update(payload).eq('id',id)
+    :await sb.from('catalog_services').insert(payload);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openCatalogManager();
+}
+
+async function toggleCatalogService(id,active){
+  const r=await sb.from('catalog_services').update({active,updated_at:new Date().toISOString()}).eq('id',id);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openCatalogManager();
+}
+
+async function deleteCatalogService(id){
+  const s=catalogServiceBy(id);if(!s)return;
+  if(!confirm(`¿Eliminar "${s.name}" del catálogo público?\n\nEsto no afecta ventas, cuentas ni historial del CRM.`))return;
+  const r=await sb.from('catalog_services').delete().eq('id',id);
+  if(r.error)return alert(r.error.message);
+  await refreshAll();openCatalogManager();
+}
 
 function serviceUsageInfo(serviceId){
   const accounts=state.accounts.filter(a=>a.service_id===serviceId&&!a.archived_at);
