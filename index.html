@@ -365,7 +365,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v57</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v58</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -2764,6 +2764,10 @@ function renderMore(){
 }
 function openModal(h){sheet.innerHTML=h;modal.classList.remove('hidden')}function closeModal(){modal.classList.add('hidden')}
 function normalizePhone(raw){let d=(raw||'').replace(/\D/g,'');if(!d)return'';if(d.startsWith('549')||d.startsWith('598')||d.startsWith('56'))return'+'+d;if(d.startsWith('54'))return'+54'+(d.slice(2).startsWith('9')?'':'9')+d.slice(2);if(d.length>=9&&d.length<=11)return'+549'+d.replace(/^0/,'');return'+'+d}
+
+function waPhone(raw){
+  return normalizePhone(raw).replace(/\D/g,'');
+}
 
 function clientWhatsappNumber(client){
   if(!client)return '';
@@ -6462,13 +6466,13 @@ function saleDeliveryTextFromSavedSale(saleId){
 }
 function openSavedSaleWhatsApp(saleId){
   const sale=saleBy(saleId); if(!sale)return alert('No se encontró la venta.');
-  const client=saleClient(sale), phone=waPhone(client?.phone_e164||client?.phone_raw||'');
+  const client=saleClient(sale), phone=clientWhatsappNumber(client);
   if(!phone)return alert('El cliente no tiene un teléfono válido para WhatsApp.');
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(saleDeliveryTextFromSavedSale(saleId))}`,'_blank');
 }
 function showSaleCreatedSuccess(saleId,serviceCount){
   const sale=saleBy(saleId), client=saleClient(sale);
-  const hasPhone=!!waPhone(client?.phone_e164||client?.phone_raw||'');
+  const hasPhone=!!clientWhatsappNumber(client);
   openModal(`
     <div class="saleSuccessCard">
       <div class="saleSuccessIcon">✓</div>
@@ -6499,6 +6503,7 @@ async function saveSale(){
   let createdSaleId=null;
   const createdItemIds=[];
   const createdAssignmentIds=[];
+  let saleCommitted=false;
 
   saleSaveInProgress=true;
 
@@ -6608,16 +6613,27 @@ async function saveSale(){
       }
     }
 
+    // Desde este punto la venta quedó completamente creada en la base.
+    // Un fallo posterior de interfaz/WhatsApp NO debe borrar una venta válida.
+    saleCommitted=true;
     closeSaleReview();
     closeModal();
     const savedSaleId=createdSaleId;
     await refreshAll();
-    showSaleCreatedSuccess(savedSaleId,rows.length);
+
+    try{
+      showSaleCreatedSuccess(savedSaleId,rows.length);
+    }catch(uiErr){
+      console.error('La venta se guardó, pero falló la pantalla posterior:',uiErr);
+      alert('Venta creada correctamente ✅\n\nNo se pudo abrir la pantalla para enviarla por WhatsApp, pero la venta quedó guardada.');
+      renderSales();
+    }
   }catch(err){
     console.error(err);
 
-    // Si la venta ya existía, intentamos dejar la BD como estaba antes del intento.
-    if(createdSaleId){
+    // Solo revertimos si falló DURANTE la creación.
+    // Nunca borramos una venta que ya terminó de guardarse correctamente.
+    if(createdSaleId && !saleCommitted){
       await rollbackNewSaleBestEffort(createdSaleId,createdItemIds,createdAssignmentIds);
     }
 
