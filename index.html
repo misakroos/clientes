@@ -332,11 +332,40 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   .dashChip b{font-size:11px!important}
 }
 
+
+.dashCreateSaleBtn{width:100%;margin-top:12px;min-height:48px;font-size:15px;font-weight:800;background:linear-gradient(135deg,#2478ff,#5a55ff)}
+.saleSuccessCard{border:1px solid #2b8a57;background:linear-gradient(180deg,#0c2d1d,#0a2118);border-radius:16px;padding:14px}
+.saleSuccessIcon{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;margin:2px auto 10px;font-size:26px;background:#123f29;border:1px solid #2b8a57}
+.saleSuccessActions{display:grid;gap:9px;margin-top:14px}.saleSuccessActions .btn{width:100%;min-height:46px}
+
+
+.finMovementTabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  margin-top:6px;
+}
+.finMovementTabs .btn{
+  width:100%;
+  min-width:0;
+}
+.financeBreakdown{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+.financeBreakdown .item{min-width:0}
+.financeBreakdown b{overflow-wrap:anywhere}
+@media(max-width:430px){
+  .financeBreakdown{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
 <div id="authView" class="auth"><div class="authbox"><h1>Bienvenido a MISAKROOS</h1><p class="muted">Accedé con tus datos para gestionar clientes, ventas, cuentas y renovaciones.</p><label>Correo</label><input id="loginEmail" type="email"><label>Contraseña</label><input id="loginPassword" type="password"><button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button><div id="loginMsg" class="tiny muted" style="margin-top:8px"></div></div></div>
-<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v53</span><div class="row" style="gap:6px;align-items:center">
+<div id="appView" class="app hidden"><div class="topbar"><b>MISAKROOS CRM</b><span class="tiny muted" style="margin-left:6px">v57</span><div class="row" style="gap:6px;align-items:center">
   <button id="notifBell" class="btn secondary small" onclick="openNotificationCenter()" title="Notificaciones">🔔 <span id="notifCount">0</span></button>
   <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
   <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -359,6 +388,8 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     </div>
     <div class="tiny" style="margin-top:10px;opacity:.9">Tip: tocá las tarjetas y seguí navegando al detalle.</div>
   </div>
+
+  <button type="button" class="btn primary dashCreateSaleBtn" onclick="openSaleModal()">＋ Crear nueva venta</button>
 
   <div class="grid2" style="margin-top:12px">
     <button class="metric metricBtn dashMetric dashBlue" onclick="goClients()">
@@ -583,6 +614,15 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
         </select>
       </div>
     </div>
+    <div style="margin-top:8px">
+      <label>Movimientos</label>
+      <input id="finMovementType" type="hidden" value="all">
+      <div class="finMovementTabs">
+        <button type="button" id="finTabAll" class="btn primary small" onclick="setFinanceMovementType('all')">Total</button>
+        <button type="button" id="finTabSales" class="btn secondary small" onclick="setFinanceMovementType('sales')">Ventas</button>
+        <button type="button" id="finTabRenewals" class="btn secondary small" onclick="setFinanceMovementType('renewals')">Renovaciones</button>
+      </div>
+    </div>
     <label class="checkrow" style="margin-top:8px">
       <input id="finOnlyAnomalies" type="checkbox" onchange="renderFinance()"> Mostrar solo posibles incongruencias
     </label>
@@ -602,7 +642,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     <div class="card"><b>Clientes con más ventas</b><div id="financeTopClients" style="margin-top:8px"></div></div>
   </div>
 
-  <div class="sectionTitle">Ventas del período</div>
+  <div class="sectionTitle">Movimientos del período</div>
   <div id="financeSalesList"></div>
 </section>
 <section id="screen-more" class="hidden">
@@ -636,8 +676,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 
   <div class="grid2">
     <button class="btn primary" onclick="openFinanceScreen()">💰 Finanzas</button>
-    <button class="btn secondary" onclick="openServiceModal()">Servicios internos</button>
-    <button class="btn primary" onclick="openCatalogManager()">🛍️ Catálogo público</button>
+    <button class="btn secondary" onclick="openServiceModal()">Servicios</button>
     <button class="btn secondary" onclick="openSupplierModal()">Proveedores</button>
     <button class="btn secondary" onclick="openPurchaseModal()">Compras</button>
     <button class="btn secondary" onclick="refreshAll()">Actualizar</button>
@@ -694,8 +733,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 const SUPABASE_URL='https://ktsszfiqrteklmtgtbgv.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_tlT-G0ziq1E5Cwnp2AEx3w_Ip0Xzi-6';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[],cashMovements:[],activityLog:[],catalogCategories:[],catalogServices:[]};
-let catalogSetupError='';
+let state={clients:[],services:[],suppliers:[],purchases:[],accounts:[],slots:[],sales:[],saleItems:[],assignments:[],notifications:[],pushSubscriptions:[],cashMovements:[],activityLog:[],renewalFinance:[]};
 let salesStatusFilter='all';
 let accountsOnlyFree=false;
 let accountServiceFilter='';
@@ -1076,15 +1114,11 @@ async function refreshAll(){
     sb.from('push_subscriptions').select('*').eq('active',true),
     sb.from('cash_movements').select('*').order('movement_date',{ascending:false}).limit(500),
     sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(500),
-    sb.from('catalog_categories').select('*').order('sort_order').order('name'),
-    sb.from('catalog_services').select('*').order('sort_order').order('name')
+    sb.from('renewal_finance').select('*').order('renewed_at',{ascending:false}).limit(1000)
   ]);
 
-  const keys=['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions','cashMovements','activityLog','catalogCategories','catalogServices'];
+  const keys=['clients','services','suppliers','purchases','accounts','slots','sales','saleItems','assignments','notifications','pushSubscriptions','cashMovements','activityLog','renewalFinance'];
   keys.forEach((k,i)=>state[k]=qs[i].data||[]);
-  catalogSetupError=qs[13]?.error||qs[14]?.error
-    ?'Falta ejecutar catalogo_publico_supabase.sql en Supabase.'
-    :'';
 
   renderAll();
   updateNotificationBell();
@@ -2806,53 +2840,64 @@ async function sendWholeSaleRenewalWhatsApp(saleId){
   openWhatsApp(phone,lines.join('\n'));
 }
 
-async function renewWholeSale(saleId){
-  const sale=saleBy(saleId);
-  if(!sale)return alert('No se encontró esta venta.');
 
-  const items=saleItemsFor(saleId);
-  if(!items.length)return alert('Esta venta no tiene servicios.');
-
-  if(!confirm(`¿Renovar los ${items.length} servicio(s) de esta venta?`))return;
-
-  try{
-    for(const item of items){
-      const service=serviceBy(item.service_id);
-      const type=item.renewal_type_override||serviceRenewalType(service);
-      const days=Number(item.renewal_days_override||serviceRenewalDays(service)||30);
-
-      const newStart=item.end_date||today();
-      let newEnd='';
-
-      if(type==='monthly_same_day'){
-        newEnd=addMonthsSameDay(newStart,1);
-      }else if(type==='manual'){
-        const typed=prompt(`Nuevo vencimiento manual para ${service?.name||'servicio'}`,item.end_date||'');
-        if(!typed)continue;
-        newEnd=typed;
-      }else{
-        newEnd=addDays(newStart,days);
-      }
-
-      const r=await sb.from('sale_items').update({
-        start_date:newStart,
-        end_date:newEnd,
-        workflow_status:'active',
-        renewal_notice_stage:0,
-        renewal_notice_last_at:null
-      }).eq('id',item.id);
-
-      if(r.error)throw r.error;
-    }
-
-    await refreshAll();
-    openSaleDetail(saleId);
-  }catch(err){
-    console.error(err);
-    alert(err.message||String(err));
-    await refreshAll();
-  }
+function renewalDefaultRevenueForItem(item){
+  const sale=saleBy(item.sale_id),items=saleItemsFor(item.sale_id);
+  if(!sale)return {amount:0,currency:'ARS'};
+  return {amount:item.allocated_revenue==null?(items.length?Number(sale.total_amount||0)/items.length:Number(sale.total_amount||0)):Number(item.allocated_revenue||0),currency:sale.currency||'ARS'};
 }
+function renewalArs(amount,ars,currency){return ars==null?(convertToARS(Number(amount||0),currency||'ARS')||0):Number(ars||0)}
+function openRenewSingleFinanceModal(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId);if(!item)return alert('No se encontró este servicio.');
+  const srv=serviceBy(item.service_id),sale=saleBy(item.sale_id),def=renewalDefaultRevenueForItem(item);
+  const type=item.renewal_type_override||serviceRenewalType(srv),days=Number(item.renewal_days_override||serviceRenewalDays(srv)||30);
+  const start=item.end_date||today(),end=type==='monthly_same_day'?addMonthsSameDay(start,1):type==='manual'?'':addDays(start,days);
+  openModal(`<div class="sectionTitle">🔄 Renovar ${esc(srv?.name||'servicio')}</div>
+  <div class="tiny muted">Cobro e inversión de ESTA renovación. Se sumará a Finanzas sin volver a contar la venta original.</div>
+  <div class="grid2"><div><label>Cobrado al cliente</label><input id="rfRevenue" type="number" step="0.01" value="${def.amount}"></div>
+  <div><label>Moneda cobrada</label><select id="rfRevenueCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===def.currency?'selected':''}>${c}</option>`).join('')}</select></div></div>
+  <div class="grid2"><div><label>Inversión / costo renovación</label><input id="rfCost" type="number" step="0.01" value="${item.direct_cost==null?'':Number(item.direct_cost)}"></div>
+  <div><label>Moneda inversión</label><select id="rfCostCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(item.direct_cost_currency||sale?.currency||'ARS')?'selected':''}>${c}</option>`).join('')}</select></div></div>
+  <div class="grid2"><div><label>Inicio</label><input id="rfStart" type="date" value="${esc(start)}"></div><div><label>Vence</label><input id="rfEnd" type="date" value="${esc(end)}"></div></div>
+  <button class="btn ok" style="width:100%;margin-top:12px" onclick="confirmRenewSingleFinance('${itemId}')">✓ Confirmar renovación</button>`);
+}
+async function confirmRenewSingleFinance(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId),sale=item&&saleBy(item.sale_id);if(!item||!sale)return;
+  const revenue=Number(rfRevenue.value||0),cost=Number(rfCost.value||0),start=rfStart.value||today(),end=rfEnd.value;
+  if(!end)return alert('Elegí el nuevo vencimiento.');
+  if(!fxUpdatedAt)await refreshFxRates(true);
+  const revFx=snapshotFxToARS(revenue,rfRevenueCurrency.value),costFx=snapshotFxToARS(cost,rfCostCurrency.value);
+  const ins=await sb.from('renewal_finance').insert({sale_id:sale.id,sale_item_id:item.id,service_id:item.service_id,client_id:sale.client_id,renewed_at:start,revenue_amount:revenue,revenue_currency:rfRevenueCurrency.value,revenue_fx_rate_to_ars:revFx.rate,revenue_ars:revFx.amountArs,cost_amount:cost,cost_currency:rfCostCurrency.value,cost_fx_rate_to_ars:costFx.rate,cost_ars:costFx.amountArs});
+  if(ins.error)return alert(ins.error.message);
+  const up=await sb.from('sale_items').update({start_date:start,end_date:end,workflow_status:'active',renewal_notice_stage:0,renewal_notice_last_at:null}).eq('id',item.id);
+  if(up.error)return alert(up.error.message);
+  closeModal();await refreshAll();openSaleDetail(sale.id);
+}
+function openRenewWholeSaleFinanceModal(saleId){
+  const sale=saleBy(saleId),items=saleItemsFor(saleId);if(!sale||!items.length)return;
+  openModal(`<div class="sectionTitle">🔄 Renovar toda la venta</div><div class="tiny muted">Ingresá el total cobrado y la inversión total de esta renovación. Se registrará aparte de la venta original.</div>
+  <div class="grid2"><div><label>Total cobrado renovación</label><input id="rwRevenue" type="number" step="0.01" value="${Number(sale.total_amount||0)}"></div><div><label>Moneda</label><select id="rwRevenueCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}</select></div></div>
+  <div class="grid2"><div><label>Inversión total renovación</label><input id="rwCost" type="number" step="0.01" value="${items.reduce((a,i)=>a+Number(i.direct_cost||0),0)}"></div><div><label>Moneda inversión</label><select id="rwCostCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}</select></div></div>
+  <label>Fecha de renovación</label><input id="rwDate" type="date" value="${today()}">
+  <button class="btn ok" style="width:100%;margin-top:12px" onclick="confirmRenewWholeSaleFinance('${saleId}')">✓ Confirmar renovación completa</button>`);
+}
+async function confirmRenewWholeSaleFinance(saleId){
+  const sale=saleBy(saleId),items=saleItemsFor(saleId);if(!sale||!items.length)return;
+  if(!fxUpdatedAt)await refreshFxRates(true);
+  const rev=Number(rwRevenue.value||0),cost=Number(rwCost.value||0),date=rwDate.value||today();
+  const revFx=snapshotFxToARS(rev,rwRevenueCurrency.value),costFx=snapshotFxToARS(cost,rwCostCurrency.value);
+  const ins=await sb.from('renewal_finance').insert({sale_id:sale.id,sale_item_id:null,service_id:null,client_id:sale.client_id,renewed_at:date,revenue_amount:rev,revenue_currency:rwRevenueCurrency.value,revenue_fx_rate_to_ars:revFx.rate,revenue_ars:revFx.amountArs,cost_amount:cost,cost_currency:rwCostCurrency.value,cost_fx_rate_to_ars:costFx.rate,cost_ars:costFx.amountArs});
+  if(ins.error)return alert(ins.error.message);
+  for(const item of items){
+    const srv=serviceBy(item.service_id),type=item.renewal_type_override||serviceRenewalType(srv),days=Number(item.renewal_days_override||serviceRenewalDays(srv)||30),start=item.end_date||date;
+    let end=type==='monthly_same_day'?addMonthsSameDay(start,1):type==='manual'?prompt(`Nuevo vencimiento para ${srv?.name||'servicio'}`,item.end_date||''):addDays(start,days);
+    if(!end)continue;
+    const up=await sb.from('sale_items').update({start_date:start,end_date:end,workflow_status:'active',renewal_notice_stage:0,renewal_notice_last_at:null}).eq('id',item.id);
+    if(up.error)return alert(up.error.message);
+  }
+  closeModal();await refreshAll();openSaleDetail(saleId);
+}
+async function renewWholeSale(saleId){openRenewWholeSaleFinanceModal(saleId);}
 
 async function deleteWholeSale(saleId){
   const sale=saleBy(saleId);
@@ -3211,48 +3256,7 @@ async function saveSaleHeader(saleId){
 
 
 
-async function renewSingleService(itemId){
-  const item=state.saleItems.find(i=>i.id===itemId);
-  if(!item)return alert('No se encontró este servicio.');
-
-  const service=serviceBy(item.service_id);
-  const type=item.renewal_type_override||serviceRenewalType(service);
-  const days=Number(item.renewal_days_override||serviceRenewalDays(service)||30);
-
-  const defaultStart=item.end_date||today();
-  const newStart=prompt(`Nueva fecha de inicio para ${service?.name||'el servicio'}`,defaultStart);
-  if(!newStart)return;
-
-  let suggestedEnd='';
-  let label='';
-
-  if(type==='monthly_same_day'){
-    suggestedEnd=addMonthsSameDay(newStart,1);
-    label='Mismo día del mes siguiente';
-  }else if(type==='manual'){
-    suggestedEnd='';
-    label='Manual';
-  }else{
-    suggestedEnd=addDays(newStart,days);
-    label=`${days} días exactos`;
-  }
-
-  const newEnd=prompt(`Nuevo vencimiento · ${label}`,suggestedEnd);
-  if(!newEnd)return;
-
-  const r=await sb.from('sale_items').update({
-    start_date:newStart,
-    end_date:newEnd,
-    workflow_status:'active',
-    renewal_notice_stage:0,
-    renewal_notice_last_at:null
-  }).eq('id',itemId);
-
-  if(r.error)return alert(r.error.message);
-
-  await refreshAll();
-  openSaleDetail(item.sale_id);
-}
+async function renewSingleService(itemId){openRenewSingleFinanceModal(itemId);}
 
 async function deleteSingleService(itemId){
   const item=state.saleItems.find(i=>i.id===itemId);
@@ -3452,6 +3456,19 @@ function financeAnomaliesForSale(s){
   return [...new Set(issues)];
 }
 
+
+function setFinanceMovementType(type){
+  const input=document.getElementById('finMovementType');
+  if(input)input.value=type||'all';
+  const map={all:'finTabAll',sales:'finTabSales',renewals:'finTabRenewals'};
+  Object.entries(map).forEach(([key,id])=>{
+    const b=document.getElementById(id);
+    if(!b)return;
+    b.classList.toggle('primary',key===(type||'all'));
+    b.classList.toggle('secondary',key!==(type||'all'));
+  });
+  renderFinance();
+}
 function renderFinance(){
   if(!document.getElementById('financeSummary'))return;
   renderFxStatus();
@@ -3466,8 +3483,10 @@ function renderFinance(){
   const saleCurrency=(document.getElementById('finSaleCurrency')?.value||'').toUpperCase();
   const costCurrency=(document.getElementById('finCostCurrency')?.value||'').toUpperCase();
   const onlyAnomalies=!!document.getElementById('finOnlyAnomalies')?.checked;
+  const movementType=document.getElementById('finMovementType')?.value||'all';
 
   const sales=state.sales.filter(s=>{
+    if(movementType==='renewals')return false;
     if(from&&s.sold_at<from)return false;
     if(to&&s.sold_at>to)return false;
     const items=saleItemsFor(s.id),c=saleClient(s);
@@ -3523,18 +3542,37 @@ function renderFinance(){
     });
   });
 
+  const renewals=(state.renewalFinance||[]).filter(r=>{
+    if(movementType==='sales')return false;
+    if(from&&r.renewed_at<from)return false;if(to&&r.renewed_at>to)return false;
+    if(service&&r.service_id&&r.service_id!==service)return false;
+    const c=clientBy(r.client_id);if(q&&!String(c?.name||'').toLowerCase().includes(q))return false;
+    if(saleCurrency&&String(r.revenue_currency||'ARS').toUpperCase()!==saleCurrency)return false;
+    if(costCurrency&&String(r.cost_currency||'ARS').toUpperCase()!==costCurrency)return false;
+    if(onlyAnomalies)return false;
+    return true;
+  });
+  let renewalRevenueArs=0,renewalCostArs=0;
+  renewals.forEach(r=>{renewalRevenueArs+=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency);renewalCostArs+=renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);});
+  const salesRevenueArs=revenueArs,salesCostArs=costArs;
+  revenueArs+=renewalRevenueArs;costArs+=renewalCostArs;
   const profit=revenueArs-costArs;
   const margin=revenueArs?profit/revenueArs*100:0;
   const avg=sales.length?revenueArs/sales.length:0;
 
   financeSummary.innerHTML=`
     <div class="card financeCurrency">
-      <div class="row between"><b>Balance unificado en ARS</b><span class="badge">${sales.length} venta(s)</span></div>
+      <div class="row between"><b>Balance unificado en ARS</b><span class="badge">${sales.length} venta(s) + ${renewals.length} renovación(es)</span></div>
       <div class="financeStats">
         <div class="financeStat"><span class="tiny muted">Facturado</span><b>${money(revenueArs,'ARS')}</b></div>
         <div class="financeStat"><span class="tiny muted">Invertido</span><b>${money(costArs,'ARS')}</b></div>
         <div class="financeStat"><span class="tiny muted">Ganancia</span><b>${money(profit,'ARS')}</b><span class="tiny muted">Margen ${margin.toFixed(1)}%</span></div>
         <div class="financeStat"><span class="tiny muted">Ticket promedio</span><b>${money(avg,'ARS')}</b></div>
+      </div>
+      <div class="financeBreakdown">
+        <div class="item"><b>Total</b><div class="tiny">Cobrado: ${money(revenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(costArs,'ARS')} · Ganancia: ${money(profit,'ARS')}</div></div>
+        <div class="item"><b>Ventas</b><div class="tiny">Cobrado: ${money(salesRevenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(salesCostArs,'ARS')} · Ganancia: ${money(salesRevenueArs-salesCostArs,'ARS')}</div></div>
+        <div class="item"><b>Renovaciones</b><div class="tiny">Cobrado: ${money(renewalRevenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(renewalCostArs,'ARS')} · Ganancia: ${money(renewalRevenueArs-renewalCostArs,'ARS')}</div></div>
       </div>
       <div class="tiny muted" style="margin-top:8px">${snapshotSales} venta(s) con cotización histórica guardada${liveFallbacks?` · ${liveFallbacks} registro(s) viejo(s) convertidos con cotización actual`:''}.</div>
     </div>
@@ -3575,7 +3613,18 @@ function renderFinance(){
       ${s.currency!=='ARS'&&ars!=null?`<div class="tiny">≈ ${money(ars,'ARS')}</div>`:''}
       ${issues.length?`<div class="tiny" style="margin-top:6px"><span class="badge warn">⚠️ ${issues.length} posible(s) incongruencia(s)</span><br>${issues.map(x=>`• ${esc(x)}`).join('<br>')}</div>`:''}
     </button>`;
-  }).join(''):'<div class="muted">Sin ventas para estos filtros.</div>';
+  }).join(''):'';
+  const renewalHtml=renewals.map(r=>{
+    const c=clientBy(r.client_id),srv=serviceBy(r.service_id);
+    const p=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency)-renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);
+    return `<button class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${r.sale_id}')">
+      <div class="row between"><b>🔄 ${esc(c?.name||'Cliente')} · Renovación</b><b>${money(r.revenue_amount,r.revenue_currency||'ARS')}</b></div>
+      <div class="tiny muted">${esc(r.renewed_at||'-')}${srv?` · ${esc(srv.name)}`:' · Venta completa'} ${r.legacy_inferred?'<span class="badge warn">Histórica detectada</span>':''}</div>
+      <div class="tiny">Inversión: ${money(r.cost_amount||0,r.cost_currency||'ARS')} · Ganancia ≈ ${money(p,'ARS')}</div>
+    </button>`;
+  }).join('');
+  financeSalesList.innerHTML=(financeSalesList.innerHTML||'')+renewalHtml;
+  if(!financeSalesList.innerHTML)financeSalesList.innerHTML='<div class="muted">Sin movimientos para estos filtros.</div>';
 }
 function getSaleItemContext(itemId){
   const item=state.saleItems.find(x=>x.id===itemId);
@@ -3809,235 +3858,6 @@ async function deleteAccount(id){
 
 function openClientModal(id=''){const c=id?clientBy(id):{};openModal(`<div class="sectionTitle">${id?'Editar':'Nuevo'} cliente</div><label>Nombre</label><input id="fName" value="${esc(c?.name||'')}"><label>Teléfono</label><input id="fPhone" value="${esc(c?.phone_raw||c?.phone_e164||'')}"><label>Notas</label><textarea id="fNotes">${esc(c?.notes||'')}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="saveClient('${id}')">Guardar</button>`)}
 async function saveClient(id){const raw=fPhone.value.trim(),p={name:fName.value.trim(),phone_raw:raw,phone_e164:normalizePhone(raw),notes:fNotes.value.trim()||null};const r=id?await sb.from('clients').update(p).eq('id',id):await sb.from('clients').insert(p);if(r.error)return alert(r.error.message);closeModal();refreshAll()}
-
-/* ═══════════════════════════════════════════════════════
-   CATÁLOGO PÚBLICO · independiente del historial del CRM
-   ═══════════════════════════════════════════════════════ */
-function catalogCategoryBy(id){return state.catalogCategories.find(x=>x.id===id)}
-function catalogServiceBy(id){return state.catalogServices.find(x=>x.id===id)}
-function catalogSlugify(value){
-  return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
-    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||('categoria-'+Date.now());
-}
-function catalogCategoryLabel(id){
-  const c=catalogCategoryBy(id);
-  return c?`${c.icon||'📁'} ${c.name}`:'Sin categoría';
-}
-
-function openCatalogManager(){
-  if(catalogSetupError){
-    return openModal(`
-      <div class="sectionTitle">🛍️ Catálogo público</div>
-      <div class="hint">${esc(catalogSetupError)}</div>
-      <div class="tiny muted" style="margin-top:10px">Después de ejecutar el archivo SQL, tocá Actualizar y volvé a entrar.</div>
-      <button class="btn secondary" style="width:100%;margin-top:12px" onclick="closeModal()">Cerrar</button>
-    `);
-  }
-
-  const categories=[...state.catalogCategories].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||(a.name||'').localeCompare(b.name||'','es'));
-  const services=[...state.catalogServices].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||(a.name||'').localeCompare(b.name||'','es'));
-
-  openModal(`
-    <div class="row between">
-      <div>
-        <div class="sectionTitle" style="margin:0">🛍️ Catálogo público</div>
-        <div class="tiny muted">Lo que actives acá aparecerá en la página de clientes.</div>
-      </div>
-      <button class="btn secondary small" onclick="closeModal()">✕</button>
-    </div>
-
-    <div class="grid2" style="margin:12px 0">
-      <button class="btn primary" onclick="openCatalogServiceModal()">+ Servicio</button>
-      <button class="btn secondary" onclick="openCatalogCategoryModal()">+ Categoría</button>
-    </div>
-
-    <div class="sectionTitle" style="margin-top:16px">Categorías</div>
-    ${categories.map(c=>{
-      const count=services.filter(s=>s.category_id===c.id).length;
-      return `<div class="item">
-        <div class="row between">
-          <div><b>${esc(c.icon||'📁')} ${esc(c.name)}</b><div class="tiny muted">${count} servicio(s) · orden ${Number(c.sort_order||0)}</div></div>
-          <span class="badge ${c.active!==false?'ok':'warn'}">${c.active!==false?'Visible':'Oculta'}</span>
-        </div>
-        <div class="row wrap" style="margin-top:8px">
-          <button class="btn secondary small" onclick="openCatalogCategoryModal('${c.id}')">✏️ Editar</button>
-          <button class="btn danger small" onclick="deleteCatalogCategory('${c.id}')">Eliminar</button>
-        </div>
-      </div>`;
-    }).join('')||'<div class="muted">Todavía no hay categorías.</div>'}
-
-    <div class="sectionTitle" style="margin-top:18px">Servicios publicados</div>
-    ${services.map(s=>`<div class="item">
-      <div class="row between">
-        <div style="min-width:0">
-          <b>${esc(s.name)}</b>
-          <div class="tiny muted">${esc(catalogCategoryLabel(s.category_id))} · ${Array.isArray(s.plans)?s.plans.length:0} plan(es)</div>
-        </div>
-        <label style="margin:0;display:flex;align-items:center;gap:6px;color:#fff">
-          <input type="checkbox" style="width:auto" ${s.active!==false?'checked':''} onchange="toggleCatalogService('${s.id}',this.checked)">
-          ${s.active!==false?'Visible':'Oculto'}
-        </label>
-      </div>
-      <div class="row wrap" style="margin-top:8px">
-        <button class="btn secondary small" onclick="openCatalogServiceModal('${s.id}')">✏️ Editar</button>
-        <button class="btn danger small" onclick="deleteCatalogService('${s.id}')">Eliminar</button>
-      </div>
-    </div>`).join('')||'<div class="muted">Todavía no hay servicios públicos.</div>'}
-  `);
-}
-
-function openCatalogCategoryModal(id=''){
-  const c=id?catalogCategoryBy(id):null;
-  openModal(`
-    <div class="sectionTitle">${id?'Editar':'Nueva'} categoría</div>
-    <label>Nombre</label><input id="catName" value="${esc(c?.name||'')}">
-    <div class="grid2">
-      <div><label>Ícono</label><input id="catIcon" value="${esc(c?.icon||'📁')}" placeholder="🎬"></div>
-      <div><label>Orden</label><input id="catOrder" type="number" value="${Number(c?.sort_order||0)}"></div>
-    </div>
-    <label style="display:flex;align-items:center;gap:8px;color:#fff;margin-top:12px">
-      <input id="catActive" type="checkbox" style="width:auto" ${c?.active!==false?'checked':''}> Mostrar categoría en la página
-    </label>
-    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCatalogCategory('${id}')">Guardar categoría</button>
-    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openCatalogManager()">Volver</button>
-  `);
-}
-
-async function saveCatalogCategory(id=''){
-  const name=document.getElementById('catName').value.trim();
-  if(!name)return alert('Ingresá el nombre de la categoría.');
-  const current=id?catalogCategoryBy(id):null;
-  const payload={
-    name,
-    slug:current?.slug||catalogSlugify(name),
-    icon:document.getElementById('catIcon').value.trim()||null,
-    sort_order:Number(document.getElementById('catOrder').value||0),
-    active:document.getElementById('catActive').checked,
-    updated_at:new Date().toISOString()
-  };
-  const r=id
-    ?await sb.from('catalog_categories').update(payload).eq('id',id)
-    :await sb.from('catalog_categories').insert(payload);
-  if(r.error)return alert(r.error.message);
-  await refreshAll();openCatalogManager();
-}
-
-async function deleteCatalogCategory(id){
-  const c=catalogCategoryBy(id);if(!c)return;
-  const used=state.catalogServices.filter(s=>s.category_id===id).length;
-  if(used)return alert(`No podés eliminar "${c.name}" porque contiene ${used} servicio(s). Primero movelos o eliminalos.`);
-  if(!confirm(`¿Eliminar la categoría "${c.name}"?`))return;
-  const r=await sb.from('catalog_categories').delete().eq('id',id);
-  if(r.error)return alert(r.error.message);
-  await refreshAll();openCatalogManager();
-}
-
-let catalogDraftPlans=[];
-function normalizeCatalogPlans(value){
-  const rows=Array.isArray(value)?value:[];
-  return rows.map(p=>({name:String(p.name||''),sub:String(p.sub||''),ar:p.ar??'',uy:p.uy??''}));
-}
-function syncCatalogPlanDraft(){
-  const rows=[...document.querySelectorAll('.catalog-plan-row')];
-  if(!rows.length)return;
-  catalogDraftPlans=rows.map(row=>({
-    name:row.querySelector('[data-plan-name]')?.value.trim()||'',
-    sub:row.querySelector('[data-plan-sub]')?.value.trim()||'',
-    ar:row.querySelector('[data-plan-ar]')?.value||'',
-    uy:row.querySelector('[data-plan-uy]')?.value||''
-  }));
-}
-function renderCatalogPlanEditor(){
-  const box=document.getElementById('catalogPlansEditor');if(!box)return;
-  box.innerHTML=catalogDraftPlans.map((p,i)=>`<div class="item catalog-plan-row" data-plan-index="${i}">
-    <div class="row between"><b>Plan ${i+1}</b><button class="btn danger small" onclick="removeCatalogPlan(${i})">Quitar</button></div>
-    <label>Nombre del plan</label><input data-plan-name value="${esc(p.name)}" placeholder="1 Pantalla">
-    <label>Detalle breve</label><input data-plan-sub value="${esc(p.sub)}" placeholder="Acceso individual">
-    <div class="grid2">
-      <div><label>Precio Argentina</label><input data-plan-ar type="number" value="${esc(p.ar)}"></div>
-      <div><label>Precio Uruguay</label><input data-plan-uy type="number" value="${esc(p.uy)}"></div>
-    </div>
-  </div>`).join('')||'<div class="hint">Agregá al menos un plan con sus precios.</div>';
-}
-function addCatalogPlan(){
-  syncCatalogPlanDraft();catalogDraftPlans.push({name:'',sub:'',ar:'',uy:''});renderCatalogPlanEditor();
-}
-function removeCatalogPlan(index){
-  syncCatalogPlanDraft();catalogDraftPlans.splice(index,1);renderCatalogPlanEditor();
-}
-
-function openCatalogServiceModal(id=''){
-  const s=id?catalogServiceBy(id):null;
-  catalogDraftPlans=normalizeCatalogPlans(s?.plans);
-  if(!catalogDraftPlans.length)catalogDraftPlans=[{name:'1 Pantalla',sub:'Acceso individual',ar:'',uy:''}];
-  const categories=[...state.catalogCategories].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
-  openModal(`
-    <div class="sectionTitle">${id?'Editar':'Nuevo'} servicio público</div>
-    <div class="hint">Este servicio es solo para el catálogo de clientes. No modifica ventas, cuentas ni historial.</div>
-    <label>Nombre</label><input id="catalogSvcName" value="${esc(s?.name||'')}">
-    <label>Categoría</label><select id="catalogSvcCategory">
-      <option value="">Sin categoría</option>
-      ${categories.map(c=>`<option value="${c.id}" ${s?.category_id===c.id?'selected':''}>${esc(c.icon||'📁')} ${esc(c.name)}</option>`).join('')}
-    </select>
-    <label>Descripción</label><textarea id="catalogSvcDescription">${esc(s?.description||'')}</textarea>
-    <label>URL del logo (opcional)</label><input id="catalogSvcLogo" value="${esc(s?.logo_url||'')}" placeholder="https://...">
-    <div class="grid2">
-      <div><label>Color</label><input id="catalogSvcColor" type="color" value="${esc(s?.accent_color||'#3B82F6')}"></div>
-      <div><label>Orden</label><input id="catalogSvcOrder" type="number" value="${Number(s?.sort_order||0)}"></div>
-    </div>
-    <div class="row wrap" style="margin-top:12px">
-      <label style="display:flex;align-items:center;gap:7px;color:#fff;margin:0"><input id="catalogSvcActive" type="checkbox" style="width:auto" ${s?.active!==false?'checked':''}> Mostrar en la página</label>
-      <label style="display:flex;align-items:center;gap:7px;color:#fff;margin:0"><input id="catalogSvcFeatured" type="checkbox" style="width:auto" ${s?.featured?'checked':''}> Destacado</label>
-    </div>
-    <div class="row between" style="margin-top:18px"><div class="sectionTitle" style="margin:0">Planes y precios</div><button class="btn secondary small" onclick="addCatalogPlan()">+ Plan</button></div>
-    <div id="catalogPlansEditor" style="margin-top:8px"></div>
-    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCatalogService('${id}')">Guardar servicio</button>
-    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openCatalogManager()">Volver</button>
-  `);
-  renderCatalogPlanEditor();
-}
-
-async function saveCatalogService(id=''){
-  syncCatalogPlanDraft();
-  const name=document.getElementById('catalogSvcName').value.trim();
-  if(!name)return alert('Ingresá el nombre del servicio.');
-  const plans=catalogDraftPlans.map(p=>({
-    name:p.name||'Plan',sub:p.sub||'',
-    ar:p.ar===''?null:Number(p.ar),uy:p.uy===''?null:Number(p.uy)
-  })).filter(p=>p.ar!==null||p.uy!==null);
-  if(!plans.length)return alert('Agregá al menos un plan con precio.');
-  const payload={
-    name,
-    category_id:document.getElementById('catalogSvcCategory').value||null,
-    description:document.getElementById('catalogSvcDescription').value.trim()||null,
-    logo_url:document.getElementById('catalogSvcLogo').value.trim()||null,
-    accent_color:document.getElementById('catalogSvcColor').value||'#3B82F6',
-    sort_order:Number(document.getElementById('catalogSvcOrder').value||0),
-    active:document.getElementById('catalogSvcActive').checked,
-    featured:document.getElementById('catalogSvcFeatured').checked,
-    plans,
-    updated_at:new Date().toISOString()
-  };
-  const r=id
-    ?await sb.from('catalog_services').update(payload).eq('id',id)
-    :await sb.from('catalog_services').insert(payload);
-  if(r.error)return alert(r.error.message);
-  await refreshAll();openCatalogManager();
-}
-
-async function toggleCatalogService(id,active){
-  const r=await sb.from('catalog_services').update({active,updated_at:new Date().toISOString()}).eq('id',id);
-  if(r.error)return alert(r.error.message);
-  await refreshAll();openCatalogManager();
-}
-
-async function deleteCatalogService(id){
-  const s=catalogServiceBy(id);if(!s)return;
-  if(!confirm(`¿Eliminar "${s.name}" del catálogo público?\n\nEsto no afecta ventas, cuentas ni historial del CRM.`))return;
-  const r=await sb.from('catalog_services').delete().eq('id',id);
-  if(r.error)return alert(r.error.message);
-  await refreshAll();openCatalogManager();
-}
 
 function serviceUsageInfo(serviceId){
   const accounts=state.accounts.filter(a=>a.service_id===serviceId&&!a.archived_at);
@@ -6574,7 +6394,7 @@ function reviewSaleBeforeSave(){
       <div class="row between">
         <div>
           <div class="sectionTitle" style="margin-bottom:2px">Confirmar venta</div>
-          <div class="tiny muted">Revisá todo antes de guardar.</div>
+          <div class="tiny muted">Confirmá que los datos estén bien antes de crear la venta.</div>
         </div>
         <button class="btn secondary small" onclick="closeSaleReview()">✕</button>
       </div>
@@ -6599,7 +6419,7 @@ function reviewSaleBeforeSave(){
       <div class="saleReviewFooter">
         <div class="row">
           <button class="btn secondary" onclick="closeSaleReview()">← Volver a editar</button>
-          <button class="btn primary" id="confirmSaleBtn" onclick="confirmSaleFromPreview()">✓ Guardar venta</button>
+          <button class="btn primary" id="confirmSaleBtn" onclick="confirmSaleFromPreview()">✓ Confirmar y crear venta</button>
         </div>
       </div>
     </div>
@@ -6619,6 +6439,51 @@ async function confirmSaleFromPreview(){
   await saveSale();
 }
 
+
+function saleDeliveryTextFromSavedSale(saleId){
+  const sale=saleBy(saleId); if(!sale)return '';
+  const client=saleClient(sale), items=saleItemsFor(saleId);
+  const blocks=items.map((item,index)=>{
+    const service=serviceBy(item.service_id);
+    const assignment=state.assignments.find(a=>a.sale_item_id===item.id&&!a.released_at)||state.assignments.find(a=>a.sale_item_id===item.id);
+    const slot=assignment?state.slots.find(s=>s.id===assignment.account_slot_id):null;
+    const account=slot?state.accounts.find(a=>a.id===slot.account_id):null;
+    return [
+      `${index+1}. ${service?.name||'Servicio'}`,
+      account?.login_email?`Cuenta: ${account.login_email}`:null,
+      item.include_password&&account?.login_password?`Contraseña: ${account.login_password}`:null,
+      assignment?.profile_name?`Perfil: ${assignment.profile_name}`:null,
+      item.contracted_devices?`Dispositivos: ${item.contracted_devices}`:null,
+      item.end_date?`Vence: ${formatDateAR(item.end_date)}`:null,
+      item.delivery_notes?`Nota: ${item.delivery_notes}`:null
+    ].filter(Boolean).join('\n');
+  });
+  return [`Hola ${client?.name||''} 👋`,'','Te envío los datos de tu compra:','',blocks.join('\n\n'),'',`Total: ${money(sale.total_amount,sale.currency||'ARS')}`].join('\n');
+}
+function openSavedSaleWhatsApp(saleId){
+  const sale=saleBy(saleId); if(!sale)return alert('No se encontró la venta.');
+  const client=saleClient(sale), phone=waPhone(client?.phone_e164||client?.phone_raw||'');
+  if(!phone)return alert('El cliente no tiene un teléfono válido para WhatsApp.');
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(saleDeliveryTextFromSavedSale(saleId))}`,'_blank');
+}
+function showSaleCreatedSuccess(saleId,serviceCount){
+  const sale=saleBy(saleId), client=saleClient(sale);
+  const hasPhone=!!waPhone(client?.phone_e164||client?.phone_raw||'');
+  openModal(`
+    <div class="saleSuccessCard">
+      <div class="saleSuccessIcon">✓</div>
+      <div style="text-align:center">
+        <div class="sectionTitle" style="margin:0">Venta creada correctamente</div>
+        <div class="tiny muted" style="margin-top:5px">${esc(client?.name||'Cliente')} · ${serviceCount} servicio(s) · ${money(sale?.total_amount||0,sale?.currency||'ARS')}</div>
+      </div>
+      <div class="saleSuccessActions">
+        <button type="button" class="btn ok" ${hasPhone?'':'disabled'} onclick="openSavedSaleWhatsApp('${saleId}')">📲 Enviar venta al cliente por WhatsApp</button>
+        ${hasPhone?'':`<div class="tiny muted" style="text-align:center">Este cliente no tiene un teléfono válido cargado.</div>`}
+        <button type="button" class="btn secondary" onclick="openSaleDetail('${saleId}')">Ver venta guardada</button>
+        <button type="button" class="btn secondary" onclick="closeModal();goDashboardFromMore()">Volver al Dashboard</button>
+      </div>
+    </div>`);
+}
 let saleSaveInProgress=false;
 
 async function saveSale(){
@@ -6745,9 +6610,9 @@ async function saveSale(){
 
     closeSaleReview();
     closeModal();
+    const savedSaleId=createdSaleId;
     await refreshAll();
-
-    alert(`Venta creada correctamente ✅\n\n${rows.length} servicio(s) guardados dentro de UNA sola venta.`);
+    showSaleCreatedSuccess(savedSaleId,rows.length);
   }catch(err){
     console.error(err);
 
