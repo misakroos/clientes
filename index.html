@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>MISAKROOS CRM</title>
-<meta name="misakroos-version" content="v59">
+<meta name="misakroos-version" content="v60">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#10243c;--line:#1d3553;--text:#f4f7fb;--muted:#9bb0c9;--accent:#2f80ff;--danger:#ff5d6c;--warn:#ffbd4a;--ok:#37d67a}
@@ -19,8 +19,6 @@
 .dashOrange{background:linear-gradient(180deg,#3e2510,#6b3d13)}
 .dashGreen{background:linear-gradient(180deg,#0e2a1d,#165637)}
 .dashRed{background:linear-gradient(180deg,#35151a,#641f2a)}
-.dashMiniCard{background:linear-gradient(180deg,#0c1c2c,#0a1724)}
-.dashBigNumber{font-size:1.45rem;font-weight:800;margin-top:4px}
 .dashCreateSaleBtn{width:100%;margin-top:12px;min-height:48px;font-size:15px;font-weight:800;background:linear-gradient(135deg,#2478ff,#5a55ff)}
 </style>
 </head>
@@ -33,15 +31,15 @@
     <input id="loginEmail" type="email">
     <label>Contraseña</label>
     <input id="loginPassword" type="password">
-    <button class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button>
-    <div id="loginMsg" class="tiny muted" style="margin-top:8px"></div>
+    <button id="loginBtn" class="btn primary" style="width:100%;margin-top:12px" onclick="login()">Iniciar sesión</button>
+    <div id="loginMsg" class="tiny" style="margin-top:10px;color:var(--danger)"></div>
   </div>
 </div>
 
 <div id="appView" class="app hidden">
   <div class="topbar">
     <b>MISAKROOS CRM</b>
-    <span class="tiny muted" style="margin-left:6px">v59</span>
+    <span class="tiny muted" style="margin-left:6px">v60</span>
     <div class="row" style="gap:6px;align-items:center">
       <button id="refreshBtn" class="btn secondary small" onclick="manualRefresh()">↻ Actualizar</button>
       <button class="btn secondary small" onclick="logout()">Salir</button>
@@ -57,7 +55,7 @@
             <div class="sectionTitle" style="margin:4px 0 6px;font-size:1.25rem">📊 Dashboard</div>
             <div class="tiny" style="opacity:.92">Resumen de ventas, cupos y precios de la web pública.</div>
           </div>
-          <span class="badge ok">v59</span>
+          <span class="badge ok">v60</span>
         </div>
       </div>
 
@@ -146,17 +144,42 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 let state={clients:[],accounts:[],sales:[],catalog_services:[]};
 
 async function login(){
-  const email=document.getElementById('loginEmail').value;
-  const password=document.getElementById('loginPassword').value;
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error) document.getElementById('loginMsg').innerText='Error: '+error.message;
-  else initApp();
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value.trim();
+  const msgEl=document.getElementById('loginMsg');
+  const btnEl=document.getElementById('loginBtn');
+
+  if(!email || !password){
+    msgEl.innerText='Por favor, completa el correo y la contraseña.';
+    return;
+  }
+
+  btnEl.innerText='Ingresando...';
+  btnEl.disabled=true;
+  msgEl.innerText='';
+
+  try {
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error){
+      msgEl.innerText='Error de acceso: '+error.message;
+      btnEl.innerText='Iniciar sesión';
+      btnEl.disabled=false;
+    } else {
+      initApp();
+    }
+  } catch(err) {
+    msgEl.innerText='Error al conectar con la base de datos.';
+    btnEl.innerText='Iniciar sesión';
+    btnEl.disabled=false;
+  }
 }
 
 async function logout(){
   await sb.auth.signOut();
   document.getElementById('authView').classList.remove('hidden');
   document.getElementById('appView').classList.add('hidden');
+  document.getElementById('loginBtn').innerText='Iniciar sesión';
+  document.getElementById('loginBtn').disabled=false;
 }
 
 async function initApp(){
@@ -176,8 +199,10 @@ async function refreshAll(){
 }
 
 async function fetchTable(table){
-  const {data}=await sb.from(table).select('*').order('name',{ascending:true,nullsFirst:false});
-  if(data) state[table]=data;
+  try {
+    const {data}=await sb.from(table).select('*');
+    if(data) state[table]=data;
+  } catch(e) { console.warn('Error al cargar', table); }
 }
 
 function showScreen(screenId, btnElement){
@@ -292,9 +317,12 @@ function goClients(){ showScreen('clients'); }
 function goSalesPreset(){ showScreen('sales'); }
 function goAccountsFree(){ showScreen('accounts'); }
 
+// Verificar sesión inicial
 (async ()=>{
-  const {data:{session}} = await sb.auth.getSession();
-  if(session) initApp();
+  try {
+    const {data:{session}} = await sb.auth.getSession();
+    if(session) initApp();
+  } catch(e) {}
 })();
 </script>
 </body>
