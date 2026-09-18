@@ -3871,7 +3871,9 @@ function openCatalogManager(){
       <div class="row between">
         <div style="min-width:0">
           <b>${esc(s.name)}</b>
-          <div class="tiny muted">${esc(catalogCategoryLabel(s.category_id))} · ${Array.isArray(s.plans)?s.plans.length:0} plan(es)</div>
+        <div class="tiny muted">
+  ${esc(catalogCategoryLabel(s.category_id))} · ${s.type === 'combo' ? 'Combo' : 'Servicio'} · ${Array.isArray(s.plans)?s.plans.length:0} plan(es)
+</div>
         </div>
         <label style="margin:0;display:flex;align-items:center;gap:6px;color:#fff">
           <input type="checkbox" style="width:auto" ${s.active!==false?'checked':''} onchange="toggleCatalogService('${s.id}',this.checked)">
@@ -3931,7 +3933,65 @@ async function deleteCatalogCategory(id){
   if(r.error)return alert(r.error.message);
   await refreshAll();openCatalogManager();
 }
+let catalogDraftCombos=[];
 
+function normalizeCatalogCombos(value){
+  const rows=Array.isArray(value)?value:[];
+  return rows.map(item=>({
+    name:String(item?.name||item?.service_name||''),
+    description:String(item?.description||''),
+    qty:Number(item?.qty||1),
+    price:item?.price ?? ''
+  })).filter(item=>item.name || item.description || item.price !== '');
+}
+
+function syncCatalogComboDraft(){
+  const rows=[...document.querySelectorAll('.catalog-combo-row')];
+  if(!rows.length)return;
+  catalogDraftCombos=rows.map(row=>({
+    name:row.querySelector('[data-combo-name]')?.value.trim()||'',
+    description:row.querySelector('[data-combo-desc]')?.value.trim()||'',
+    qty:Number(row.querySelector('[data-combo-qty]')?.value||1),
+    price:row.querySelector('[data-combo-price]')?.value||''
+  })).filter(item=>item.name || item.description || item.price !== '');
+}
+
+function renderCatalogComboEditor(){
+  const box=document.getElementById('catalogComboEditor');
+  if(!box)return;
+  box.innerHTML = catalogDraftCombos.map((item,index)=>`
+    <div class="item catalog-combo-row" data-combo-index="${index}">
+      <div class="row between">
+        <b>Combo ${index+1}</b>
+        <button class="btn danger small" onclick="removeCatalogCombo(${index})">Quitar</button>
+      </div>
+      <label>Nombre del combo</label>
+      <input data-combo-name value="${esc(item.name)}" placeholder="Ej: Netflix + Disney">
+      <label>Descripción</label>
+      <input data-combo-desc value="${esc(item.description)}" placeholder="Incluye 2 perfiles">
+      <div class="grid2">
+        <div>
+          <label>Cantidad</label>
+          <input data-combo-qty type="number" min="1" value="${Number(item.qty||1)}">
+        </div>
+        <div>
+          <label>Precio</label>
+          <input data-combo-price type="number" step="0.01" value="${esc(item.price)}" placeholder="0">
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div class="hint">Todavía no agregaste combos.</div>';
+}
+
+function addCatalogCombo(){
+  catalogDraftCombos.push({name:'',description:'',qty:1,price:''});
+  renderCatalogComboEditor();
+}
+
+function removeCatalogCombo(index){
+  catalogDraftCombos.splice(index,1);
+  renderCatalogComboEditor();
+}
 let catalogDraftPlans=[];
 function normalizeCatalogPlans(value){
   const rows=Array.isArray(value)?value:[];
@@ -3965,7 +4025,84 @@ function addCatalogPlan(){
 function removeCatalogPlan(index){
   syncCatalogPlanDraft();catalogDraftPlans.splice(index,1);renderCatalogPlanEditor();
 }
+function openCatalogServiceModal(id=''){
+  const s=id?catalogServiceBy(id):null;
+  catalogDraftPlans=normalizeCatalogPlans(s?.plans);
+  catalogDraftCombos=normalizeCatalogCombos(s?.combo_services || s?.combos || []);
 
+  if(!catalogDraftPlans.length){
+    catalogDraftPlans=[{name:'1 Pantalla',sub:'Acceso individual',ar:'',uy:''}];
+  }
+  if(!catalogDraftCombos.length){
+    catalogDraftCombos=[{name:'',description:'',qty:1,price:''}];
+  }
+
+  const categories=[...state.catalogCategories].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)||(a.name||'').localeCompare(b.name||'','es'));
+
+  openModal(`
+    <div class="sectionTitle">${id?'Editar':'Nuevo'} servicio público</div>
+    <div class="hint">Este servicio es solo para el catálogo de clientes. No modifica ventas, cuentas ni historial.</div>
+
+    <label>Nombre</label>
+    <input id="catalogSvcName" value="${esc(s?.name||'')}">
+
+    <label>Categoría</label>
+    <select id="catalogSvcCategory">
+      <option value="">Sin categoría</option>
+      ${categories.map(c=>`<option value="${c.id}" ${s?.category_id===c.id?'selected':''}>${esc(c.icon||'📁')} ${esc(c.name)}</option>`).join('')}
+    </select>
+
+    <label>Tipo de oferta</label>
+    <select id="catalogSvcType">
+      <option value="service" ${(!s || s.type !== 'combo') ? 'selected' : ''}>Servicio</option>
+      <option value="combo" ${s?.type === 'combo' ? 'selected' : ''}>Combo</option>
+    </select>
+
+    <label>Descripción</label>
+    <textarea id="catalogSvcDescription">${esc(s?.description||'')}</textarea>
+
+    <label>URL del logo (opcional)</label>
+    <input id="catalogSvcLogo" value="${esc(s?.logo_url||'')}" placeholder="https://...">
+
+    <div class="grid2">
+      <div><label>Color de acento</label><input id="catalogSvcColor" value="${esc(s?.accent_color||'#3B82F6')}"></div>
+      <div><label>Orden</label><input id="catalogSvcOrder" type="number" value="${Number(s?.sort_order||0)}"></div>
+    </div>
+
+    <div class="grid2">
+      <div><label>Visible</label><input id="catalogSvcActive" type="checkbox" ${s?.active!==false?'checked':''}></div>
+      <div><label>Destacado</label><input id="catalogSvcFeatured" type="checkbox" ${s?.featured?'checked':''}></div>
+    </div>
+
+    <div id="catalogComboSection" class="${s?.type === 'combo' ? '' : 'hidden'}">
+      <div class="row between" style="margin-top:14px">
+        <div class="sectionTitle" style="margin:0">Combos incluidos</div>
+        <button class="btn secondary small" onclick="addCatalogCombo()">+ Combo</button>
+      </div>
+      <div id="catalogComboEditor"></div>
+    </div>
+
+    <div class="row between" style="margin-top:18px">
+      <div class="sectionTitle" style="margin:0">Planes y precios</div>
+      <button class="btn secondary small" onclick="addCatalogPlan()">+ Plan</button>
+    </div>
+    <div id="catalogPlansEditor" style="margin-top:8px"></div>
+
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="saveCatalogService('${id}')">Guardar servicio</button>
+    <button class="btn secondary" style="width:100%;margin-top:8px" onclick="openCatalogManager()">Volver</button>
+  `);
+
+  renderCatalogPlanEditor();
+  renderCatalogComboEditor();
+
+  const svcType=document.getElementById('catalogSvcType');
+  const comboSection=document.getElementById('catalogComboSection');
+  if(svcType && comboSection){
+    svcType.onchange=()=>{
+      comboSection.classList.toggle('hidden', svcType.value !== 'combo');
+    };
+  }
+}
 function openCatalogServiceModal(id=''){
   const s=id?catalogServiceBy(id):null;
   catalogDraftPlans=normalizeCatalogPlans(s?.plans);
