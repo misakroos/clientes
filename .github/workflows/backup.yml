@@ -63,7 +63,7 @@ jobs:
 
             const auth = new google.auth.GoogleAuth({
               keyFile: 'google-credentials.json',
-              scopes: ['https://www.googleapis.com/auth/drive.file'],
+              scopes: ['https://www.googleapis.com/auth/drive'],
             });
 
             const drive = google.drive({ version: 'v3', auth });
@@ -77,6 +77,7 @@ jobs:
                 mimeType: 'application/json',
                 body: fs.createReadStream(fileName),
               },
+              fields: 'id',
             });
 
             console.log('¡Respaldo subido con éxito a Google Drive!');
