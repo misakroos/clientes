@@ -30,12 +30,19 @@ jobs:
         run: |
           node -e "
           const { createClient } = require('@supabase/supabase-js');
+          const WebSocket = require('ws');
 
           async function main() {
             const supabase = createClient(
               process.env.SUPABASE_URL,
               process.env.SUPABASE_SERVICE_ROLE_KEY,
-              { auth: { persistSession: false }, realtime: { global: { headers: {} } } }
+              {
+                auth: { persistSession: false },
+                realtime: {
+                  transport: WebSocket,
+                  timeout: 20000
+                }
+              }
             );
 
             const tables = ['clients', 'services', 'suppliers', 'purchases', 'accounts', 'account_slots', 'sales', 'sale_items', 'slot_assignments', 'cash_movements', 'activity_log', 'renewal_finance'];
@@ -50,7 +57,8 @@ jobs:
             const response = await fetch(process.env.DRIVE_WEBHOOK_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ backupData })
+              body: JSON.stringify({ backupData }),
+              redirect: 'follow'
             });
 
             const resText = await response.text();
