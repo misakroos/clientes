@@ -1,0 +1,76 @@
+name: Respaldo Diario a Google Drive
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Se ejecuta automáticamente todos los días a las 00:00 UTC
+  workflow_dispatch: # Permite ejecutar el respaldo manualmente desde GitHub cuando quieras
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Instalar dependencias
+        run: |
+          npm init -y
+          npm install @supabase/supabase-js googleapis
+
+      - name: Crear archivo de credenciales de Google
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > google-credentials.json
+
+      - name: Ejecutar script de exportación a Drive
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const { google } = require('googleapis');
+          const fs = require('fs');
+
+          async function main() {
+            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            const tables = ['clients', 'services', 'suppliers', 'purchases', 'accounts', 'account_slots', 'sales', 'sale_items', 'slot_assignments', 'cash_movements', 'activity_log', 'renewal_finance'];
+            
+            const backupData = { date: new Date().toISOString(), tables: {} };
+
+            for (const table of tables) {
+              const { data, error } = await supabase.from(table).select('*');
+              if (error) console.error('Error descargando tabla ' + table, error);
+              else backupData.tables[table] = data || [];
+            }
+
+            const fileName = \`backup-crm-\${new Date().toISOString().split('T')[0]}.json\`;
+            fs.writeFileSync(fileName, JSON.stringify(backupData, null, 2));
+
+            const auth = new google.auth.GoogleAuth({
+              keyFile: 'google-credentials.json',
+              scopes: ['https://www.googleapis.com/auth/drive.file'],
+            });
+
+            const drive = google.drive({ version: 'v3', auth });
+            await drive.files.create({
+              requestBody: {
+                name: fileName,
+                parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+              },
+              media: {
+                mimeType: 'application/json',
+                body: fs.createReadStream(fileName),
+              },
+            });
+
+            console.log('¡Respaldo subido con éxito a Google Drive!');
+          }
+
+          main().catch(err => { console.error(err); process.exit(1); });
+          "
