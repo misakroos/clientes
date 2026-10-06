@@ -20,7 +20,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           npm init -y
-          npm install @supabase/supabase-js googleapis
+          npm install @supabase/supabase-js googleapis ws
 
       - name: Crear archivo de credenciales de Google
         run: |
@@ -36,9 +36,18 @@ jobs:
           const { createClient } = require('@supabase/supabase-js');
           const { google } = require('googleapis');
           const fs = require('fs');
+          const WebSocket = require('ws');
 
           async function main() {
-            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+            const supabase = createClient(
+              process.env.SUPABASE_URL,
+              process.env.SUPABASE_SERVICE_ROLE_KEY,
+              {
+                auth: { persistSession: false },
+                realtime: { global: { headers: {} } }
+              }
+            );
+
             const tables = ['clients', 'services', 'suppliers', 'purchases', 'accounts', 'account_slots', 'sales', 'sale_items', 'slot_assignments', 'cash_movements', 'activity_log', 'renewal_finance'];
             
             const backupData = { date: new Date().toISOString(), tables: {} };
