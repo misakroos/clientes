@@ -361,6 +361,50 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   .financeBreakdown{grid-template-columns:1fr}
 }
 
+
+/* v59 dashboard analítico */
+.dashChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.dashClick{cursor:pointer;color:inherit;font:inherit;text-align:left}
+.dcScroll{overflow-x:auto;padding-bottom:6px;margin-top:10px;-webkit-overflow-scrolling:touch}
+.dcRow{display:flex;align-items:flex-end;gap:4px;min-width:100%}
+.dcCol{flex:1 0 34px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:8px;padding:2px 0;background:none;border:0;color:inherit}
+.dcCol.sel{background:rgba(77,177,255,.16);outline:1px solid #4db1ff}
+.dcVal{font-size:10px;color:var(--muted);height:13px;white-space:nowrap}
+.dcPos,.dcNeg{display:flex;width:68%;max-width:28px}
+.dcPos{flex-direction:column-reverse;border-bottom:1px solid #2c4764}
+.dcNeg{flex-direction:column}
+.dcSeg{width:100%;min-height:2px}
+.dcLbl{font-size:10px;color:var(--muted);white-space:nowrap}
+.dcLegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:12px;color:var(--muted)}
+.dcDot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.dcBarTrack{height:10px;border-radius:999px;background:#08131f;border:1px solid var(--line);overflow:hidden;margin-top:5px}
+.dcBarFill{height:100%;border-radius:999px}
+.dcLegRow{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;margin-top:6px;background:none;border:0;color:inherit;width:100%;padding:0;text-align:left;cursor:pointer}
+
+/* v59 cuentas */
+.svcIco{position:relative;display:inline-flex;align-items:center;justify-content:center;border-radius:28%;color:#fff;font-weight:800;flex:none;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.svcIco img{position:absolute;inset:20%;width:60%;height:60%;object-fit:contain}
+.svcChip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.svcCnt{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.1)}
+.svcCnt.ok{background:rgba(61,220,151,.2);color:#3ddc97}.svcCnt.no{background:rgba(255,93,108,.18);color:#ff8f9b}
+.accSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.accTile{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:14px;border:1px solid var(--line);background:#0c1c2c;color:inherit;text-align:left}
+.accTile b{font-size:1.35rem;line-height:1.1}
+.accGreen{background:linear-gradient(180deg,#0e2a1d,#123f2a)}.accRed{background:linear-gradient(180deg,#35151a,#4d1a22)}
+.accWide{grid-column:1/-1}
+.accBar{height:9px;border-radius:999px;background:#08131f;border:1px solid var(--line);overflow:hidden;margin-top:6px}
+.accBar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#4db1ff,#6b6cff)}
+.accBar.full>div{background:#ff5d6c}.accBar.low>div{background:#ff9f43}
+.accCard{border-left:4px solid #3ddc97}.accCard.low{border-left-color:#ff9f43}.accCard.full{border-left-color:#ff5d6c}
+.accOpen{width:100%;background:none;border:0;color:inherit;text-align:left;padding:0}
+.accHead{display:flex;gap:12px;align-items:center}
+.accTitle{flex:1;min-width:0}.accEmail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.accSlots{display:flex;gap:4px;margin-top:10px}
+.accSlots i{flex:1;height:10px;border-radius:4px;background:#16314a}
+.accSlots i.on{background:#4db1ff}.accSlots i.on.low{background:#ff9f43}.accSlots i.on.full{background:#ff5d6c}
+.accActs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.accAct{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;font-size:10.5px;border-radius:12px;border:1px solid var(--line);background:#0b2034;color:inherit}
+.accAct b{font-size:16px}.accAct.warn{background:#2c2110;color:#ffd08a}.accAct.danger{background:#35151a;color:#ff9aa6}
 </style>
 </head>
 <body>
@@ -377,18 +421,6 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 </div>
 
 <section id="screen-home">
-  <div class="card dashHero">
-    <div class="row between" style="align-items:flex-start">
-      <div>
-        <div class="tiny" style="opacity:.85;letter-spacing:.4px">MISAKROOS CRM</div>
-        <div class="sectionTitle" style="margin:4px 0 6px;font-size:1.25rem">📊 Dashboard</div>
-        <div class="tiny" style="opacity:.92">Resumen visual de clientes, ventas, servicios y rendimiento del negocio.</div>
-      </div>
-      <span class="badge ok">v53</span>
-    </div>
-    <div class="tiny" style="margin-top:10px;opacity:.9">Tip: tocá las tarjetas y seguí navegando al detalle.</div>
-  </div>
-
   <button type="button" class="btn primary dashCreateSaleBtn" onclick="openSaleModal()">＋ Crear nueva venta</button>
 
   <div class="grid2" style="margin-top:12px">
@@ -414,29 +446,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     </button>
   </div>
 
-  <div class="grid2" style="margin-top:12px">
-    <div class="card dashMiniCard">
-      <div class="tiny muted">Facturación del mes</div>
-      <div id="dashMonthSales" class="dashBigNumber">$0</div>
-      <div id="dashMonthSalesMeta" class="tiny muted">0 ventas este mes</div>
-    </div>
-    <div class="card dashMiniCard">
-      <div class="tiny muted">Ganancia estimada del mes</div>
-      <div id="dashMonthProfit" class="dashBigNumber">$0</div>
-      <div id="dashMonthProfitMeta" class="tiny muted">ingreso - costo directo</div>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:12px">
-    <div class="row between">
-      <div>
-        <div class="sectionTitle" style="margin:0">Gráfico de ventas</div>
-        <div class="tiny muted">Últimos 7 días · monto vendido por día</div>
-      </div>
-      <button class="btn secondary small" onclick="renderHome()">Actualizar gráfico</button>
-    </div>
-    <div id="dashSalesChart" style="margin-top:10px"></div>
-  </div>
+  <div id="dashAnalytics" style="margin-top:12px"></div>
 
   <div class="grid2" style="margin-top:12px">
     <div class="card">
@@ -460,7 +470,7 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
     <div class="card">
       <div class="row between">
         <div class="sectionTitle" style="margin:0">🎬 Top servicios</div>
-        <button class="btn secondary small" onclick="showScreen('services')">Ver servicios</button>
+        <button class="btn secondary small" onclick="showScreen('more')">Ver servicios</button>
       </div>
       <div id="dashTopServices" style="margin-top:8px"></div>
     </div>
@@ -533,16 +543,12 @@ hr{border:0;border-top:1px solid var(--line);margin:13px 0}
   </div>
 </div>
 
+<div id="accountsSummary" class="accSummary"></div>
+
 <div class="filterBar">
   <input id="accountsSearch" placeholder="Buscar por correo..." oninput="renderAccounts()">
   <div id="accountServiceChips" class="filterChips"></div>
-  <div class="filterChips">
-    <button class="btn secondary small" onclick="setAccountCapacityFilter('all')">Todas</button>
-    <button class="btn secondary small" onclick="setAccountCapacityFilter('free')">Con cupos libres</button>
-    <button class="btn secondary small" onclick="setAccountCapacityFilter('full')">Completas</button>
-    <button class="btn secondary small" onclick="setAccountCapacityFilter('mine')">Administradas por mí</button>
-    <button class="btn secondary small" onclick="setAccountCapacityFilter('provider')">Proveedor</button>
-  </div>
+  <div id="accountCapChips" class="filterChips"></div>
   <select id="accountsSort" onchange="renderAccounts()">
     <option value="free_desc">Más cupos libres primero</option>
     <option value="free_asc">Menos cupos libres primero</option>
@@ -867,6 +873,11 @@ function saleDirectCosts(saleId){
 function saleServiceNames(saleId){
   return saleItemsFor(saleId).map(i=>serviceBy(i.service_id)?.name||'Servicio');
 }
+// Pendiente = marcado como pendiente de cobro/renovación O ya se le envió aviso de vencimiento (sin renovar). Excluye "no renueva".
+function isPendingItem(i){
+  if(!i||i.workflow_status==='not_renewing')return false;
+  return ['renewal_pending','payment_pending'].includes(i.workflow_status)||Number(i.renewal_notice_stage||0)>0;
+}
 function saleHasStatus(saleId,kind){
   const items=saleItemsFor(saleId);
   if(!items.length)return false;
@@ -875,7 +886,7 @@ function saleHasStatus(saleId,kind){
     if(kind==='active')return d>=0&&['active','renewal_pending','payment_pending'].includes(i.workflow_status);
     if(kind==='today')return d===0;
     if(kind==='expiring7')return d>=0&&d<=7;
-    if(kind==='pending')return ['renewal_pending','payment_pending'].includes(i.workflow_status);
+    if(kind==='pending')return isPendingItem(i);
     if(kind==='expired')return d<0;
     return true;
   });
@@ -1628,7 +1639,7 @@ function assistantHandleQuery(text){
   }
 
   if(intent==='renewal_pending'){
-    const items=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)||Number(i.renewal_notice_stage||0)>0);
+    const items=state.saleItems.filter(isPendingItem);
     return {handled:true,html:items.length
       ?`Encontré <b>${items.length}</b> servicio(s) con seguimiento de renovación:<br><br>${items.slice(0,20).map(i=>{
           const sale=saleBy(i.sale_id),c=sale&&clientBy(sale.client_id),srv=serviceBy(i.service_id);
@@ -1889,7 +1900,7 @@ async function assistantSend(){
 function clientBy(id){return state.clients.find(x=>x.id===id)}function serviceBy(id){return state.services.find(x=>x.id===id)}function supplierBy(id){return state.suppliers.find(x=>x.id===id)}function accountBy(id){return state.accounts.find(x=>x.id===id)}function slotBy(id){return state.slots.find(x=>x.id===id)}function saleBy(id){return state.sales.find(x=>x.id===id)}function activeAssignItem(id){return state.assignments.find(x=>x.sale_item_id===id&&!x.released_at)}function activeAssignSlot(id){return state.assignments.find(x=>x.account_slot_id===id&&!x.released_at)}
 function renderAll(){
   mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
-  mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;
+  mPending.textContent=state.saleItems.filter(isPendingItem).length;
   const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
   const activeAccountIds=new Set(state.accounts.filter(a=>!a.archived_at&&a.status==='active').map(a=>a.id));
   mSlots.textContent=state.slots.filter(s=>s.active&&activeAccountIds.has(s.account_id)&&!occ.has(s.id)).length;
@@ -1965,7 +1976,7 @@ function renderMiniRanks(targetId, rows, emptyText){
   const el=document.getElementById(targetId);
   if(!el)return;
   el.innerHTML = rows.length ? rows.map((r,i)=>`
-    <div class="dashRank">
+    <div class="dashRank ${r.onclick?'itemClickable':''}" ${r.onclick?`onclick="${r.onclick}"`:''}>
       <div class="dashRankNum">${i+1}</div>
       <div class="dashRankBody">
         <div class="dashRankTitle">${esc(r.title)}</div>
@@ -1996,13 +2007,197 @@ function renderSalesBars(targetId, rows){
     </div>`;
   }).join('') + `</div>`;
 }
+/* ===== Dashboard analítico v59 ===== */
+let dashPeriod='month',dashType='all',dashMetric='revenue',dashGran='auto',dashSel=null;
+function dashAdd(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return isoLocal(d)}
+function dashDiff(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000)}
+function dashMonday(iso){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()-((d.getDay()+6)%7));return isoLocal(d)}
+function dashShort(n){const a=Math.abs(n),sg=n<0?'-':'';if(a>=1e6)return sg+(a/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M';if(a>=1e3)return sg+Math.round(a/1e3)+'k';return sg+Math.round(a)}
+function dashMoves(){
+  const out=[];
+  state.sales.forEach(s=>{
+    const items=saleItemsFor(s.id);
+    out.push({kind:'sale',saleId:s.id,date:dayKey(s.sold_at),rev:amountArsFromSale(s),cost:items.reduce((a,i)=>a+amountArsFromItemCost(i),0),clientId:s.client_id,items:items.map(i=>({sid:i.service_id,cost:amountArsFromItemCost(i)}))});
+  });
+  (state.renewalFinance||[]).forEach(r=>{
+    const sale=saleBy(r.sale_id);
+    const rev=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency),cost=renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);
+    const ids=r.service_id?[r.service_id]:saleItemsFor(r.sale_id).map(i=>i.service_id);
+    out.push({kind:'ren',saleId:r.sale_id,date:dayKey(r.renewed_at),rev,cost,clientId:r.client_id||sale?.client_id,items:ids.map(sid=>({sid,cost:cost/(ids.length||1)}))});
+  });
+  return out.filter(m=>m.date);
+}
+function dashRange(moves){
+  const t=isoLocal(new Date()),n=new Date();let from;
+  if(dashPeriod==='today')from=t;
+  else if(dashPeriod==='week')from=dashAdd(t,-6);
+  else if(dashPeriod==='month')from=isoLocal(new Date(n.getFullYear(),n.getMonth(),1));
+  else if(dashPeriod==='d30')from=dashAdd(t,-29);
+  else if(dashPeriod==='year')from=n.getFullYear()+'-01-01';
+  else from=moves.length?moves.reduce((m,x)=>x.date<m?x.date:m,t):t;
+  const days=dashDiff(from,t)+1;
+  return {from,to:t,days,prev:dashPeriod==='all'?null:{from:dashAdd(from,-days),to:dashAdd(from,-1)}};
+}
+function dashGranEff(days){if(dashGran!=='auto')return dashGran;return days<=45?'day':days<=200?'week':'month'}
+function dashBuckets(from,to,g){
+  const arr=[];let cur=g==='day'?from:g==='week'?dashMonday(from):from.slice(0,7)+'-01',guard=0;
+  while(cur<=to&&guard++<800){
+    let next,label;
+    if(g==='day'){next=dashAdd(cur,1);label=shortDayLabel(cur)}
+    else if(g==='week'){next=dashAdd(cur,7);label='S '+shortDayLabel(cur)}
+    else{const d=new Date(cur+'T12:00:00');d.setMonth(d.getMonth()+1);next=isoLocal(d);label=new Date(cur+'T12:00:00').toLocaleDateString('es-AR',{month:'short',year:'2-digit'}).replace('.','')}
+    const end=dashAdd(next,-1);
+    arr.push({key:cur,label,from:cur<from?from:cur,to:end>to?to:end,s:{rev:0,cost:0,n:0},r:{rev:0,cost:0,n:0},moves:[]});
+    cur=next;
+  }
+  return arr;
+}
+function dashInType(m){return dashType==='all'||(dashType==='sales'&&m.kind==='sale')||(dashType==='renewals'&&m.kind==='ren')}
+function dashTotals(moves,from,to){
+  const t={rev:0,cost:0,n:0,sRev:0,sCost:0,sN:0,rRev:0,rCost:0,rN:0};
+  moves.forEach(m=>{
+    if(m.date<from||m.date>to||!dashInType(m))return;
+    t.rev+=m.rev;t.cost+=m.cost;t.n++;
+    if(m.kind==='sale'){t.sRev+=m.rev;t.sCost+=m.cost;t.sN++}else{t.rRev+=m.rev;t.rCost+=m.cost;t.rN++}
+  });
+  t.profit=t.rev-t.cost;t.margin=t.rev?t.profit/t.rev*100:0;t.ticket=t.n?t.rev/t.n:0;
+  return t;
+}
+function dashMV(p){return dashMetric==='revenue'?p.rev:dashMetric==='profit'?p.rev-p.cost:p.n}
+function dashFmt(v){return dashMetric==='count'?String(v):dashboardMoneyARS(v)}
+function dashDelta(cur,prev,inverse){
+  if(prev==null)return '';
+  if(!prev&&!cur)return '<span class="tiny muted">sin cambios</span>';
+  if(!prev)return '<span class="tiny" style="color:#3ddc97">nuevo</span>';
+  const pc=(cur-prev)/Math.abs(prev)*100,up=pc>=0,good=inverse?!up:up;
+  return `<span class="tiny" style="color:${good?'#3ddc97':'#ff5d6c'}">${up?'▲':'▼'} ${Math.abs(pc).toFixed(0)}% vs anterior</span>`;
+}
+function dashSet(k,v){
+  if(k==='period')dashPeriod=v;else if(k==='type')dashType=v;else if(k==='metric')dashMetric=v;else if(k==='gran')dashGran=v;
+  dashSel=null;renderDashAnalytics();
+}
+function dashPick(key){dashSel=dashSel===key?null:key;renderDashAnalytics(true)}
+function dashDonut(parts,top,sub){
+  const C=2*Math.PI*38,total=parts.reduce((a,p)=>a+Math.max(0,p.v),0);let off=0;
+  const segs=total>0?parts.filter(p=>p.v>0).map(p=>{const len=p.v/total*C;const c=`<circle cx="50" cy="50" r="38" fill="none" stroke="${p.c}" stroke-width="16" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 50 50)" style="cursor:pointer" ${p.on?`onclick="${p.on}"`:''}></circle>`;off+=len;return c}).join(''):'<circle cx="50" cy="50" r="38" fill="none" stroke="#16314a" stroke-width="16"></circle>';
+  return `<svg viewBox="0 0 100 100" style="width:100%;max-width:140px;display:block;margin:0 auto">${segs}<text x="50" y="50" text-anchor="middle" font-size="11" font-weight="800" fill="currentColor">${top}</text><text x="50" y="62" text-anchor="middle" font-size="6" fill="#8fa5bd">${sub}</text></svg>`;
+}
+function renderDashAnalytics(keepScroll){
+  const box=document.getElementById('dashAnalytics');if(!box)return;
+  const oldSc=document.getElementById('dashChartScroll'),sl=oldSc?oldSc.scrollLeft:null;
+  const moves=dashMoves(),R=dashRange(moves);
+  const T=dashTotals(moves,R.from,R.to),P=R.prev?dashTotals(moves,R.prev.from,R.prev.to):null;
+  const g=dashGranEff(R.days),buckets=dashBuckets(R.from,R.to,g);
+  moves.forEach(m=>{
+    if(m.date<R.from||m.date>R.to||!dashInType(m))return;
+    const b=buckets.find(x=>m.date>=x.from&&m.date<=x.to);if(!b)return;
+    const part=m.kind==='sale'?b.s:b.r;part.rev+=m.rev;part.cost+=m.cost;part.n++;b.moves.push(m);
+  });
+  const chip=(k,v,l,cur)=>`<button type="button" class="btn small ${cur===v?'primary':'secondary'}" onclick="dashSet('${k}','${v}')">${l}</button>`;
+  const fin=(extra)=>`goFinance({from:'${R.from}',to:'${R.to}',type:'${dashType}'${extra||''}})`;
+  const pc=(a,b)=>a+b>0?Math.round(a/(a+b)*100):0;
+
+  // KPIs
+  const kpi=`<div class="grid2" style="margin-top:10px">
+    <button class="metric metricBtn dashMetric dashBlue" onclick="${fin()}"><div class="tiny muted">Facturado</div><b>${dashboardMoneyARS(T.rev)}</b><span class="tiny">${dashDelta(T.rev,P?.rev,false)||'&nbsp;'}</span></button>
+    <button class="metric metricBtn dashMetric dashOrange" onclick="${fin()}"><div class="tiny muted">Invertido (gastos)</div><b>${dashboardMoneyARS(T.cost)}</b><span class="tiny">${dashDelta(T.cost,P?.cost,true)||'&nbsp;'}</span></button>
+    <button class="metric metricBtn dashMetric ${T.profit>=0?'dashGreen':'dashRed'}" onclick="${fin()}"><div class="tiny muted">Ganancia · margen ${T.margin.toFixed(0)}%</div><b>${dashboardMoneyARS(T.profit)}</b><span class="tiny">${dashDelta(T.profit,P?.profit,false)||'&nbsp;'}</span></button>
+    <button class="metric metricBtn dashMetric dashBlue" onclick="${fin()}"><div class="tiny muted">Movimientos</div><b>${T.n}</b><span class="tiny">${T.sN} venta(s) · ${T.rN} renov. · ticket ${dashShort(T.ticket)}</span></button>
+  </div>`;
+
+  // Gráfico de barras apiladas
+  let posMax=0,negMax=0;
+  buckets.forEach(b=>{let pos=0,neg=0;[dashMV(b.s),dashMV(b.r)].forEach(v=>{if(v>=0)pos+=v;else neg+=-v});b.pos=pos;b.neg=neg;posMax=Math.max(posMax,pos);negMax=Math.max(negMax,neg)});
+  const H=150,range=(posMax+negMax)||1,many=buckets.length>14;
+  const cols=buckets.map(b=>{
+    const seg=(v,cls,pos)=>{if(!v)return '';const h=Math.max(2,Math.abs(v)/range*H);const col=v>=0?(cls==='s'?'#4db1ff':'#3ddc97'):(cls==='s'?'#ff5d6c':'#ff8f9b');return `<div class="dcSeg" style="height:${h.toFixed(1)}px;background:${col}"></div>`};
+    const vs=dashMV(b.s),vr=dashMV(b.r),tot=vs+vr;
+    const showV=!many||dashSel===b.key;
+    return `<button type="button" class="dcCol ${dashSel===b.key?'sel':''}" onclick="dashPick('${b.key}')">
+      <div class="dcVal">${showV&&tot?(dashMetric==='count'?tot:dashShort(tot)):''}</div>
+      <div class="dcPos" style="height:${(posMax/range*H).toFixed(1)}px">${seg(vs>=0?vs:0,'s')}${seg(vr>=0?vr:0,'r')}</div>
+      <div class="dcNeg" style="height:${(negMax/range*H).toFixed(1)}px">${seg(vs<0?vs:0,'s')}${seg(vr<0?vr:0,'r')}</div>
+      <div class="dcLbl">${esc(b.label)}</div></button>`;
+  }).join('');
+  const mname={revenue:'Facturado',profit:'Ganancia',count:'Cantidad'}[dashMetric],gname={day:'por día',week:'por semana',month:'por mes'}[g];
+
+  // Detalle del período seleccionado
+  let detail='<div class="tiny muted" style="margin-top:8px">👆 Tocá una barra para ver sus movimientos.</div>';
+  const sb_=buckets.find(b=>b.key===dashSel);
+  if(sb_){
+    const list=sb_.moves.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    const lbl=g==='day'?formatDateAR(sb_.from):`${formatDateAR(sb_.from)} → ${formatDateAR(sb_.to)}`;
+    const sT={rev:sb_.s.rev+sb_.r.rev,cost:sb_.s.cost+sb_.r.cost};
+    detail=`<div class="item" style="margin-top:10px"><div class="row between"><b>${lbl}</b><button class="btn secondary small" onclick="goFinance({from:'${sb_.from}',to:'${sb_.to}',type:'${dashType}'})">Ver en Finanzas</button></div>
+      <div class="tiny muted">${sb_.s.n} venta(s) · ${sb_.r.n} renovación(es) · Facturado ${dashboardMoneyARS(sT.rev)} · Invertido ${dashboardMoneyARS(sT.cost)} · Ganancia ${dashboardMoneyARS(sT.rev-sT.cost)}</div>
+      <div style="margin-top:8px">${list.length?list.slice(0,15).map(m=>`<button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${m.saleId}')">
+        <div class="row between"><b>${m.kind==='sale'?'💳':'🔄'} ${esc(clientBy(m.clientId)?.name||'Cliente')}</b><b>${dashboardMoneyARS(m.rev)}</b></div>
+        <div class="tiny muted">${formatDateAR(m.date)} · ${esc(m.items.map(i=>serviceBy(i.sid)?.name||'Servicio').join(' / ')||'—')} · inversión ${dashboardMoneyARS(m.cost)}</div></button>`).join(''):'<div class="muted">Sin movimientos.</div>'}${list.length>15?`<div class="tiny muted">+${list.length-15} más, verlos en Finanzas.</div>`:''}</div></div>`;
+  }
+
+  // Donuts
+  const donut1=dashDonut([{v:T.sRev,c:'#4db1ff',on:`goFinance({from:'${R.from}',to:'${R.to}',type:'sales'})`},{v:T.rRev,c:'#3ddc97',on:`goFinance({from:'${R.from}',to:'${R.to}',type:'renewals'})`}],dashShort(T.rev),'facturado');
+  const donut2=dashDonut([{v:T.cost,c:'#ff9f43',on:`goFinance({from:'${R.from}',to:'${R.to}',type:'${dashType}'})`},{v:Math.max(0,T.profit),c:'#3ddc97',on:`goFinance({from:'${R.from}',to:'${R.to}',type:'${dashType}'})`}],T.margin.toFixed(0)+'%','margen');
+  const leg=(c,l,v,on)=>`<button type="button" class="dcLegRow" onclick="${on}"><span><span class="dcDot" style="background:${c}"></span>${l}</span><b>${v}</b></button>`;
+  const donuts=`<div class="card" style="margin-top:12px"><div class="sectionTitle" style="margin:0 0 8px">🍩 Composición</div>
+    <div class="grid2">
+      <div><div class="tiny muted" style="text-align:center">Origen del ingreso</div>${donut1}
+        ${leg('#4db1ff','Ventas',`${pc(T.sRev,T.rRev)}% · ${dashShort(T.sRev)}`,`goFinance({from:'${R.from}',to:'${R.to}',type:'sales'})`)}
+        ${leg('#3ddc97','Renovaciones',`${pc(T.rRev,T.sRev)}% · ${dashShort(T.rRev)}`,`goFinance({from:'${R.from}',to:'${R.to}',type:'renewals'})`)}</div>
+      <div><div class="tiny muted" style="text-align:center">Destino del ingreso</div>${donut2}
+        ${leg('#ff9f43','Gastos',dashShort(T.cost),fin())}
+        ${leg(T.profit>=0?'#3ddc97':'#ff5d6c',T.profit>=0?'Ganancia':'Pérdida',dashShort(T.profit),fin())}</div>
+    </div></div>`;
+
+  // Por servicio
+  const svc={};
+  moves.forEach(m=>{
+    if(m.date<R.from||m.date>R.to||!dashInType(m))return;
+    const its=m.items.length?m.items:[{sid:null,cost:m.cost}];
+    its.forEach(it=>{const k=it.sid||'_';const o=svc[k]=svc[k]||{id:it.sid,name:it.sid?(serviceBy(it.sid)?.name||'Servicio'):'Sin servicio',rev:0,cost:0,n:0};o.rev+=m.rev/its.length;o.cost+=it.cost;o.n++});
+  });
+  const svcRows=Object.values(svc).map(o=>({...o,v:dashMV(o)})).sort((a,b)=>b.v-a.v).slice(0,6);
+  const svcMax=Math.max(...svcRows.map(o=>Math.abs(o.v)),1);
+  const svcHtml=svcRows.length?svcRows.map(o=>`<button type="button" class="dcLegRow" style="display:block" ${o.id?`onclick="goFinance({service:'${o.id}',from:'${R.from}',to:'${R.to}',type:'${dashType}'})"`:''}>
+    <div class="row between"><span style="display:flex;align-items:center;gap:8px">${o.id?svcIcon(o.id,22):''}<b>${esc(o.name)}</b></span><span>${dashFmt(o.v)}</span></div>
+    <div class="dcBarTrack"><div class="dcBarFill" style="width:${Math.max(3,Math.abs(o.v)/svcMax*100).toFixed(0)}%;background:${o.v>=0?'linear-gradient(90deg,#4db1ff,#6b6cff)':'#ff5d6c'}"></div></div>
+    <div class="tiny muted">${o.n} mov. · ingreso ${dashShort(o.rev)} · gasto ${dashShort(o.cost)}</div></button>`).join(''):'<div class="muted">Sin datos en este período.</div>';
+
+  // Por cliente
+  const cl={};
+  moves.forEach(m=>{if(m.date<R.from||m.date>R.to||!dashInType(m)||!m.clientId)return;const o=cl[m.clientId]=cl[m.clientId]||{id:m.clientId,rev:0,cost:0,n:0};o.rev+=m.rev;o.cost+=m.cost;o.n++});
+  const clRows=Object.values(cl).map(o=>({...o,v:dashMV(o)})).sort((a,b)=>b.v-a.v).slice(0,5);
+  const clHtml=clRows.length?clRows.map((o,i)=>`<button type="button" class="dcLegRow" style="margin-top:8px" onclick="openClientDetail('${o.id}')"><span><b>${i+1}.</b> ${esc(clientBy(o.id)?.name||'Cliente')} <span class="tiny muted">· ${o.n} mov.</span></span><b>${dashFmt(o.v)}</b></button>`).join(''):'<div class="muted">Sin datos en este período.</div>';
+
+  box.innerHTML=`${(missingRenewalsCard()+misdatedCard()).replace(/margin-top:12px/g,'margin-bottom:12px')}<div class="card">
+      <div class="row between"><div class="sectionTitle" style="margin:0">📊 Análisis del negocio</div><span class="tiny muted">${formatDateAR(R.from)} → ${formatDateAR(R.to)}</span></div>
+      <div class="dashChips">${chip('period','today','Hoy',dashPeriod)}${chip('period','week','7 días',dashPeriod)}${chip('period','month','Mes',dashPeriod)}${chip('period','d30','30 días',dashPeriod)}${chip('period','year','Año',dashPeriod)}${chip('period','all','Todo',dashPeriod)}</div>
+      <div class="dashChips">${chip('type','all','Ventas + renovaciones',dashType)}${chip('type','sales','Ventas',dashType)}${chip('type','renewals','Renovaciones',dashType)}</div>
+      ${kpi}
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="sectionTitle" style="margin:0">${mname} ${gname}</div>
+      <div class="dashChips">${chip('metric','revenue','Facturado',dashMetric)}${chip('metric','profit','Ganancia',dashMetric)}${chip('metric','count','Cantidad',dashMetric)}</div>
+      <div class="dashChips">${chip('gran','auto','Auto',dashGran)}${chip('gran','day','Día',dashGran)}${chip('gran','week','Semana',dashGran)}${chip('gran','month','Mes',dashGran)}</div>
+      ${T.n?`<div class="dcScroll" id="dashChartScroll"><div class="dcRow">${cols}</div></div>
+      <div class="dcLegend"><span><span class="dcDot" style="background:#4db1ff"></span>Ventas</span><span><span class="dcDot" style="background:#3ddc97"></span>Renovaciones</span>${dashMetric==='profit'?'<span><span class="dcDot" style="background:#ff5d6c"></span>Pérdida</span>':''}</div>`:'<div class="muted" style="margin-top:10px">Sin movimientos en este período.</div>'}
+      ${detail}
+    </div>
+    ${donuts}
+    <div class="card" style="margin-top:12px"><div class="row between"><div class="sectionTitle" style="margin:0">🎬 Por servicio</div><span class="tiny muted">${mname}</span></div><div style="margin-top:6px">${svcHtml}</div></div>
+    <div class="card" style="margin-top:12px"><div class="sectionTitle" style="margin:0">👑 Mejores clientes del período</div>${clHtml}</div>`;
+  const sc=document.getElementById('dashChartScroll');
+  if(sc)sc.scrollLeft=(keepScroll&&sl!=null)?sl:sc.scrollWidth;
+}
+
 function renderHome(){
   const todayRef=new Date();
   const todayIso=today();
+  try{renderDashAnalytics(true)}catch(e){console.error('dash',e)}
 
   // Métricas rápidas ya existentes
   if(typeof mClients!=='undefined')mClients.textContent=state.clients.filter(c=>!c.archived_at).length;
-  if(typeof mPending!=='undefined')mPending.textContent=state.saleItems.filter(i=>['renewal_pending','payment_pending'].includes(i.workflow_status)).length;
+  if(typeof mPending!=='undefined')mPending.textContent=state.saleItems.filter(isPendingItem).length;
   const occ=new Set(state.assignments.filter(a=>!a.released_at).map(a=>a.account_slot_id));
   const activeAccountIds=new Set(state.accounts.filter(a=>!a.archived_at&&a.status==='active').map(a=>a.id));
   if(typeof mSlots!=='undefined')mSlots.textContent=state.slots.filter(s=>s.active&&activeAccountIds.has(s.account_id)&&!occ.has(s.id)).length;
@@ -2015,16 +2210,23 @@ function renderHome(){
   const monthCostArs=state.saleItems
     .filter(i=>monthSaleIds.has(i.sale_id))
     .reduce((sum,i)=>sum+amountArsFromItemCost(i),0);
-  const monthProfitArs=monthRevenueArs-monthCostArs;
+  // Renovaciones del mes (tabla renewal_finance): también suman a facturación, costo y ganancia
+  const renewalsThisMonth=(state.renewalFinance||[]).filter(r=>sameMonth(dayKey(r.renewed_at),todayRef));
+  const monthRenewalRevenueArs=renewalsThisMonth.reduce((sum,r)=>sum+renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency),0);
+  const monthRenewalCostArs=renewalsThisMonth.reduce((sum,r)=>sum+renewalArs(r.cost_amount,r.cost_ars,r.cost_currency),0);
+  const monthSalesRevenueArs=monthRevenueArs,monthSalesCostArs=monthCostArs;
+  const monthTotalRevenueArs=monthSalesRevenueArs+monthRenewalRevenueArs;
+  const monthTotalCostArs=monthSalesCostArs+monthRenewalCostArs;
+  const monthProfitArs=monthTotalRevenueArs-monthTotalCostArs;
 
   const dashMonthSales=document.getElementById('dashMonthSales');
   const dashMonthSalesMeta=document.getElementById('dashMonthSalesMeta');
   const dashMonthProfit=document.getElementById('dashMonthProfit');
   const dashMonthProfitMeta=document.getElementById('dashMonthProfitMeta');
-  if(dashMonthSales)dashMonthSales.textContent=dashboardMoneyARS(monthRevenueArs);
-  if(dashMonthSalesMeta)dashMonthSalesMeta.textContent=`${salesThisMonth.length} venta(s) este mes`;
+  if(dashMonthSales)dashMonthSales.textContent=dashboardMoneyARS(monthTotalRevenueArs);
+  if(dashMonthSalesMeta)dashMonthSalesMeta.textContent=`${salesThisMonth.length} venta(s) + ${renewalsThisMonth.length} renovación(es) este mes`;
   if(dashMonthProfit)dashMonthProfit.textContent=dashboardMoneyARS(monthProfitArs);
-  if(dashMonthProfitMeta)dashMonthProfitMeta.textContent=`Costo directo: ${dashboardMoneyARS(monthCostArs)}`;
+  if(dashMonthProfitMeta)dashMonthProfitMeta.textContent=`Costo directo: ${dashboardMoneyARS(monthTotalCostArs)}`;
 
   // gráfico últimos 7 días
   const last7=[];
@@ -2033,10 +2235,11 @@ function renderHome(){
     d.setDate(d.getDate()-i);
     const iso=d.toISOString().slice(0,10);
     const daySales=state.sales.filter(s=>dayKey(s.sold_at)===iso);
+    const dayRenewals=(state.renewalFinance||[]).filter(r=>dayKey(r.renewed_at)===iso);
     last7.push({
       label:shortDayLabel(iso),
-      amount:daySales.reduce((sum,s)=>sum+amountArsFromSale(s),0),
-      count:daySales.length
+      amount:daySales.reduce((sum,s)=>sum+amountArsFromSale(s),0)+dayRenewals.reduce((sum,r)=>sum+renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency),0),
+      count:daySales.length+dayRenewals.length
     });
   }
   renderSalesBars('dashSalesChart', last7);
@@ -2056,8 +2259,9 @@ function renderHome(){
   })[0];
 
   // ticket promedio
-  const totalRevenueAll=state.sales.reduce((sum,s)=>sum+amountArsFromSale(s),0);
-  const avgTicket=state.sales.length?totalRevenueAll/state.sales.length:0;
+  const totalRevenueAll=state.sales.reduce((sum,s)=>sum+amountArsFromSale(s),0)+(state.renewalFinance||[]).reduce((sum,r)=>sum+renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency),0);
+  const totalMovementsAll=state.sales.length+(state.renewalFinance||[]).length;
+  const avgTicket=totalMovementsAll?totalRevenueAll/totalMovementsAll:0;
   const activeServicesCount=state.saleItems.filter(i=>{
     if(i.workflow_status==='not_renewing')return false;
     if(!i.end_date)return true;
@@ -2077,22 +2281,22 @@ function renderHome(){
   if(indicators){
     indicators.innerHTML=`
       <div class="dashSplit">
-        <div class="dashTinyCard">
+        <div class="dashTinyCard itemClickable" onclick="goSalesPreset('all')">
           <div class="dashIndicatorTitle">Servicios activos</div>
           <div class="dashIndicatorValue">${activeServicesCount}</div>
           <div class="tiny muted">perfiles / servicios vigentes</div>
         </div>
-        <div class="dashTinyCard">
+        <div class="dashTinyCard itemClickable" onclick="goFinance({})">
           <div class="dashIndicatorTitle">Ticket promedio</div>
           <div class="dashIndicatorValue">${dashboardMoneyARS(avgTicket)}</div>
-          <div class="tiny muted">promedio por venta</div>
+          <div class="tiny muted">promedio por venta/renovación</div>
         </div>
-        <div class="dashTinyCard">
+        <div class="dashTinyCard itemClickable" onclick="goFinance({from:'${bestDayEntry?bestDayEntry[0]:''}',to:'${bestDayEntry?bestDayEntry[0]:''}'})">
           <div class="dashIndicatorTitle">Día con más ventas</div>
           <div class="dashIndicatorValue">${bestDayEntry?formatDateAR(bestDayEntry[0]):'—'}</div>
           <div class="tiny muted">${bestDayEntry?bestDayEntry[1].count+' venta(s) · '+dashboardMoneyARS(bestDayEntry[1].amount):'Sin datos'}</div>
         </div>
-        <div class="dashTinyCard">
+        <div class="dashTinyCard itemClickable" onclick="showScreen('more')">
           <div class="dashIndicatorTitle">Servicio más vendido</div>
           <div class="dashIndicatorValue" style="font-size:1rem">${esc(topServiceName)}</div>
           <div class="tiny muted">histórico total</div>
@@ -2108,9 +2312,16 @@ function renderHome(){
       const c=clientBy(s.client_id);
       if(!c)return;
       const key=c.id;
-      acc[key]=acc[key]||{name:c.name||'Cliente', amount:0, count:0};
+      acc[key]=acc[key]||{id:c.id,name:c.name||'Cliente', amount:0, count:0};
       acc[key].amount+=amountArsFromSale(s);
       acc[key].count++;
+    });
+    (state.renewalFinance||[]).forEach(r=>{
+      const c=clientBy(r.client_id);
+      if(!c)return;
+      acc[c.id]=acc[c.id]||{id:c.id,name:c.name||'Cliente', amount:0, count:0};
+      acc[c.id].amount+=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency);
+      acc[c.id].count++;
     });
     return Object.values(acc).sort((a,b)=>b.amount-a.amount)[0];
   })();
@@ -2128,12 +2339,12 @@ function renderHome(){
   const tops=document.getElementById('dashTops');
   if(tops){
     tops.innerHTML=`
-      <div class="dashChip">👑 Mejor cliente: <b>${esc(topClientByRevenue?.name||'—')}</b></div>
-      <div class="dashChip">💸 Facturación: <b>${dashboardMoneyARS(topClientByRevenue?.amount||0)}</b></div>
-      <div class="dashChip">🧾 Ventas de ese cliente: <b>${topClientByRevenue?.count||0}</b></div>
-      <div class="dashChip">🎬 Servicio top: <b>${esc(topServiceByCount?.name||'—')}</b></div>
-      <div class="dashChip">📦 Cantidad: <b>${topServiceByCount?.count||0}</b></div>
-      <div class="dashChip">📈 Ventas totales: <b>${state.sales.length}</b></div>
+      <button type="button" class="dashChip dashClick" onclick="${topClientByRevenue?`openClientDetail('${topClientByRevenue.id}')`:''}">👑 Mejor cliente: <b>${esc(topClientByRevenue?.name||'—')}</b></button>
+      <button type="button" class="dashChip dashClick" onclick="goFinance({search:'${esc(topClientByRevenue?.name||'').replace(/'/g,'')}'})">💸 Facturación: <b>${dashboardMoneyARS(topClientByRevenue?.amount||0)}</b></button>
+      <button type="button" class="dashChip dashClick" onclick="goSalesPreset('all')">🧾 Movimientos de ese cliente: <b>${topClientByRevenue?.count||0}</b></button>
+      <button type="button" class="dashChip dashClick" onclick="showScreen('more')">🎬 Servicio top: <b>${esc(topServiceByCount?.name||'—')}</b></button>
+      <button type="button" class="dashChip dashClick" onclick="goSalesPreset('all')">📦 Cantidad: <b>${topServiceByCount?.count||0}</b></button>
+      <button type="button" class="dashChip dashClick" onclick="goSalesPreset('all')">📈 Ventas totales: <b>${state.sales.length}</b></button>
     `;
   }
 
@@ -2143,18 +2354,26 @@ function renderHome(){
     state.sales.forEach(s=>{
       const c=clientBy(s.client_id);
       if(!c)return;
-      acc[c.id]=acc[c.id]||{title:c.name||'Cliente', amount:0, count:0, phone:c.phone_raw||c.phone_e164||''};
+      acc[c.id]=acc[c.id]||{id:c.id,title:c.name||'Cliente', amount:0, count:0, phone:c.phone_raw||c.phone_e164||''};
       acc[c.id].amount+=amountArsFromSale(s);
+      acc[c.id].count++;
+    });
+    (state.renewalFinance||[]).forEach(r=>{
+      const c=clientBy(r.client_id);
+      if(!c)return;
+      acc[c.id]=acc[c.id]||{id:c.id,title:c.name||'Cliente', amount:0, count:0, phone:c.phone_raw||c.phone_e164||''};
+      acc[c.id].amount+=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency);
       acc[c.id].count++;
     });
     return Object.values(acc)
       .sort((a,b)=>b.amount-a.amount)
       .slice(0,5)
       .map(x=>({
+        onclick:`openClientDetail('${x.id}')`,
         title:x.title,
-        meta:x.phone?x.phone:`${x.count} venta(s)`,
+        meta:x.phone?x.phone:`${x.count} movimiento(s)`,
         value:dashboardMoneyARS(x.amount),
-        subvalue:`${x.count} venta(s)`
+        subvalue:`${x.count} mov.`
       }));
   })();
   renderMiniRanks('dashTopClients', clientRanks, 'Todavía no hay clientes con ventas.');
@@ -2165,7 +2384,7 @@ function renderHome(){
     state.saleItems.forEach(i=>{
       const s=serviceBy(i.service_id);
       const name=s?.name||'Servicio';
-      acc[name]=acc[name]||{title:name,count:0,rev:0};
+      acc[name]=acc[name]||{id:i.service_id,title:name,count:0,rev:0};
       acc[name].count++;
       const sale=saleBy(i.sale_id);
       acc[name].rev+=amountArsFromSale(sale);
@@ -2174,6 +2393,7 @@ function renderHome(){
       .sort((a,b)=>b.count-a.count || b.rev-a.rev)
       .slice(0,5)
       .map(x=>({
+        onclick:`goFinance({service:'${x.id}'})`,
         title:x.title,
         meta:`${x.count} servicio(s) vendidos`,
         value:String(x.count),
@@ -2226,9 +2446,9 @@ function renderHome(){
 
     cap.innerHTML=rows.length?rows.map(r=>{
       const pct=r.total?Math.round((r.occupied/r.total)*100):0;
-      return `<div class="item">
+      return `<div class="item itemClickable" onclick="goAccountsService('${r.service.id}')">
         <div class="row between">
-          <b>${esc(r.service.name)}</b>
+          <span style="display:flex;align-items:center;gap:8px">${svcIcon(r.service,26)}<b>${esc(r.service.name)}</b></span>
           <span class="badge ${r.free>0?'ok':'danger'}">${r.free} libre(s)</span>
         </div>
         <div class="tiny muted">Total: ${r.total} · Ocupados: ${r.occupied} · Libres: ${r.free}</div>
@@ -2242,15 +2462,15 @@ function renderHome(){
   // actividad reciente
   const homeActivity=document.getElementById('homeActivity');
   if(homeActivity){
-    const last=(state.activities||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,6);
+    const last=(state.activityLog||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,6);
     homeActivity.innerHTML=last.length?last.map(x=>`
-      <div class="item">
+      <div class="item ${activityOpenAction(x)?'itemClickable':''}" ${activityOpenAction(x)?`onclick="${activityOpenAction(x)}"`:''}>
         <div class="row between">
           <b>${esc(x.action||'Actividad')}</b>
           <span class="tiny muted">${x.created_at?new Date(x.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</span>
         </div>
         <div class="tiny muted">${esc(x.entity_type||'')}</div>
-        <div class="tiny">${esc(x.detail||x.summary||'')}</div>
+        <div class="tiny">${esc(x.details||x.detail||x.summary||'')}</div>
       </div>
     `).join(''):'<div class="muted">Sin actividad reciente.</div>';
   }
@@ -2389,30 +2609,68 @@ function renderSales(){
     </div>`;
   }).join(''):'<div class="muted">No hay ventas que coincidan con este filtro.</div>';
 }
+
+/* ===== Iconos de servicios (Simple Icons vía CDN, con fallback a inicial) ===== */
+const SVC_BRANDS=[
+ [/netflix/,'netflix','#E50914'],[/disney/,'disneyplus','#113CCF'],[/spotify/,'spotify','#1DB954'],
+ [/prime|amazon/,'primevideo','#00A8E1'],[/paramount/,'paramountplus','#0064FF'],[/apple\s*tv|appletv/,'appletv','#2b2b30'],
+ [/hbo|\bmax\b/,'hbomax','#5A2D91'],[/youtube\s*music|yt\s*music/,'youtubemusic','#FF0000'],[/youtube|\byt\b/,'youtube','#FF0000'],
+ [/crunchy/,'crunchyroll','#F47521'],[/canva/,'canva','#00A9B5'],[/chatgpt|openai/,'openai','#10A37F'],[/duolingo/,'duolingo','#58CC02'],
+ [/deezer/,'deezer','#A238FF'],[/tidal/,'tidal','#1a1a1a'],[/plex/,'plex','#E5A00D'],[/twitch/,'twitch','#9146FF'],
+ [/office|microsoft/,'microsoftoffice','#D83B01'],[/adobe/,'adobe','#E1251B'],[/linkedin/,'linkedin','#0A66C2'],
+ [/nord/,'nordvpn','#4687FF'],[/express\s*vpn/,'expressvpn','#DA3940'],[/vix/,'','#FF6A13'],[/flujo/,'','#7C3AED'],[/star/,'','#0b3d91']
+];
+function svcBrand(name){
+  const n=String(name||'').toLowerCase();
+  const f=SVC_BRANDS.find(b=>b[0].test(n));
+  if(f)return {slug:f[1],color:f[2]};
+  let h=0;for(const ch of n)h=(h*31+ch.charCodeAt(0))%360;
+  return {slug:'',color:`hsl(${h},55%,38%)`};
+}
+function svcIcon(srv,size){
+  size=size||36;
+  if(typeof srv==='string')srv=serviceBy(srv);
+  const name=srv?.name||'?',b=svcBrand(name);
+  const custom=srv&&[srv.icon_url,srv.logo_url].find(u=>typeof u==='string'&&/^https?:/.test(u));
+  const url=custom||(b.slug?`https://cdn.jsdelivr.net/npm/simple-icons@11.14.0/icons/${b.slug}.svg`:'');
+  const letter=(String(name).trim()[0]||'?').toUpperCase();
+  return `<span class="svcIco" style="width:${size}px;height:${size}px;min-width:${size}px;background:${custom?'#fff':b.color};font-size:${Math.round(size*.45)}px"><span>${esc(letter)}</span>${url?`<img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" ${custom?'':'style="filter:invert(1)"'} onload="this.previousElementSibling.style.display='none'" onerror="this.remove()">`:''}</span>`;
+}
+function renderAccountsHeader(info){
+  const tot=info.reduce((a,x)=>a+x.slots.length,0),occ=info.reduce((a,x)=>a+x.occupied,0),free=Math.max(0,tot-occ);
+  const full=info.filter(x=>x.slots.length>0&&x.free===0).length;
+  const pct=tot?Math.round(occ/tot*100):0;
+  const sum=document.getElementById('accountsSummary');
+  if(sum)sum.innerHTML=`
+    <button type="button" class="accTile" onclick="accountServiceFilter='';setAccountCapacityFilter('all')"><span class="tiny muted">Cuentas</span><b>${info.length}</b></button>
+    <button type="button" class="accTile accGreen" onclick="setAccountCapacityFilter('free')"><span class="tiny muted">Cupos libres</span><b>${free}</b></button>
+    <button type="button" class="accTile accRed" onclick="setAccountCapacityFilter('full')"><span class="tiny muted">Completas</span><b>${full}</b></button>
+    <div class="accTile accWide"><div class="row between"><span class="tiny muted">Ocupación total</span><b style="font-size:.95rem">${pct}% · ${occ}/${tot}</b></div><div class="accBar"><div style="width:${pct}%"></div></div></div>`;
+  const chips=document.getElementById('accountServiceChips');
+  if(chips){
+    const svcs=state.services.filter(s=>info.some(x=>x.account.service_id===s.id)).sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
+    chips.innerHTML=[`<button class="btn ${accountServiceFilter===''?'primary':'secondary'} small svcChip" onclick="setAccountServiceFilter('')">Todos</button>`,
+      ...svcs.map(s=>{const f=info.filter(x=>x.account.service_id===s.id).reduce((a,x)=>a+x.free,0);
+        return `<button class="btn ${accountServiceFilter===s.id?'primary':'secondary'} small svcChip" onclick="setAccountServiceFilter('${s.id}')">${svcIcon(s,22)}<span>${esc(s.name)}</span><span class="svcCnt ${f>0?'ok':'no'}">${f}</span></button>`})].join('');
+  }
+  const cap=document.getElementById('accountCapChips');
+  if(cap)cap.innerHTML=[['all','Todas'],['free','Con cupos libres'],['full','Completas'],['mine','Administradas por mí'],['provider','Proveedor']].map(([k,l])=>`<button class="btn ${accountCapacityFilter===k?'primary':'secondary'} small" onclick="setAccountCapacityFilter('${k}')">${l}</button>`).join('');
+}
 function renderAccounts(){
   const search=(document.getElementById('accountsSearch')?.value||'').trim().toLowerCase();
   const sort=document.getElementById('accountsSort')?.value||'free_desc';
 
-  const chips=document.getElementById('accountServiceChips');
-  if(chips){
-    const dynamicServices=state.services
-      .filter(s=>state.accounts.some(a=>!a.archived_at&&a.service_id===s.id))
-      .sort((a,b)=>(a.name||'').localeCompare(b.name||'','es'));
-
-    chips.innerHTML=[
-      `<button class="btn ${accountServiceFilter===''?'primary':'secondary'} small" onclick="setAccountServiceFilter('')">Todos los servicios</button>`,
-      ...dynamicServices.map(s=>`<button class="btn ${accountServiceFilter===s.id?'primary':'secondary'} small" onclick="setAccountServiceFilter('${s.id}')">${esc(s.name)}</button>`)
-    ].join('');
-  }
-
-  let visible=state.accounts
+  const accInfo=state.accounts
     .filter(a=>!a.archived_at)
     .map(a=>{
       const slots=state.slots.filter(s=>s.account_id===a.id&&s.active);
       const occupied=slots.filter(s=>activeAssignSlot(s.id)).length;
       const free=Math.max(0,slots.length-occupied);
       return {account:a,slots,occupied,free};
-    })
+    });
+  renderAccountsHeader(accInfo);
+
+  let visible=accInfo
     .filter(x=>{
       const a=x.account;
       if(accountServiceFilter&&a.service_id!==accountServiceFilter)return false;
@@ -2445,26 +2703,35 @@ function renderAccounts(){
   accountsList.innerHTML=visible.length?visible.map(x=>{
     const a=x.account,sl=x.slots,o=x.occupied,free=x.free;
     const service=serviceBy(a.service_id);
-    return `<div class="item">
-      <button type="button" onclick="openAccountDetail('${a.id}')" style="width:100%;background:none;border:0;color:inherit;text-align:left;padding:0">
-        <div class="row between">
-          <div>
-            <b style="text-decoration:underline;text-underline-offset:3px">${esc(service?.name||'')}</b>
-            <div class="tiny muted">${esc(a.login_email||'Sin correo')}</div>
+    const prov=a.account_mode==='provider_managed';
+    const dExp=a.provider_expires_at?daysUntil(a.provider_expires_at):null;
+    const expCls=dExp==null?'':dExp<=3?'danger':dExp<=7?'warn':'';
+    const state_=sl.length&&free===0?'full':free<=1?'low':'ok';
+    const meter=sl.length&&sl.length<=12
+      ? `<div class="accSlots">${sl.map(sx=>`<i class="${activeAssignSlot(sx.id)?'on':''} ${state_}"></i>`).join('')}</div>`
+      : `<div class="accBar ${state_}"><div style="width:${sl.length?Math.round(o/sl.length*100):0}%"></div></div>`;
+    return `<div class="item accCard ${state_}">
+      <button type="button" class="accOpen" onclick="openAccountDetail('${a.id}')">
+        <div class="accHead">
+          ${svcIcon(service,44)}
+          <div class="accTitle">
+            <div class="row between"><b>${esc(service?.name||'Servicio')}</b><span class="badge ${free>0?'ok':'danger'}">${o}/${sl.length}</span></div>
+            <div class="tiny muted accEmail">${esc(a.login_email||'Sin correo')}</div>
           </div>
-          <span class="badge">${o}/${sl.length}</span>
         </div>
-        <div class="tiny" style="margin-top:4px">${a.account_mode==='provider_managed'?`Perfiles comprados: ${sl.length} · libres: ${free}`:`${o}/${sl.length} ocupados · ${free} libres`}</div>
-        <div class="tiny muted">${a.account_mode==='provider_managed'?'Administrada por proveedor':'Cuenta completa administrada por vos'}</div>
-        ${a.provider_expires_at?`<div class="tiny muted" style="margin-top:3px">Vence con proveedor: ${esc(a.provider_expires_at)}</div>`:''}
-        <div class="tiny muted" style="margin-top:5px">Tocá para ver clientes dentro de esta cuenta</div>
+        ${meter}
+        <div class="row between" style="margin-top:6px">
+          <span class="tiny">${free>0?`<b style="color:#3ddc97">${free} libre(s)</b>`:'<b style="color:#ff8f9b">Completa</b>'} · ${o} ocupado(s)</span>
+          <span class="badge">${prov?'🏷️ Proveedor':'👤 Propia'}</span>
+        </div>
+        ${a.provider_expires_at?`<div class="tiny" style="margin-top:5px"><span class="badge ${expCls}">⏳ Proveedor vence ${esc(a.provider_expires_at)}${dExp!=null?` · ${dExp<0?'vencida':dExp===0?'hoy':'en '+dExp+' d'}`:''}</span></div>`:''}
       </button>
-      <div class="row wrap" style="margin-top:8px">
-        <button class="btn secondary small" onclick="openAccountModal('${a.id}')">✏️ Editar</button>
-        <button class="btn secondary small" onclick="copyAccountData('${a.id}')">📋 Copiar</button>
-        <button class="btn warn small" onclick="sendProviderRenewal('${a.id}')">📤 Renovar proveedor</button>
-        <button class="btn warn small" onclick="openMigrateModal('${a.id}')">Migrar</button>
-        <button class="btn danger small" onclick="deleteAccount('${a.id}')">Eliminar</button>
+      <div class="accActs">
+        <button class="accAct" onclick="openAccountModal('${a.id}')"><b>✏️</b>Editar</button>
+        <button class="accAct" onclick="copyAccountData('${a.id}')"><b>📋</b>Copiar</button>
+        <button class="accAct warn" onclick="sendProviderRenewal('${a.id}')"><b>📤</b>Renovar</button>
+        <button class="accAct warn" onclick="openMigrateModal('${a.id}')"><b>🔀</b>Migrar</button>
+        <button class="accAct danger" onclick="deleteAccount('${a.id}')"><b>🗑️</b>Borrar</button>
       </div>
     </div>`;
   }).join(''):'<div class="muted">No hay cuentas que coincidan con estos filtros.</div>';
@@ -2862,7 +3129,8 @@ function openRenewSingleFinanceModal(itemId){
   <div><label>Moneda cobrada</label><select id="rfRevenueCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===def.currency?'selected':''}>${c}</option>`).join('')}</select></div></div>
   <div class="grid2"><div><label>Inversión / costo renovación</label><input id="rfCost" type="number" step="0.01" value="${item.direct_cost==null?'':Number(item.direct_cost)}"></div>
   <div><label>Moneda inversión</label><select id="rfCostCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(item.direct_cost_currency||sale?.currency||'ARS')?'selected':''}>${c}</option>`).join('')}</select></div></div>
-  <div class="grid2"><div><label>Inicio</label><input id="rfStart" type="date" value="${esc(start)}"></div><div><label>Vence</label><input id="rfEnd" type="date" value="${esc(end)}"></div></div>
+  <div class="grid2"><div><label>Inicio (fecha que correspondía renovar)</label><input id="rfStart" type="date" value="${esc(start)}"></div><div><label>Vence</label><input id="rfEnd" type="date" value="${esc(end)}"></div></div>
+  <div class="tiny muted">📅 La renovación se registra en la fecha de vencimiento anterior (Inicio), aunque el cliente pague o lo cargues días después. Así se mantiene el orden mes a mes.</div>
   <button class="btn ok" style="width:100%;margin-top:12px" onclick="confirmRenewSingleFinance('${itemId}')">✓ Confirmar renovación</button>`);
 }
 async function confirmRenewSingleFinance(itemId){
@@ -2882,7 +3150,8 @@ function openRenewWholeSaleFinanceModal(saleId){
   openModal(`<div class="sectionTitle">🔄 Renovar toda la venta</div><div class="tiny muted">Ingresá el total cobrado y la inversión total de esta renovación. Se registrará aparte de la venta original.</div>
   <div class="grid2"><div><label>Total cobrado renovación</label><input id="rwRevenue" type="number" step="0.01" value="${Number(sale.total_amount||0)}"></div><div><label>Moneda</label><select id="rwRevenueCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}</select></div></div>
   <div class="grid2"><div><label>Inversión total renovación</label><input id="rwCost" type="number" step="0.01" value="${items.reduce((a,i)=>a+Number(i.direct_cost||0),0)}"></div><div><label>Moneda inversión</label><select id="rwCostCurrency">${['ARS','UYU','CLP','USD','USDT'].map(c=>`<option ${c===(sale.currency||'ARS')?'selected':''}>${c}</option>`).join('')}</select></div></div>
-  <label>Fecha de renovación</label><input id="rwDate" type="date" value="${today()}">
+  <label>📅 Fecha que correspondía renovar (vencimiento)</label><input id="rwDate" type="date" value="${items.map(i=>i.end_date).filter(Boolean).sort()[0]||today()}">
+  <div class="tiny muted">Se registra en esa fecha aunque el cliente pague o lo cargues después.</div>
   <button class="btn ok" style="width:100%;margin-top:12px" onclick="confirmRenewWholeSaleFinance('${saleId}')">✓ Confirmar renovación completa</button>`);
 }
 async function confirmRenewWholeSaleFinance(saleId){
@@ -3461,6 +3730,165 @@ function financeAnomaliesForSale(s){
 }
 
 
+/* ===== Renovaciones detectadas sin cobro registrado ===== */
+function ignoredRenewals(){try{return JSON.parse(localStorage.getItem('ignoredRenewals')||'[]')}catch(e){return []}}
+function missingRenewals(){
+  const ign=new Set(ignoredRenewals()),out=[];
+  state.saleItems.forEach(i=>{
+    const sale=saleBy(i.sale_id);if(!sale||!i.start_date||!sale.sold_at)return;
+    const st=dayKey(i.start_date),sold=dayKey(sale.sold_at);
+    if(dashDiff(sold,st)<7)return;
+    if(ign.has(i.id+'|'+st))return;
+    const covered=(state.renewalFinance||[]).some(r=>{
+      if(r.sale_id!==i.sale_id)return false;
+      const d=dayKey(r.renewed_at);
+      if(r.sale_item_id===i.id)return Math.abs(dashDiff(d,st))<=1;
+      if(!r.sale_item_id)return Math.abs(dashDiff(d,st))<=5;
+      return false;
+    });
+    if(!covered)out.push(i);
+  });
+  return out.sort((a,b)=>String(b.start_date).localeCompare(String(a.start_date)));
+}
+function missingRenewalsCard(){
+  const n=missingRenewals().length;if(!n)return '';
+  return `<div class="card" style="margin-top:12px;border-color:#ff9f43"><div class="row between"><div class="sectionTitle" style="margin:0">🧩 ${n} renovación(es) sin cobro registrado</div><button class="btn warn small" onclick="openMissingRenewals()">Revisar</button></div><div class="tiny muted" style="margin-top:6px">Hay servicios con un período nuevo (el cliente renovó) pero sin renovación cargada en Finanzas, por eso <b>no suman</b> a facturación, gastos ni ganancia de su fecha.</div></div>`;
+}
+function openMissingRenewals(){
+  const list=missingRenewals();
+  openModal(`<div class="row between"><div class="sectionTitle" style="margin:0">🧩 Renovaciones sin cobro registrado</div><button class="btn secondary small" onclick="closeModal()">✕</button></div>
+  <div class="tiny muted" style="margin:6px 0 10px">Estos servicios ya empezaron un nuevo período pero no tienen la renovación en Finanzas (por ejemplo, se cambió la fecha desde "Editar venta"). Registrá el cobro: queda en la fecha de vencimiento que correspondía.</div>
+  ${list.length?list.slice(0,40).map(i=>{const sale=saleBy(i.sale_id),c=sale&&clientBy(sale.client_id);return `<div class="item">
+    <div class="row between"><b>${esc(c?.name||'Cliente')}</b><span class="badge warn">renovó ${esc(formatDateAR(i.start_date))}</span></div>
+    <div class="tiny muted">${esc(serviceBy(i.service_id)?.name||'Servicio')} · vence ${esc(formatDateAR(i.end_date)||'-')} · venta original ${esc(sale?.sold_at||'-')}</div>
+    <div class="row wrap" style="margin-top:8px"><button class="btn ok small" onclick="openRegisterRenewalModal('${i.id}')">+ Registrar cobro</button><button class="btn secondary small" onclick="ignoreMissingRenewal('${i.id}','${dayKey(i.start_date)}')">No es renovación</button></div></div>`}).join(''):'<div class="muted">Todo en orden ✅</div>'}`);
+}
+function ignoreMissingRenewal(id,st){
+  try{const a=ignoredRenewals();a.push(id+'|'+st);localStorage.setItem('ignoredRenewals',JSON.stringify(a))}catch(e){}
+  openMissingRenewals();renderHome();
+}
+function openRegisterRenewalModal(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId);if(!item)return;
+  const srv=serviceBy(item.service_id),sale=saleBy(item.sale_id),c=sale&&clientBy(sale.client_id),def=renewalDefaultRevenueForItem(item);
+  const cur=sel=>['ARS','UYU','CLP','USD','USDT'].map(x=>`<option ${x===sel?'selected':''}>${x}</option>`).join('');
+  openModal(`<div class="sectionTitle">🧩 Registrar renovación</div>
+  <div class="tiny muted">${esc(c?.name||'Cliente')} · ${esc(srv?.name||'Servicio')}. No cambia las fechas del servicio: solo agrega el cobro y la inversión a Finanzas.</div>
+  <div class="grid2"><div><label>Cobrado al cliente</label><input id="rgRev" type="number" step="0.01" value="${def.amount}"></div><div><label>Moneda cobrada</label><select id="rgRevCur">${cur(def.currency)}</select></div></div>
+  <div class="grid2"><div><label>Inversión / costo</label><input id="rgCost" type="number" step="0.01" value="${item.direct_cost==null?'':Number(item.direct_cost)}"></div><div><label>Moneda inversión</label><select id="rgCostCur">${cur(item.direct_cost_currency||sale?.currency||'ARS')}</select></div></div>
+  <label>📅 Fecha que correspondía renovar</label><input id="rgDate" type="date" value="${esc(dayKey(item.start_date))}">
+  <button class="btn ok" style="width:100%;margin-top:12px" onclick="confirmRegisterRenewal('${itemId}')">✓ Registrar en Finanzas</button>`);
+}
+async function confirmRegisterRenewal(itemId){
+  const item=state.saleItems.find(i=>i.id===itemId),sale=item&&saleBy(item.sale_id);if(!item||!sale)return;
+  const rev=Number(rgRev.value||0),cost=Number(rgCost.value||0);
+  if(!rgDate.value)return alert('Elegí la fecha.');
+  if(!fxUpdatedAt)await refreshFxRates(true);
+  const revFx=snapshotFxToARS(rev,rgRevCur.value),costFx=snapshotFxToARS(cost,rgCostCur.value);
+  const ins=await sb.from('renewal_finance').insert({sale_id:sale.id,sale_item_id:item.id,service_id:item.service_id,client_id:sale.client_id,renewed_at:rgDate.value,revenue_amount:rev,revenue_currency:rgRevCur.value,revenue_fx_rate_to_ars:revFx.rate,revenue_ars:revFx.amountArs,cost_amount:cost,cost_currency:rgCostCur.value,cost_fx_rate_to_ars:costFx.rate,cost_ars:costFx.amountArs});
+  if(ins.error)return alert(ins.error.message);
+  await refreshAll();openMissingRenewals();
+}
+/* ===== Renovaciones registradas en un día distinto al vencimiento ===== */
+function misdatedRenewals(){
+  const out=[];
+  (state.renewalFinance||[]).forEach(r=>{
+    const d=dayKey(r.renewed_at);if(!d)return;
+    const its=r.sale_item_id?state.saleItems.filter(i=>i.id===r.sale_item_id):saleItemsFor(r.sale_id);
+    let best=null;
+    its.forEach(i=>{
+      if(!i.start_date)return;
+      const st=dayKey(i.start_date),diff=dashDiff(st,d);
+      if(diff>=1&&diff<=10&&(!best||st<best))best=st;
+    });
+    if(best)out.push({r,to:best,diff:dashDiff(best,d)});
+  });
+  return out.sort((a,b)=>String(b.r.renewed_at).localeCompare(String(a.r.renewed_at)));
+}
+function misdatedCard(){
+  const n=misdatedRenewals().length;if(!n)return '';
+  return `<div class="card" style="margin-top:12px;border-color:#4db1ff"><div class="row between"><div class="sectionTitle" style="margin:0">📅 ${n} renovación(es) en fecha equivocada</div><button class="btn primary small" onclick="openMisdated()">Corregir</button></div><div class="tiny muted" style="margin-top:6px">Se registraron el día que se cargaron y no el día que vencía el servicio, y por eso desordenan el calendario.</div></div>`;
+}
+function openMisdated(){
+  const list=misdatedRenewals();
+  openModal(`<div class="row between"><div class="sectionTitle" style="margin:0">📅 Renovaciones en fecha equivocada</div><button class="btn secondary small" onclick="closeModal()">✕</button></div>
+  <div class="tiny muted" style="margin:6px 0 10px">La renovación debe quedar en la fecha en que le correspondía renovar (el vencimiento anterior), no cuando se cargó. Corregirla solo cambia la fecha del movimiento en Finanzas.</div>
+  ${list.length?`<button class="btn ok" style="width:100%;margin-bottom:10px" onclick="fixMisdated()">✓ Corregir las ${list.length} a su fecha de vencimiento</button>`:''}
+  ${list.length?list.slice(0,40).map(x=>{const c=clientBy(x.r.client_id),srv=serviceBy(x.r.service_id);return `<div class="item"><div class="row between"><b>${esc(c?.name||'Cliente')}</b><button class="btn secondary small" onclick="fixMisdated('${x.r.id}')">Corregir</button></div>
+    <div class="tiny muted">${esc(srv?.name||'Venta completa')} · cargada ${esc(formatDateAR(dayKey(x.r.renewed_at)))} → vencía <b>${esc(formatDateAR(x.to))}</b> (+${x.diff} d)</div></div>`}).join(''):'<div class="muted">Todo en orden ✅</div>'}`);
+}
+async function fixMisdated(id){
+  const list=misdatedRenewals().filter(x=>!id||x.r.id===id);
+  for(const x of list){
+    const up=await sb.from('renewal_finance').update({renewed_at:x.to}).eq('id',x.r.id);
+    if(up.error)return alert(up.error.message);
+  }
+  await refreshAll();openMisdated();
+}
+function financeAnomaliesForRenewal(r){
+  const issues=[];
+  const valid=['ARS','UYU','CLP','USD','USDT'];
+  const rc=String(r.revenue_currency||'ARS').toUpperCase(),cc=String(r.cost_currency||'ARS').toUpperCase();
+  const rev=Number(r.revenue_amount||0),cost=Number(r.cost_amount||0);
+  const revArs=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency);
+  const costArs=renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);
+  const srv=serviceBy(r.service_id)?.name||'Venta completa';
+  if(!r.renewed_at)issues.push('Renovación sin fecha');
+  if(!valid.includes(rc))issues.push(`Moneda de cobro desconocida: ${rc}`);
+  if(!valid.includes(cc))issues.push(`Moneda de inversión desconocida: ${cc}`);
+  if(rev<=0&&cost>0)issues.push(`${srv}: tiene inversión pero no tiene cobro cargado`);
+  if(rev>0&&costArs>revArs*3)issues.push(`${srv}: inversión supera 3× lo cobrado`);
+  else if(rev>0&&costArs>revArs)issues.push(`${srv}: inversión mayor a lo cobrado (renovación con pérdida)`);
+  if(rc!=='ARS'&&r.revenue_ars==null)issues.push(`Cobro en ${rc} sin cotización histórica`);
+  if(cost>0&&cc!=='ARS'&&r.cost_ars==null)issues.push(`Inversión en ${cc} sin cotización histórica`);
+  if(['USD','USDT'].includes(rc)&&rev>=500)issues.push(`Cobro ${money(rev,rc)} inusualmente alto; revisar si debía ser ARS`);
+  if(['USD','USDT'].includes(cc)&&cost>=100)issues.push(`Inversión ${money(cost,cc)} inusualmente alta; revisar si debía ser ARS`);
+  if(cc==='UYU'&&cost>=10000)issues.push(`Inversión ${money(cost,cc)} inusualmente alta; revisar moneda`);
+  if(cc==='CLP'&&cost>0&&cost<100)issues.push(`Inversión ${money(cost,cc)} inusualmente baja; revisar moneda`);
+  const key=x=>(x.sale_item_id||x.sale_id||'')+'|'+String(x.renewed_at||'').slice(0,10);
+  const dups=(state.renewalFinance||[]).filter(x=>key(x)===key(r));
+  if(dups.length>1)issues.push(`Posible renovación duplicada (${dups.length} registros del mismo servicio y fecha)`);
+  return [...new Set(issues)];
+}
+function editRenewalFinance(id){
+  const r=(state.renewalFinance||[]).find(x=>x.id===id);if(!r)return;
+  const c=clientBy(r.client_id),srv=serviceBy(r.service_id);
+  const cur=sel=>['ARS','UYU','CLP','USD','USDT'].map(x=>`<option ${x===sel?'selected':''}>${x}</option>`).join('');
+  openModal(`<div class="sectionTitle">✏️ Corregir renovación</div>
+  <div class="tiny muted">${esc(c?.name||'Cliente')} · ${esc(srv?.name||'Venta completa')}</div>
+  <div class="grid2"><div><label>Cobrado</label><input id="reRev" type="number" step="0.01" value="${Number(r.revenue_amount||0)}"></div><div><label>Moneda cobro</label><select id="reRevCur">${cur(String(r.revenue_currency||'ARS').toUpperCase())}</select></div></div>
+  <div class="grid2"><div><label>Inversión</label><input id="reCost" type="number" step="0.01" value="${Number(r.cost_amount||0)}"></div><div><label>Moneda inversión</label><select id="reCostCur">${cur(String(r.cost_currency||'ARS').toUpperCase())}</select></div></div>
+  <label>📅 Fecha que correspondía renovar</label><input id="reDate" type="date" value="${esc(String(r.renewed_at||'').slice(0,10))}">
+  <button class="btn ok" style="width:100%;margin-top:12px" onclick="saveRenewalFinance('${id}')">✓ Guardar corrección</button>
+  <button class="btn danger" style="width:100%;margin-top:8px" onclick="deleteRenewalFinance('${id}')">🗑 Eliminar este registro</button>`);
+}
+async function saveRenewalFinance(id){
+  const rev=Number(reRev.value||0),cost=Number(reCost.value||0);
+  if(!reDate.value)return alert('Elegí la fecha.');
+  if(!fxUpdatedAt)await refreshFxRates(true);
+  const revFx=snapshotFxToARS(rev,reRevCur.value),costFx=snapshotFxToARS(cost,reCostCur.value);
+  const up=await sb.from('renewal_finance').update({renewed_at:reDate.value,revenue_amount:rev,revenue_currency:reRevCur.value,revenue_fx_rate_to_ars:revFx.rate,revenue_ars:revFx.amountArs,cost_amount:cost,cost_currency:reCostCur.value,cost_fx_rate_to_ars:costFx.rate,cost_ars:costFx.amountArs}).eq('id',id);
+  if(up.error)return alert(up.error.message);
+  closeModal();await refreshAll();renderFinance();
+}
+async function deleteRenewalFinance(id){
+  if(!confirm('¿Eliminar este registro de renovación? Esto no cambia el vencimiento del servicio, solo quita el movimiento de Finanzas.'))return;
+  const del=await sb.from('renewal_finance').delete().eq('id',id);
+  if(del.error)return alert(del.error.message);
+  closeModal();await refreshAll();renderFinance();
+}
+function toggleFinanceAnomalies(){const el=document.getElementById('finOnlyAnomalies');if(el)el.checked=!el.checked;renderFinance()}
+function finSetFilter(id,v){const el=document.getElementById(id);if(el){el.value=v||''}renderFinance()}
+function goFinance(o){
+  o=o||{};
+  showScreen('finance');
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||''};
+  set('finFrom',o.from);set('finTo',o.to);set('finSearch',o.search);set('finSaleCurrency',o.saleCur);set('finCostCurrency',o.costCur);
+  const an=document.getElementById('finOnlyAnomalies');if(an)an.checked=!!o.anomalies;
+  renderFinance();
+  set('finService',o.service);
+  setFinanceMovementType(o.type||'all');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function setFinanceMovementType(type){
   const input=document.getElementById('finMovementType');
   if(input)input.value=type||'all';
@@ -3553,11 +3981,11 @@ function renderFinance(){
     const c=clientBy(r.client_id);if(q&&!String(c?.name||'').toLowerCase().includes(q))return false;
     if(saleCurrency&&String(r.revenue_currency||'ARS').toUpperCase()!==saleCurrency)return false;
     if(costCurrency&&String(r.cost_currency||'ARS').toUpperCase()!==costCurrency)return false;
-    if(onlyAnomalies)return false;
+    if(onlyAnomalies&&!financeAnomaliesForRenewal(r).length)return false;
     return true;
   });
   let renewalRevenueArs=0,renewalCostArs=0;
-  renewals.forEach(r=>{renewalRevenueArs+=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency);renewalCostArs+=renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);});
+  renewals.forEach(r=>{anomalyCount+=financeAnomaliesForRenewal(r).length;renewalRevenueArs+=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency);renewalCostArs+=renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);});
   const salesRevenueArs=revenueArs,salesCostArs=costArs;
   revenueArs+=renewalRevenueArs;costArs+=renewalCostArs;
   const profit=revenueArs-costArs;
@@ -3574,36 +4002,37 @@ function renderFinance(){
         <div class="financeStat"><span class="tiny muted">Ticket promedio</span><b>${money(avg,'ARS')}</b></div>
       </div>
       <div class="financeBreakdown">
-        <div class="item"><b>Total</b><div class="tiny">Cobrado: ${money(revenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(costArs,'ARS')} · Ganancia: ${money(profit,'ARS')}</div></div>
-        <div class="item"><b>Ventas</b><div class="tiny">Cobrado: ${money(salesRevenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(salesCostArs,'ARS')} · Ganancia: ${money(salesRevenueArs-salesCostArs,'ARS')}</div></div>
-        <div class="item"><b>Renovaciones</b><div class="tiny">Cobrado: ${money(renewalRevenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(renewalCostArs,'ARS')} · Ganancia: ${money(renewalRevenueArs-renewalCostArs,'ARS')}</div></div>
+        <button type="button" class="item itemClickable" style="text-align:left;color:inherit;width:100%" onclick="setFinanceMovementType('all')"><b>Total</b><div class="tiny">Cobrado: ${money(revenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(costArs,'ARS')} · Ganancia: ${money(profit,'ARS')}</div></button>
+        <button type="button" class="item itemClickable" style="text-align:left;color:inherit;width:100%" onclick="setFinanceMovementType('sales')"><b>Ventas</b><div class="tiny">Cobrado: ${money(salesRevenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(salesCostArs,'ARS')} · Ganancia: ${money(salesRevenueArs-salesCostArs,'ARS')}</div></button>
+        <button type="button" class="item itemClickable" style="text-align:left;color:inherit;width:100%" onclick="setFinanceMovementType('renewals')"><b>Renovaciones</b><div class="tiny">Cobrado: ${money(renewalRevenueArs,'ARS')}</div><div class="tiny muted">Invertido: ${money(renewalCostArs,'ARS')} · Ganancia: ${money(renewalRevenueArs-renewalCostArs,'ARS')}</div></button>
       </div>
       <div class="tiny muted" style="margin-top:8px">${snapshotSales} venta(s) con cotización histórica guardada${liveFallbacks?` · ${liveFallbacks} registro(s) viejo(s) convertidos con cotización actual`:''}.</div>
     </div>
+    ${missingRenewalsCard()}${misdatedCard()}
     <div class="card">
-      <div class="row between"><b>🧪 Control de datos</b><span class="badge ${anomalyCount?'warn':''}">${anomalyCount} alerta(s)</span></div>
+      <div class="row between"><b>🧪 Control de datos</b><button type="button" class="badge ${anomalyCount?'warn':''}" style="cursor:pointer;color:inherit" onclick="toggleFinanceAnomalies()">${anomalyCount} alerta(s) · ${onlyAnomalies?'ver todo':'ver solo alertas'}</button></div>
       <div class="tiny muted" style="margin-top:5px">Detecta monedas sospechosas, cotizaciones faltantes y costos convertidos desproporcionados. No modifica nada automáticamente.</div>
       <div style="margin-top:10px">${Object.entries(currencyStats).sort().map(([cur,x])=>`
-        <div class="item">
+        <button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="finSetFilter('finSaleCurrency','${esc(cur)}')">
           <b>${esc(cur)}</b>
           <div class="tiny">Cobros: ${x.sales} · ${money(x.revenueRaw,cur)}</div>
           <div class="tiny muted">Inversiones: ${x.costItems} · ${money(x.costRaw,cur)}</div>
-        </div>`).join('')||'<div class="muted">Sin movimientos.</div>'}
+        </button>`).join('')||'<div class="muted">Sin movimientos.</div>'}
       </div>
     </div>`;
 
-  const topServices=Object.values(serviceStats).sort((a,b)=>b.qty-a.qty).slice(0,8);
+  const topServices=Object.entries(serviceStats).map(([id,v])=>({...v,id})).sort((a,b)=>b.qty-a.qty).slice(0,8);
   const topSrv=document.getElementById('financeTopServices');
   if(topSrv)topSrv.innerHTML=topServices.length?topServices.map((x,idx)=>`
-    <div class="item"><div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.qty}</span></div>
-    <div class="tiny">Ventas ≈ ${money(x.revenueArs,'ARS')}</div><div class="tiny muted">Costo ≈ ${money(x.costArs,'ARS')}</div></div>
+    <button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="finSetFilter('finService','${x.id}')"><div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.qty}</span></div>
+    <div class="tiny">Ventas ≈ ${money(x.revenueArs,'ARS')}</div><div class="tiny muted">Costo ≈ ${money(x.costArs,'ARS')}</div></button>
   `).join(''):'<div class="muted">Sin datos.</div>';
 
-  const topClients=Object.values(clientStats).sort((a,b)=>b.sales-a.sales).slice(0,8);
+  const topClients=Object.entries(clientStats).map(([id,v])=>({...v,id})).sort((a,b)=>b.sales-a.sales).slice(0,8);
   const topCli=document.getElementById('financeTopClients');
   if(topCli)topCli.innerHTML=topClients.length?topClients.map((x,idx)=>`
-    <div class="item"><div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.sales} venta(s)</span></div>
-    <div class="tiny muted">${money(x.revenueArs,'ARS')}</div></div>
+    <button type="button" class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openClientDetail('${x.id}')"><div class="row between"><b>${idx+1}. ${esc(x.name)}</b><span class="badge">${x.sales} venta(s)</span></div>
+    <div class="tiny muted">${money(x.revenueArs,'ARS')}</div></button>
   `).join(''):'<div class="muted">Sin datos.</div>';
 
   financeSalesList.innerHTML=sales.length?sales.map(s=>{
@@ -3619,16 +4048,18 @@ function renderFinance(){
     </button>`;
   }).join(''):'';
   const renewalHtml=renewals.map(r=>{
-    const c=clientBy(r.client_id),srv=serviceBy(r.service_id);
+    const c=clientBy(r.client_id),srv=serviceBy(r.service_id),issues=financeAnomaliesForRenewal(r);
     const p=renewalArs(r.revenue_amount,r.revenue_ars,r.revenue_currency)-renewalArs(r.cost_amount,r.cost_ars,r.cost_currency);
-    return `<button class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${r.sale_id}')">
+    return `<div class="item itemClickable" style="width:100%;text-align:left;color:inherit" onclick="openSaleDetail('${r.sale_id}')">
       <div class="row between"><b>🔄 ${esc(c?.name||'Cliente')} · Renovación</b><b>${money(r.revenue_amount,r.revenue_currency||'ARS')}</b></div>
       <div class="tiny muted">${esc(r.renewed_at||'-')}${srv?` · ${esc(srv.name)}`:' · Venta completa'} ${r.legacy_inferred?'<span class="badge warn">Histórica detectada</span>':''}</div>
       <div class="tiny">Inversión: ${money(r.cost_amount||0,r.cost_currency||'ARS')} · Ganancia ≈ ${money(p,'ARS')}</div>
-    </button>`;
+      ${issues.length?`<div class="tiny" style="margin-top:6px"><span class="badge warn">⚠️ ${issues.length} posible(s) incongruencia(s)</span><br>${issues.map(x=>`• ${esc(x)}`).join('<br>')}</div>`:''}
+      <div style="margin-top:8px"><button type="button" class="btn secondary small" onclick="event.stopPropagation();editRenewalFinance('${r.id}')">✏️ Corregir</button></div>
+    </div>`;
   }).join('');
   financeSalesList.innerHTML=(financeSalesList.innerHTML||'')+renewalHtml;
-  if(!financeSalesList.innerHTML)financeSalesList.innerHTML='<div class="muted">Sin movimientos para estos filtros.</div>';
+  if(!financeSalesList.innerHTML)financeSalesList.innerHTML=onlyAnomalies?'<div class="muted">✅ No se detectaron incongruencias con estos filtros.</div>':'<div class="muted">Sin movimientos para estos filtros.</div>';
 }
 function getSaleItemContext(itemId){
   const item=state.saleItems.find(x=>x.id===itemId);
@@ -6786,8 +7217,11 @@ function updateEditSaleRenewal(changeDate=true){
 async function saveEditedSaleItem(itemId){
   const i=state.saleItems.find(x=>x.id===itemId);if(!i)return;
   const sale=saleBy(i.sale_id);
+  const prevStart=i.start_date;
   try{
     if(!fxUpdatedAt)await refreshFxRates(true);
+    const newStartVal=editStart.value||'';
+    window.__askRegisterRenewal=(prevStart&&newStartVal&&dashDiff(dayKey(prevStart),newStartVal)>=7)?itemId:null;
     const editCostValue=editCost.value===''?null:Number(editCost.value);
     const editCostFx=snapshotFxToARS(editCostValue||0,editCostCurrency.value);
     const editedTotal=Number(editSaleTotal.value||0);
@@ -6858,6 +7292,7 @@ async function saveEditedSaleItem(itemId){
     closeModal();
     await refreshAll();
     alert('Venta actualizada ✅');
+    if(window.__askRegisterRenewal&&confirm('Adelantaste la fecha de inicio del servicio (parece una renovación).\n\n¿Querés registrar ahora el cobro de esa renovación en Finanzas? Si no, no va a sumar a facturación.')){const id=window.__askRegisterRenewal;window.__askRegisterRenewal=null;openRegisterRenewalModal(id);}
   }catch(err){
     console.error(err);
     alert(err.message||String(err));
